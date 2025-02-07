@@ -16,6 +16,8 @@ color=blueviolet 🔵q
 <!-- [![Latest Version](https://img.shields.io/github/release/jaggedsoft/node-binance-api.svg?style=flat-square&labelColor=blueviolet&label=release)](https://github.com/jaggedsoft/node-binance-api/releases) [![GitHub last commit](https://img.shields.io/github/last-commit/jaggedsoft/node-binance-api.svg?maxAge=2400&labelColor=333&label=🟣%20updated)](#) [![Monthly Downloads](https://img.shields.io/npm/dm/node-binance-api.svg?labelColor=29B6F6&color=3D5AFE&label=downloads&logo=bitcoin-lightning)](https://npm-stat.com/charts.html?package=node-binance-api&from=2017-07-01&to=2020-07-01)  -->
 [![jaggedsoft on X](https://img.shields.io/twitter/follow/jaggedsoft.svg?style=social)](https://x.com/jaggedsoft)
 
+[![telegram](https://patrolavia.github.io/telegram-badge/chat.png)](https://t.me/nodebinanceapi)
+
 [![NPM](https://nodei.co/npm/node-binance-api.png?compact=true)](https://npmjs.org/package/node-binance-api)
 
 # Node Binance API
@@ -36,6 +38,11 @@ This project is designed to help you make your own projects that interact with t
 
 #### Installation: **`npm install -s node-binance-api`**
 [![npm install node-binance-api](https://nodei.co/npm/node-binance-api.png?mini=true)](https://npmjs.org/package/node-binance-api)
+
+#### Community Telegram Chat
+
+https://t.me/nodebinanceapi
+
 
 #### Getting started
 ```javascript
