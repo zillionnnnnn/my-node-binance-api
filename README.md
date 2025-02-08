@@ -36,7 +36,12 @@ This project is designed to help you make your own projects that interact with t
   <a href="https://t.me/binance_api_english">Support</a>
 </p></b>
 
-#### Installation: **`npm install -s node-binance-api`**
+#### Installation
+
+```
+npm install -s node-binance-api
+```
+
 [![npm install node-binance-api](https://nodei.co/npm/node-binance-api.png?mini=true)](https://npmjs.org/package/node-binance-api)
 
 #### Community Telegram Chat
@@ -44,7 +49,17 @@ This project is designed to help you make your own projects that interact with t
 https://t.me/nodebinanceapi
 
 
-#### Getting started
+#### Getting started (ESM)
+```javascript
+import Binance from 'node-binance-api';
+async function run() {
+    const exchange = new Binance();
+    const res = await exchange.futuresTime();
+    console.log( res );
+}
+```
+
+#### Getting started (CJS)
 ```javascript
 const Binance = require('node-binance-api');
 const binance = new Binance().options({
