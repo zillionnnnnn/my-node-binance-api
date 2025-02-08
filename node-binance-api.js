@@ -4080,7 +4080,7 @@ let api = function Binance( options = {} ) {
         },
 
         futuresAccount: async ( params = {} ) => {
-            return promiseRequest( 'v2/account', params, { base:fapi, type:'SIGNED' } );
+            return promiseRequest( 'v3/account', params, { base:fapi, type:'SIGNED' } );
         },
 
         futuresDepth: async ( symbol, params = {} ) => {
