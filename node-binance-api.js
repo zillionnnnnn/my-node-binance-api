@@ -67,7 +67,7 @@ let api = function Binance( options = {} ) {
         test: false,
         hedgeMode: false,
         localAddress: false,
-        family: false,
+        family: 4,
         log: function ( ...args ) {
             console.log( Array.prototype.slice.call( args ) );
         }
@@ -367,7 +367,7 @@ let api = function Binance( options = {} ) {
             side: side,
             type: 'LIMIT'
         };
-        if(typeof flags.quoteOrderQty !== undefined && flags.quoteOrderQty > 0)
+        if( typeof flags.quoteOrderQty !== undefined && flags.quoteOrderQty > 0 )
             opt.quoteOrderQty = flags.quoteOrderQty
         else
             opt.quantity = quantity
