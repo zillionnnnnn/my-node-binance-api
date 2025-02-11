@@ -21,6 +21,7 @@ let api = function Binance( options = {} ) {
     const stringHash = require( 'string-hash' );
     const async = require( 'async' );
     let base = 'https://api.binance.com/api/';
+    let baseTest = 'https://testnet.binance.vision/api/';
     let wapi = 'https://api.binance.com/wapi/';
     let sapi = 'https://api.binance.com/sapi/';
     let fapi = 'https://fapi.binance.com/fapi/';
@@ -121,13 +122,18 @@ let api = function Binance( options = {} ) {
             if ( typeof urls.dstreamSingleTest === 'string' ) dstreamSingleTest = urls.dstreamSingleTest;
         }
         if ( Binance.options.useServerTime ) {
-            publicRequest( base + 'v3/time', {}, function ( error, response ) {
+            publicRequest( getSpotUrl() + 'v3/time', {}, function ( error, response ) {
                 Binance.info.timeOffset = response.serverTime - new Date().getTime();
                 //Binance.options.log("server time set: ", response.serverTime, Binance.info.timeOffset);
                 if ( callback ) callback();
             } );
         } else if ( callback ) callback();
         return this;
+    }
+
+    const getSpotUrl = () => {
+        if ( Binance.options.test ) return baseTest;
+        return base;
     }
 
     /**
@@ -536,6 +542,7 @@ let api = function Binance( options = {} ) {
                 headers['X-MBX-APIKEY'] = Binance.options.APIKEY;
             }
             let baseURL = typeof flags.base === 'undefined' ? base : flags.base;
+            if ( Binance.options.test && baseURL === base ) baseURL = baseTest;
             if ( Binance.options.test && baseURL === fapi ) baseURL = fapiTest;
             if ( Binance.options.test && baseURL === dapi ) baseURL = dapiTest;
             let opt = {
@@ -3006,12 +3013,12 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    signedRequest( base + 'v3/order', { symbol: symbol, orderId: orderid }, function ( error, data ) {
+                    signedRequest( getSpotUrl() + 'v3/order', { symbol: symbol, orderId: orderid }, function ( error, data ) {
                         return callback.call( this, error, data, symbol );
                     }, 'DELETE' );
                 } )
             } else {
-                signedRequest( base + 'v3/order', { symbol: symbol, orderId: orderid }, function ( error, data ) {
+                signedRequest( getSpotUrl() + 'v3/order', { symbol: symbol, orderId: orderid }, function ( error, data ) {
                     return callback.call( this, error, data, symbol );
                 }, 'DELETE' );
             }
@@ -3040,12 +3047,12 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    signedRequest( base + 'v3/order', parameters, function ( error, data ) {
+                    signedRequest( getSpotUrl() + 'v3/order', parameters, function ( error, data ) {
                         return callback.call( this, error, data, symbol );
                     } );
                 } )
             } else {
-                signedRequest( base + 'v3/order', parameters, function ( error, data ) {
+                signedRequest( getSpotUrl() + 'v3/order', parameters, function ( error, data ) {
                     return callback.call( this, error, data, symbol );
                 } );
             }
@@ -3068,12 +3075,12 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    signedRequest( base + 'v3/openOrders', parameters, function ( error, data ) {
+                    signedRequest( getSpotUrl() + 'v3/openOrders', parameters, function ( error, data ) {
                         return callback.call( this, error, data, symbol );
                     } );
                 } )
             } else {
-                signedRequest( base + 'v3/openOrders', parameters, function ( error, data ) {
+                signedRequest( getSpotUrl() + 'v3/openOrders', parameters, function ( error, data ) {
                     return callback.call( this, error, data, symbol );
                 } );
             }
@@ -3095,10 +3102,10 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    signedRequest( base + 'v3/openOrders', { symbol }, callback, 'DELETE' );
+                    signedRequest( getSpotUrl() + 'v3/openOrders', { symbol }, callback, 'DELETE' );
                 } )
             } else {
-                signedRequest( base + 'v3/openOrders', { symbol }, callback, 'DELETE' );
+                signedRequest( getSpotUrl() + 'v3/openOrders', { symbol }, callback, 'DELETE' );
             }
         },
 
@@ -3118,28 +3125,28 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    signedRequest( base + 'v3/openOrders', { symbol }, function ( error, json ) {
+                    signedRequest( getSpotUrl() + 'v3/openOrders', { symbol }, function ( error, json ) {
                         if ( json.length === 0 ) {
                             return callback.call( this, 'No orders present for this symbol', {}, symbol );
                         }
                         for ( let obj of json ) {
                             let quantity = obj.origQty - obj.executedQty;
                             Binance.options.log( 'cancel order: ' + obj.side + ' ' + symbol + ' ' + quantity + ' @ ' + obj.price + ' #' + obj.orderId );
-                            signedRequest( base + 'v3/order', { symbol, orderId: obj.orderId }, function ( error, data ) {
+                            signedRequest( getSpotUrl() + 'v3/order', { symbol, orderId: obj.orderId }, function ( error, data ) {
                                 return callback.call( this, error, data, symbol );
                             }, 'DELETE' );
                         }
                     } );
                 } )
             } else {
-                signedRequest( base + 'v3/openOrders', { symbol: symbol }, function ( error, json ) {
+                signedRequest( getSpotUrl() + 'v3/openOrders', { symbol: symbol }, function ( error, json ) {
                     if ( json.length === 0 ) {
                         return callback.call( this, 'No orders present for this symbol', {}, symbol );
                     }
                     for ( let obj of json ) {
                         let quantity = obj.origQty - obj.executedQty;
                         Binance.options.log( 'cancel order: ' + obj.side + ' ' + symbol + ' ' + quantity + ' @ ' + obj.price + ' #' + obj.orderId );
-                        signedRequest( base + 'v3/order', { symbol: symbol, orderId: obj.orderId }, function ( error, data ) {
+                        signedRequest( getSpotUrl() + 'v3/order', { symbol: symbol, orderId: obj.orderId }, function ( error, data ) {
                             return callback.call( this, error, data, symbol );
                         }, 'DELETE' );
                     }
@@ -3169,12 +3176,12 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    signedRequest( base + 'v3/allOrders', parameters, function ( error, data ) {
+                    signedRequest( getSpotUrl() + 'v3/allOrders', parameters, function ( error, data ) {
                         return callback.call( this, error, data, symbol );
                     } );
                 } )
             } else {
-                signedRequest( base + 'v3/allOrders', parameters, function ( error, data ) {
+                signedRequest( getSpotUrl() + 'v3/allOrders', parameters, function ( error, data ) {
                     return callback.call( this, error, data, symbol );
                 } );
             }
@@ -3197,12 +3204,12 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    publicRequest( base + 'v3/depth', { symbol: symbol, limit: limit }, function ( error, data ) {
+                    publicRequest( getSpotUrl() + 'v3/depth', { symbol: symbol, limit: limit }, function ( error, data ) {
                         return callback.call( this, error, depthData( data ), symbol );
                     } );
                 } )
             } else {
-                publicRequest( base + 'v3/depth', { symbol: symbol, limit: limit }, function ( error, data ) {
+                publicRequest( getSpotUrl() + 'v3/depth', { symbol: symbol, limit: limit }, function ( error, data ) {
                     return callback.call( this, error, depthData( data ), symbol );
                 } );
             }
@@ -3216,7 +3223,7 @@ let api = function Binance( options = {} ) {
         */
         avgPrice: function ( symbol, callback = false ) {
             let opt = {
-                url: base + 'v3/avgPrice?symbol=' + symbol,
+                url:getSpotUrl() + 'v3/avgPrice?symbol=' + symbol,
                 timeout: Binance.options.recvWindow
             };
             if ( !callback ) {
@@ -3250,7 +3257,7 @@ let api = function Binance( options = {} ) {
             if ( typeof symbol === 'function' ) callback = symbol; // backwards compatibility
 
             let opt = {
-                url: base + 'v3/ticker/price' + params,
+                url:getSpotUrl() + 'v3/ticker/price' + params,
                 timeout: Binance.options.recvWindow
             };
             if ( !callback ) {
@@ -3279,7 +3286,7 @@ let api = function Binance( options = {} ) {
             const params = typeof symbol === 'string' ? '?symbol=' + symbol : '';
             if ( typeof symbol === 'function' ) callback = symbol; // backwards compatibility
             let opt = {
-                url: base + 'v3/ticker/bookTicker' + params,
+                url:getSpotUrl() + 'v3/ticker/bookTicker' + params,
                 timeout: Binance.options.recvWindow
             };
             if ( !callback ) {
@@ -3317,12 +3324,12 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    publicRequest( base + 'v3/ticker/24hr', input, ( error, data ) => {
+                    publicRequest( getSpotUrl() + 'v3/ticker/24hr', input, ( error, data ) => {
                         return callback.call( this, error, data, symbol );
                     } );
                 } )
             } else {
-                publicRequest( base + 'v3/ticker/24hr', input, ( error, data ) => {
+                publicRequest( getSpotUrl() + 'v3/ticker/24hr', input, ( error, data ) => {
                     return callback.call( this, error, data, symbol );
                 } );
             }
@@ -3343,10 +3350,10 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    publicRequest( base + 'v3/exchangeInfo', {}, callback );
+                    publicRequest( getSpotUrl() + 'v3/exchangeInfo', {}, callback );
                 } )
             } else {
-                publicRequest( base + 'v3/exchangeInfo', {}, callback );
+                publicRequest( getSpotUrl() + 'v3/exchangeInfo', {}, callback );
             }
         },
 
@@ -3586,10 +3593,10 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    signedRequest( base + 'v3/account', {}, callback );
+                    signedRequest( getSpotUrl() + 'v3/account', {}, callback );
                 } )
             } else {
-                signedRequest( base + 'v3/account', {}, callback );
+                signedRequest( getSpotUrl() + 'v3/account', {}, callback );
             }
         },
 
@@ -3608,12 +3615,12 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    signedRequest( base + 'v3/account', {}, function ( error, data ) {
+                    signedRequest( getSpotUrl() + 'v3/account', {}, function ( error, data ) {
                         callback( error, balanceData( data ) );
                     } );
                 } )
             } else {
-                signedRequest( base + 'v3/account', {}, function ( error, data ) {
+                signedRequest( getSpotUrl() + 'v3/account', {}, function ( error, data ) {
                     callback( error, balanceData( data ) );
                 } );
             }
@@ -3637,12 +3644,12 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    signedRequest( base + 'v3/myTrades', parameters, function ( error, data ) {
+                    signedRequest( getSpotUrl() + 'v3/myTrades', parameters, function ( error, data ) {
                         return callback.call( this, error, data, symbol );
                     } );
                 } )
             } else {
-                signedRequest( base + 'v3/myTrades', parameters, function ( error, data ) {
+                signedRequest( getSpotUrl() + 'v3/myTrades', parameters, function ( error, data ) {
                     return callback.call( this, error, data, symbol );
                 } );
             }
@@ -3663,7 +3670,7 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    publicRequest( base + 'v3/time', {}, function ( error, response ) {
+                    publicRequest( getSpotUrl() + 'v3/time', {}, function ( error, response ) {
                         if ( !error ) {
                             Binance.info.timeOffset = response.serverTime - new Date().getTime();
                             //Binance.options.log("server time set: ", response.serverTime, Binance.info.timeOffset);
@@ -3672,7 +3679,7 @@ let api = function Binance( options = {} ) {
                     } );
                 } )
             } else {
-                publicRequest( base + 'v3/time', {}, function ( error, response ) {
+                publicRequest( getSpotUrl() + 'v3/time', {}, function ( error, response ) {
                     if ( !error ) {
                         Binance.info.timeOffset = response.serverTime - new Date().getTime();
                         //Binance.options.log("server time set: ", response.serverTime, Binance.info.timeOffset);
@@ -3697,10 +3704,10 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    publicRequest( base + 'v3/time', {}, callback );
+                    publicRequest( getSpotUrl() + 'v3/time', {}, callback );
                 } )
             } else {
-                publicRequest( base + 'v3/time', {}, callback );
+                publicRequest( getSpotUrl() + 'v3/time', {}, callback );
             }
         },
 
@@ -3722,10 +3729,10 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    publicRequest( base + 'v3/aggTrades', parameters, callback );
+                    publicRequest( getSpotUrl() + 'v3/aggTrades', parameters, callback );
                 } )
             } else {
-                publicRequest( base + 'v3/aggTrades', parameters, callback );
+                publicRequest( getSpotUrl() + 'v3/aggTrades', parameters, callback );
             }
         },
 
@@ -3746,10 +3753,10 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    marketRequest( base + 'v1/trades', { symbol: symbol, limit: limit }, callback );
+                    marketRequest( getSpotUrl() + 'v1/trades', { symbol: symbol, limit: limit }, callback );
                 } )
             } else {
-                marketRequest( base + 'v1/trades', { symbol: symbol, limit: limit }, callback );
+                marketRequest( getSpotUrl() + 'v1/trades', { symbol: symbol, limit: limit }, callback );
             }
         },
 
@@ -3773,10 +3780,10 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    marketRequest( base + 'v3/historicalTrades', parameters, callback );
+                    marketRequest( getSpotUrl() + 'v3/historicalTrades', parameters, callback );
                 } )
             } else {
-                marketRequest( base + 'v3/historicalTrades', parameters, callback );
+                marketRequest( getSpotUrl() + 'v3/historicalTrades', parameters, callback );
             }
         },
 
@@ -3841,12 +3848,12 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    publicRequest( base + 'v3/klines', params, function ( error, data ) {
+                    publicRequest( getSpotUrl() + 'v3/klines', params, function ( error, data ) {
                         return callback.call( this, error, data, symbol );
                     } );
                 } )
             } else {
-                publicRequest( base + 'v3/klines', params, function ( error, data ) {
+                publicRequest( getSpotUrl() + 'v3/klines', params, function ( error, data ) {
                     return callback.call( this, error, data, symbol );
                 } );
             }
@@ -5337,11 +5344,11 @@ let api = function Binance( options = {} ) {
                 let reconnect = () => {
                     if ( Binance.options.reconnect ) userData( callback, execution_callback, subscribed_callback );
                 };
-                apiRequest( base + 'v3/userDataStream', {}, function ( error, response ) {
+                apiRequest( getSpotUrl() + 'v3/userDataStream', {}, function ( error, response ) {
                     Binance.options.listenKey = response.listenKey;
                     setTimeout( function userDataKeepAlive() { // keepalive
                         try {
-                            apiRequest( base + 'v3/userDataStream?listenKey=' + Binance.options.listenKey, {}, function ( err ) {
+                            apiRequest( getSpotUrl() + 'v3/userDataStream?listenKey=' + Binance.options.listenKey, {}, function ( err ) {
                                 if ( err ) setTimeout( userDataKeepAlive, 60000 ); // retry in 1 minute
                                 else setTimeout( userDataKeepAlive, 60 * 30 * 1000 ); // 30 minute keepalive
                             }, 'PUT' );
@@ -5595,7 +5602,7 @@ let api = function Binance( options = {} ) {
                 };
 
                 let getSymbolDepthSnapshot = ( symbol, cb ) => {
-                    publicRequest( base + 'v3/depth', { symbol: symbol, limit: limit }, function ( error, json ) {
+                    publicRequest( getSpotUrl() + 'v3/depth', { symbol: symbol, limit: limit }, function ( error, json ) {
                         if ( error ) {
                             return cb( error, null );
                         }
@@ -5782,7 +5789,7 @@ let api = function Binance( options = {} ) {
                 };
 
                 let getSymbolKlineSnapshot = ( symbol, limit = 500 ) => {
-                    publicRequest( base + 'v3/klines', { symbol: symbol, interval: interval, limit: limit }, function ( error, data ) {
+                    publicRequest( getSpotUrl() + 'v3/klines', { symbol: symbol, interval: interval, limit: limit }, function ( error, data ) {
                         klineData( symbol, interval, data );
                         //Binance.options.log('/klines at ' + Binance.info[symbol][interval].timestamp);
                         if ( typeof Binance.klineQueue[symbol][interval] !== 'undefined' ) {
