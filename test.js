@@ -22,6 +22,9 @@ let assert = chai.assert;
 let path = require( 'path' );
 let Binance = require( path.resolve( __dirname, 'node-binance-api.js' ) );
 let binance = new Binance();
+binance.options.APIKEY = "X4BHNSimXOK6RKs2FcKqExquJtHjMxz5hWqF0BBeVnfa5bKFMk7X0wtkfEz0cPrJ"
+binance.options.APISECRET = "x8gLihunpNq0d46F2q0TWJmeCDahX5LMXSlv3lSFNbMI3rujSOpTDKdhbcmPSf2i"
+binance.options.test = true;
 let util = require( 'util' );
 
 let num_pairs = 299;
@@ -61,11 +64,12 @@ describe( 'Construct', function () {
     /*eslint no-undef: "error"*/
     it( 'Construct the binance object', function ( done ) {
         binance.options( {
-            APIKEY: '5enQYcMQk2J3syHCao9xgJOnnPoGtDMhSRRAzG2Gxo90TBzXPG1itcXikQc2VRDh',
-            APISECRET: 'uWJQXigS3AjftKe8c6xK2t3rkTqkmfeeNPwcycBLGXXsuU4eUvLkPY9qcOnB2UYI',
+            APIKEY: 'X4BHNSimXOK6RKs2FcKqExquJtHjMxz5hWqF0BBeVnfa5bKFMk7X0wtkfEz0cPrJ',
+            APISECRET: 'x8gLihunpNq0d46F2q0TWJmeCDahX5LMXSlv3lSFNbMI3rujSOpTDKdhbcmPSf2i',
             useServerTime: true,
             reconnect: false,
             verbose: true,
+            test: true,
             log: debug
         } );
         assert( typeof ( binance ) === 'object', 'Binance is not an object' );
