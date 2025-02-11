@@ -3035,7 +3035,7 @@ let api = function Binance( options = {} ) {
         orderStatus: function ( symbol, orderid, callback, flags = {} ) {
             let parameters = Object.assign( { symbol: symbol }, flags );
             if ( orderid ){
-                Object.assign( { orderId: orderid }, parameters )
+                parameters = Object.assign( { orderId: orderid }, parameters )
             }
 
             if ( !callback ) {
@@ -3141,6 +3141,9 @@ let api = function Binance( options = {} ) {
             } else {
                 signedRequest( getSpotUrl() + 'v3/openOrders', { symbol: symbol }, function ( error, json ) {
                     if ( json.length === 0 ) {
+                        return callback.call( this, 'No orders present for this symbol', {}, symbol );
+                    }
+                    if ( Object.keys( json ).length === 0 ) {
                         return callback.call( this, 'No orders present for this symbol', {}, symbol );
                     }
                     for ( let obj of json ) {
