@@ -64,7 +64,8 @@ async function run() {
 const Binance = require('node-binance-api');
 const binance = new Binance().options({
   APIKEY: '<key>',
-  APISECRET: '<secret>'
+  APISECRET: '<secret>',
+  test: true, // if you want to use the sandbox/testnet
 });
 ```
 
