@@ -367,7 +367,7 @@ let api = function Binance( options = {} ) {
      */
     const order = ( side, symbol, quantity, price, flags = {}, callback = false ) => {
         let endpoint = flags.type === 'OCO' ? 'v3/orderList/oco' : 'v3/order';
-        if ( Binance.options.test ) endpoint += '/test';
+        if ( typeof flags.test && flags.test ) endpoint += '/test';
         let opt = {
             symbol: symbol,
             side: side,
@@ -413,7 +413,7 @@ let api = function Binance( options = {} ) {
             opt.stopPrice = flags.stopPrice;
             if ( opt.type === 'LIMIT' ) throw Error( 'stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT' );
         }
-        signedRequest( base + endpoint, opt, ( error, response ) => {
+        signedRequest( getSpotUrl() + endpoint, opt, ( error, response ) => {
             if ( !response ) {
                 if ( callback ) callback( error, response );
                 else Binance.options.log( 'Order() error:', error );

@@ -241,13 +241,22 @@ describe( 'Depth chart BNB', function () {
 //     } ).timeout( TIMEOUT );
 // } );
 
-// describe( 'MarketBuy', function () {
-//     it( 'Attempt to buy ETH at market price', function ( done ) {
-//         let quantity = 1;
-//         assert( typeof ( binance.marketBuy( 'BNBBTC', quantity ) ) === 'undefined', WARN_SHOULD_BE_UNDEFINED );
-//         done();
-//     } ).timeout( TIMEOUT );
-// } );
+describe( 'MarketBuy', function () {
+    it( 'Attempt to buy LTC at market price', async function () {
+        let quantity = 0.5;
+        const res = await binance.marketBuy( 'LTCUSDT', quantity )
+        assert( res['orderId'] !== undefined )
+    } ).timeout( TIMEOUT );
+} );
+
+
+describe( 'MarketSell', function () {
+    it( 'Attempt to buy LTC at market price', async function () {
+        let quantity = 0.5;
+        const res = await binance.marketSell( 'LTCUSDT', quantity )
+        assert( res['orderId'] !== undefined )
+    } ).timeout( TIMEOUT );
+} );
 
 // describe( 'MarketSell', function () {
 //     it( 'Attempt to sell ETH at market price', function ( done ) {
