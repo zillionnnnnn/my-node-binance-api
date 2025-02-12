@@ -40,6 +40,8 @@ let api = function Binance( options = {} ) {
     let combineStream = 'wss://stream.binance.com:9443/stream?streams=';
     const userAgent = 'Mozilla/4.0 (compatible; Node Binance API)';
     const contentType = 'application/x-www-form-urlencoded';
+    const SPOT_PREFIX = "x-HNA2TXFJ"
+    const CONTRACT_PREFIX = "x-Cb7ytekJ"
     Binance.subscriptions = {};
     Binance.futuresSubscriptions = {};
     Binance.futuresInfo = {};
@@ -135,6 +137,10 @@ let api = function Binance( options = {} ) {
         if ( Binance.options.test ) return baseTest;
         return base;
     }
+
+    const uuid22 = ( a ) => {
+        return a ? ( a ^ Math.random () * 16 >> a / 4 ).toString ( 16 ) : ( [ 1e7 ] + 1e3 + 4e3 + 8e5 ).replace ( /[018]/g, uuid22 );
+    };
 
     /**
      * Replaces socks connection uri hostname with IP address
@@ -399,7 +405,11 @@ let api = function Binance( options = {} ) {
         }
         if ( typeof flags.timeInForce !== 'undefined' ) opt.timeInForce = flags.timeInForce;
         if ( typeof flags.newOrderRespType !== 'undefined' ) opt.newOrderRespType = flags.newOrderRespType;
-        if ( typeof flags.newClientOrderId !== 'undefined' ) opt.newClientOrderId = flags.newClientOrderId;
+        if ( typeof flags.newClientOrderId !== 'undefined' ) {
+            opt.newClientOrderId = flags.newClientOrderId;
+        } else {
+            opt.newClientOrderId = SPOT_PREFIX + uuid22();
+        }
 
         /*
          * STOP_LOSS
@@ -457,7 +467,12 @@ let api = function Binance( options = {} ) {
 
         if ( typeof flags.timeInForce !== 'undefined' ) opt.timeInForce = flags.timeInForce;
         if ( typeof flags.newOrderRespType !== 'undefined' ) opt.newOrderRespType = flags.newOrderRespType;
-        if ( typeof flags.newClientOrderId !== 'undefined' ) opt.newClientOrderId = flags.newClientOrderId;
+        // if ( typeof flags.newClientOrderId !== 'undefined' ) opt.newClientOrderId = flags.newClientOrderId;
+        if ( typeof flags.newClientOrderId !== 'undefined' ) {
+            opt.newClientOrderId = flags.newClientOrderId;
+        } else {
+            opt.newClientOrderId = SPOT_PREFIX + uuid22();
+        }
         if ( typeof flags.sideEffectType !== 'undefined' ) opt.sideEffectType = flags.sideEffectType;
 
         /*
@@ -505,6 +520,11 @@ let api = function Binance( options = {} ) {
         if ( !params.timeInForce && ( params.type.includes( 'LIMIT' ) || params.type === 'STOP' || params.type === 'TAKE_PROFIT' ) ) {
             params.timeInForce = 'GTX'; // Post only by default. Use GTC for limit orders.
         }
+
+        if ( !params.newClientOrderId ) {
+            params.newClientOrderId = CONTRACT_PREFIX + uuid22();
+        }
+
         return promiseRequest( 'v1/order', params, { base:fapi, type:'TRADE', method:'POST' } );
     };
     const deliveryOrder = async ( side, symbol, quantity, price = false, params = {} ) => {
@@ -525,6 +545,10 @@ let api = function Binance( options = {} ) {
         }
         if ( !params.timeInForce && ( params.type.includes( 'LIMIT' ) || params.type === 'STOP' || params.type === 'TAKE_PROFIT' ) ) {
             params.timeInForce = 'GTX'; // Post only by default. Use GTC for limit orders.
+        }
+
+        if ( !params.newClientOrderId ) {
+            params.newClientOrderId = CONTRACT_PREFIX + uuid22();
         }
         return promiseRequest( 'v1/order', params, { base:dapi, type:'TRADE', method:'POST' } );
     };
