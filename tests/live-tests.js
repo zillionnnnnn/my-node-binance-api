@@ -17,13 +17,19 @@ const WARN_SHOULD_BE_UNDEFINED = 'should be undefined';
 const WARN_SHOULD_BE_TYPE = 'should be a ';
 const TIMEOUT = 10000;
 
-let chai = require( 'chai' );
-let assert = chai.assert;
-let path = require( 'path' );
-let Binance = require( path.resolve( __dirname, '../node-binance-api.js' ) );
-let binance = new Binance().options( {
+const chai = require( 'chai' );
+const assert = chai.assert;
+const path = require( 'path' );
+const Binance = require( path.resolve( __dirname, '../node-binance-api.js' ) );
+const binance = new Binance().options( {
     APIKEY: 'X4BHNSimXOK6RKs2FcKqExquJtHjMxz5hWqF0BBeVnfa5bKFMk7X0wtkfEz0cPrJ',
     APISECRET: 'x8gLihunpNq0d46F2q0TWJmeCDahX5LMXSlv3lSFNbMI3rujSOpTDKdhbcmPSf2i',
+    test: true
+} );
+const futuresBinance = new Binance().options( {
+    APIKEY: '227719da8d8499e8d3461587d19f259c0b39c2b462a77c9b748a6119abd74401',
+    APISECRET: 'b14b935f9cfacc5dec829008733c40da0588051f29a44625c34967b45c11d73c',
+    hedgeMode: true,
     test: true
 } );
 // binance.options.APIKEY = "X4BHNSimXOK6RKs2FcKqExquJtHjMxz5hWqF0BBeVnfa5bKFMk7X0wtkfEz0cPrJ"
@@ -254,6 +260,23 @@ describe( 'MarketSell', function () {
     it( 'Attempt to buy LTC at market price', async function () {
         let quantity = 0.5;
         const res = await binance.marketSell( 'LTCUSDT', quantity )
+        assert( res['orderId'] !== undefined )
+    } ).timeout( TIMEOUT );
+} );
+
+describe( 'Futures MarketBuy', function () {
+    it( 'futures Attempt to buy ETH at market price', async function () {
+        let quantity = 0.1;
+        const res = await futuresBinance.futuresMarketBuy( 'ETHUSDT', quantity )
+        assert( res['orderId'] !== undefined )
+    } ).timeout( TIMEOUT );
+} );
+
+
+describe( 'Futures MarketSell', function () {
+    it( 'futures Attempt to buy ETH at market price', async function () {
+        let quantity = 0.1;
+        const res = await futuresBinance.futuresMarketSell( 'ETHUSDT', quantity )
         assert( res['orderId'] !== undefined )
     } ).timeout( TIMEOUT );
 } );
