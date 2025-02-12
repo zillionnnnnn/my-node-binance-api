@@ -366,7 +366,7 @@ let api = function Binance( options = {} ) {
      * @return {undefined}
      */
     const order = ( side, symbol, quantity, price, flags = {}, callback = false ) => {
-        let endpoint = flags.type === 'OCO' ? 'v3/order/oco' : 'v3/order';
+        let endpoint = flags.type === 'OCO' ? 'v3/orderList/oco' : 'v3/order';
         if ( Binance.options.test ) endpoint += '/test';
         let opt = {
             symbol: symbol,
