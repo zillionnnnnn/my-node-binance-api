@@ -4148,8 +4148,13 @@ let api = function Binance( options = {} ) {
         futuresMarketSell: async ( symbol, quantity, params = {} ) => {
             return futuresOrder( 'SELL', symbol, quantity, false, params );
         },
-        
+
         futuresMultipleOrders: async ( orders = [ {} ] ) => {
+            for ( let i = 0; i < orders.length; i++ ) {
+                if ( !orders[i].newClientOrderId ) {
+                    orders[i].newClientOrderId = CONTRACT_PREFIX + uuid22();
+                }
+            }
             let params = { batchOrders: JSON.stringify( orders ) };
             return promiseRequest( 'v1/batchOrders', params, { base:fapi, type:'TRADE', method:'POST' } );
         },
