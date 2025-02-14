@@ -54,6 +54,9 @@ npm install -s node-binance-api
 https://t.me/nodebinanceapi
 
 
+**This project is powered by** <a href="https://github.com/ccxt/ccxt"><img src="https://avatars.githubusercontent.com/u/31901609" width=5% height=5%></a>
+
+
 #### Getting started (ESM)
 ```javascript
 import Binance from 'node-binance-api';
