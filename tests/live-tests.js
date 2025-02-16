@@ -206,6 +206,13 @@ describe( 'Market', function () {
     } ).timeout( TIMEOUT );
 } );
 
+describe( 'ping', function () {
+    it( 'call ping', function ( done ) {
+        binance.ping();
+        done();
+    } ).timeout( TIMEOUT );
+} );
+
 describe( 'Depth chart BNB', function () {
     it( 'Get the depth chart information for BNBBTC', function ( done ) {
         binance.depth( 'BNBBTC', ( error, depth, symbol ) => {
