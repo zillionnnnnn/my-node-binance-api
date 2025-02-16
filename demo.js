@@ -1,7 +1,8 @@
-const binance = require( './node-binance-api.js' );
+const Binance = require( './node-binance-api.js' );
 
 async function run() {
-    const res = await binance.futuresTime();
+    const exchange = new Binance();
+    const res = await exchange.futuresTime();
     console.log( res );
 }
 
