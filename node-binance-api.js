@@ -3739,6 +3739,28 @@ let api = function Binance( options = {} ) {
         },
 
         /**
+        * Ping binance
+        * @param {function} callback - the callback function
+        * @return {promise or undefined} - omitting the callback returns a promise
+        */
+        ping: function ( callback ) {
+            if ( !callback ) {
+                return new Promise( ( resolve, reject ) => {
+                    callback = ( error, response ) => {
+                        if ( error ) {
+                            reject( error );
+                        } else {
+                            resolve( response );
+                        }
+                    }
+                    publicRequest( getSpotUrl() + 'v3/ping', {}, callback );
+                } )
+            } else {
+                publicRequest( getSpotUrl() + 'v3/ping', {}, callback );
+            }
+        },
+
+        /**
         * Get agg trades for given symbol
         * @param {string} symbol - the symbol
         * @param {object} options - additional optoins
