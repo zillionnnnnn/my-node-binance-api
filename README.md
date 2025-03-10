@@ -2108,6 +2108,11 @@ You can enable verbose mode to help with debugging WebSocket streams:
 binance.setOption( 'verbose', true );
 ```
 
+### Sponsors
+
+
+[![Vitality](https://github.com/user-attachments/assets/0981aae2-3e12-4b57-8d2f-c5ae2b3b8b1c)](https://vitalitycrypto.com/)
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=jaggedsoft/node-binance-api&type=Timeline)](https://star-history.com/#jaggedsoft/node-binance-api&Timeline)
