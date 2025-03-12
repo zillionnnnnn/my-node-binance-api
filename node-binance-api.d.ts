@@ -904,8 +904,11 @@ declare module "node-binance-api" {
         futuresLiquidationOrders(symbol?: _symbol, params?: any): Promise<any>;
         futuresLiquidationOrders(...args: any): any;
 
-        futuresPositionRisk(params?: any): Promise<any>;
+        futuresPositionRisk(params?: any, useV2 = false): Promise<any>;
         futuresPositionRisk(...args: any): any;
+
+        futuresPositionRiskV2(params?: any): Promise<any>;
+        futuresPositionRiskV2(...args: any): any;
 
         futuresFundingRate(symbol: _symbol, params?: any): Promise<any>;
         futuresFundingRate(...args: any): any;
