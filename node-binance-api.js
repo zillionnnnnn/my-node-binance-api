@@ -3417,6 +3417,7 @@ let api = function Binance( options = {} ) {
         /**
         * Gets the the system status
         * @param {function} callback - the callback function
+        * @see https://developers.binance.com/docs/wallet/others/system-status
         * @return {promise or undefined} - omitting the callback returns a promise
         */
         systemStatus: function ( callback ) {
@@ -3429,10 +3430,10 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    publicRequest( wapi + 'v3/systemStatus.html', {}, callback );
+                    publicRequest( sapi + 'v1/system/status', {}, callback );
                 } )
             } else {
-                publicRequest( wapi + 'v3/systemStatus.html', {}, callback );
+                publicRequest( sapi + 'v1/system/status', {}, callback );
             }
         },
 
