@@ -3587,6 +3587,7 @@ let api = function Binance( options = {} ) {
         /**
         * Get the trade fee
         * @param {function} callback - the callback function
+        * @see https://developers.binance.com/docs/wallet/asset/trade-fee
         * @param {string} symbol (optional)
         * @return {promise or undefined} - omitting the callback returns a promise
         */
@@ -3601,10 +3602,10 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    signedRequest( wapi + 'v3/tradeFee.html', params, callback );
+                    signedRequest( sapi + 'v1/asset/tradeFee', params, callback );
                 } )
             } else {
-                signedRequest( wapi + 'v3/tradeFee.html', params, callback );
+                signedRequest( sapi + 'v1/asset/tradeFee', params, callback );
             }
         },
 
