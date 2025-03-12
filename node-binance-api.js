@@ -4107,8 +4107,21 @@ let api = function Binance( options = {} ) {
             return promiseRequest( 'v1/allForceOrders', params, { base:fapi } );
         },
 
-        futuresPositionRisk: async ( params = {} ) => {
-            return promiseRequest( 'v3/positionRisk', params, { base:fapi, type:'SIGNED' } );
+        /**
+        * Get the account binance lending information
+        * @param {function} callback - the callback function
+        * @param {string} symbol - position symbol, optional
+        * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-Information-V3
+        * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-Information-V2
+        * @return {promise or undefined} - omitting the callback returns a promise
+        */
+        futuresPositionRisk: async ( params = {}, useV2 = false ) => {
+            const endpoint = useV2 ? 'v2/positionRisk' : 'v3/positionRisk'
+            return promiseRequest( endpoint, params, { base:fapi, type:'SIGNED' } );
+        },
+
+        futuresPositionRiskV2: async ( params = {} ) => {
+            return futuresPositionRisk( params, true )
         },
 
         futuresFundingRate: async ( symbol, params = {} ) => {
