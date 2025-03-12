@@ -3515,8 +3515,9 @@ let api = function Binance( options = {} ) {
         },
 
         /**
-        * Get the deposit history for given asset
-        * @param {string} asset - the asset
+        * Get the deposit address for given asset
+        * @see https://developers.binance.com/docs/wallet/capital/deposite-address
+        * @param {string} coin - the asset
         * @param {function} callback - the callback function
         * @return {promise or undefined} - omitting the callback returns a promise
         */
@@ -3530,10 +3531,34 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    signedRequest( wapi + 'v3/depositAddress.html', { asset: asset }, callback );
+                    signedRequest( sapi + 'v1/capital/deposit/address', { coin: asset }, callback );
                 } )
             } else {
-                signedRequest( wapi + 'v3/depositAddress.html', { asset: asset }, callback );
+                signedRequest( sapi + 'v1/capital/deposit/address', { coin: asset }, callback );
+            }
+        },
+
+        /**
+        * Get the deposit address list for given asset
+        * @see https://developers.binance.com/docs/wallet/capital/fetch-deposit-address-list-with-network
+        * @param {string} coin - the asset
+        * @param {function} callback - the callback function
+        * @return {promise or undefined} - omitting the callback returns a promise
+        */
+        depositAddressList: function ( asset, callback ) {
+            if ( !callback ) {
+                return new Promise( ( resolve, reject ) => {
+                    callback = ( error, response ) => {
+                        if ( error ) {
+                            reject( error );
+                        } else {
+                            resolve( response );
+                        }
+                    }
+                    signedRequest( sapi + 'v1/capital/deposit/address/list', { coin: asset }, callback );
+                } )
+            } else {
+                signedRequest( sapi + 'v1/capital/deposit/address/list', { coin: asset }, callback );
             }
         },
 
