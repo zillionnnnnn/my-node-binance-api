@@ -3612,6 +3612,7 @@ let api = function Binance( options = {} ) {
         /**
         * Fetch asset detail (minWithdrawAmount, depositStatus, withdrawFee, withdrawStatus, depositTip)
         * @param {function} callback - the callback function
+        * @see https://developers.binance.com/docs/wallet/asset
         * @return {promise or undefined} - omitting the callback returns a promise
         */
         assetDetail: function ( callback ) {
@@ -3624,10 +3625,10 @@ let api = function Binance( options = {} ) {
                             resolve( response );
                         }
                     }
-                    signedRequest( wapi + 'v3/assetDetail.html', {}, callback );
+                    signedRequest( sapi + 'asset/assetDetail', {}, callback );
                 } )
             } else {
-                signedRequest( wapi + 'v3/assetDetail.html', {}, callback );
+                signedRequest( sapi + 'asset/assetDetail', {}, callback );
             }
         },
 
