@@ -98,6 +98,18 @@ describe( 'Static tests', async function () {
 
     })
 
+    it( 'PositionRisk V3', async function ( ) {
+        await binance.futuresPositionRisk()
+        assert.equal( interceptedUrl, 'https://fapi.binance.com/fapi/v3/positionRisk' )
+
+    })
+
+    it( 'PositionRisk V2', async function ( ) {
+        await binance.futuresPositionRiskV2()
+        assert.equal( interceptedUrl, 'https://fapi.binance.com/fapi/v2/positionRisk' )
+
+    })
+
     it( 'CancelOrder', async function ( ) {
         await binance.cancel( 'LTCUSDT', '34234234' )
         assert( interceptedUrl.startsWith('https://api.binance.com/api/v3/order' ))
