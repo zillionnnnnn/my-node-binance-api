@@ -87,7 +87,7 @@ export default class Binance {
 
     }
 
-    setOptions(opt = {}, callback: any = false) {
+    async setOptions(opt = {}, callback: any = false) {
         if (typeof opt === 'string') { // Pass json config filename
             this.options = JSON.parse(file.readFileSync(opt));
         } else this.options = opt;
@@ -121,15 +121,25 @@ export default class Binance {
         }
         if (this.options.useServerTime) {
 
-            const publicRequestCallback = (error, response) => {
-                this.info.timeOffset = response.serverTime - new Date().getTime();
-                if (callback) callback();
-            }
-            this.publicRequest(this.getSpotUrl() + 'v3/time', {}, publicRequestCallback);
+           const res = await this.publicRequest(this.getSpotUrl() + 'v3/time');
+           this.info.timeOffset = res.serverTime - new Date().getTime();
 
-        } else if (callback) callback();
+        }
         return this;
     }
+ 
+
+
+    // ---- HELPER FUNCTIONS ---- //
+
+    getSpotUrl() {
+        if (this.options.test) return this.baseTest;
+        return this.base;
+    }
+
+    uuid22(a?: any) {
+        return a ? (a ^ Math.random() * 16 >> a / 4).toString(16) : ([1e7] + 1e3 + 4e3 + 8e5).replace(/[018]/g, uuid22);
+    };
 
     // ------ Request Related Functions ------ //
 
@@ -172,33 +182,41 @@ export default class Binance {
         return opt;
     }
 
-    reqHandler(cb) {
-        return (error, response, body) => { // Arrow function keeps `this` from the class
-            this.info.lastRequest = new Date().getTime();
 
-            if (response) {
-                this.info.statusCode = response.statusCode || 0;
-                if (response.request) this.info.lastURL = response.request.uri.href;
-                if (response.headers) {
-                    this.info.usedWeight = response.headers['x-mbx-used-weight-1m'] || 0;
-                    this.info.orderCount1s = response.headers['x-mbx-order-count-1s'] || 0;
-                    this.info.orderCount1m = response.headers['x-mbx-order-count-1m'] || 0;
-                    this.info.orderCount1h = response.headers['x-mbx-order-count-1h'] || 0;
-                    this.info.orderCount1d = response.headers['x-mbx-order-count-1d'] || 0;
-                }
+    reqHandler(response){
+       this.info.lastRequest = new Date().getTime();
+        if ( response ) {
+           this.info.statusCode = response.status || 0;
+            if ( response.request )this.info.lastURL = response.request.uri.href;
+            if ( response.headers ) {
+               this.info.usedWeight = response.headers['x-mbx-used-weight-1m'] || 0;
+               this.info.orderCount1s = response.headers['x-mbx-order-count-1s'] || 0;
+               this.info.orderCount1m = response.headers['x-mbx-order-count-1m'] || 0;
+               this.info.orderCount1h = response.headers['x-mbx-order-count-1h'] || 0;
+               this.info.orderCount1d = response.headers['x-mbx-order-count-1d'] || 0;
             }
-
-            if (!cb) return;
-            if (error) return cb(error, {});
-            if (response && response.statusCode !== 200) return cb(response, {});
-
-            return cb(null, JSONbig.parse(body));
-        };
+        }
+        // if ( !cb ) return;
+        // if ( error ) return cb( error, {} );
+        // if ( response && response.statusCode !== 200 ) return cb( response, {} );
+        // return cb( null, JSONbig.parse( body ) );
+        if (response && response.status !== 200) {
+            throw Error(response);
+        }
     }
 
-    proxyRequest(opt, cb) {
-        const req = request(this.addProxy(opt), this.reqHandler(cb)).on('error', (err) => { cb(err, {}) });
-        return req;
+    async proxyRequest(opt: any) {
+        // const req = request(this.addProxy(opt), this.reqHandler(cb)).on('error', (err) => { cb(err, {}) });
+        const response = await fetch(opt.url, {
+            method: opt.method,
+            headers: opt.headers,
+            // family: opt.family,
+            // timeout: opt.timeout,
+            body: JSON.stringify(opt.form)
+        })
+        this.reqHandler(response);
+        const json = await response.json();
+        return json;
     }
 
     reqObj(url: string, data = {}, method = 'GET', key?: string) {
@@ -239,21 +257,226 @@ export default class Binance {
     }
 
 
+    async publicRequest(url: string, data = {}, method = 'GET'){
+        let opt = this.reqObj(url, data, method);
+        const res = await this.proxyRequest(opt);
+        return res;
+    };
+
     // ------ Request Related Functions ------ //
 
-    publicRequest = (url: string, data = {}, callback: any, method = 'GET') => {
-        let opt = this.reqObj(url, data, method);
-        this.proxyRequest(opt, callback);
-    };
 
+    // XXX: This one works with array (e.g. for dust.transfer)
+    // XXX: I _guess_ we could use replace this function with the `qs` module
+    makeQueryString(q) {
 
-    getSpotUrl() {
-        if (this.options.test) return this.baseTest;
-        return this.base;
+        const res = Object.keys(q)
+            .reduce((a, k) => {
+                if (Array.isArray(q[k])) {
+                    q[k].forEach(v => {
+                        a.push(k + "=" + encodeURIComponent(v))
+                    })
+                } else if (q[k] !== undefined) {
+                    a.push(k + "=" + encodeURIComponent(q[k]));
+                }
+                return a;
+            }, [])
+            .join("&");
+        return res;
     }
 
-    uuid22(a: any) {
-        return a ? (a ^ Math.random() * 16 >> a / 4).toString(16) : ([1e7] + 1e3 + 4e3 + 8e5).replace(/[018]/g, uuid22);
+    /**
+     * Create a http request to the public API
+     * @param {string} url - The http endpoint
+     * @param {object} data - The data to send
+     * @param {function} callback - The callback method to call
+     * @param {string} method - the http method
+     * @return {undefined}
+     */
+    async apiRequest(url: string, data = {}, method = 'GET') {
+        this.requireApiKey('apiRequest');
+        let opt = this.reqObj(
+            url,
+            data,
+            method,
+            this.options.APIKEY
+        );
+        const res = await this.proxyRequest(opt);
+        return res;
     };
+
+
+    requireApiKey(source = 'requireApiKey', fatalError = true) {
+        if (!this.options.APIKEY) {
+            if (fatalError) throw Error(`${source}: Invalid API Key!`);
+            return false;
+        }
+        return true;
+    }
+
+
+    // Check if API secret is present
+    requireApiSecret(source = 'requireApiSecret', fatalError = true) {
+        if (!this.options.APIKEY) {
+            if (fatalError) throw Error(`${source}: Invalid API Key!`);
+            return false;
+        }
+        if (!this.options.APISECRET) {
+            if (fatalError) throw Error(`${source}: Invalid API Secret!`);
+            return false;
+        }
+        return true;
+    }
+
+
+    /**
+ * Make market request
+ * @param {string} url - The http endpoint
+ * @param {object} data - The data to send
+ * @param {function} callback - The callback method to call
+ * @param {string} method - the http method
+ * @return {undefined}
+ */
+    async marketRequest(url: string, data = {}, method = 'GET') {
+        this.requireApiKey('marketRequest');
+        let query = this.makeQueryString(data);
+        let opt = this.reqObj(
+            url + (query ? '?' + query : ''),
+            data,
+            method,
+            this.options.APIKEY
+        );
+        const res = await this.proxyRequest(opt);
+        return res;
+    };
+
+
+    /**
+     * Create a signed http request
+     * @param {string} url - The http endpoint
+     * @param {object} data - The data to send
+     * @param {function} callback - The callback method to call
+     * @param {string} method - the http method
+     * @param {boolean} noDataInSignature - Prevents data from being added to signature
+     * @return {undefined}
+     */
+    async signedRequest( url, data = {}, method = 'GET', noDataInSignature = false ) {
+        this.requireApiSecret( 'signedRequest' );
+        data.timestamp = new Date().getTime() + this.info.timeOffset;
+        if ( typeof data.recvWindow === 'undefined' ) data.recvWindow = this.options.recvWindow;
+        let query = method === 'POST' && noDataInSignature ? '' : this.makeQueryString( data );
+        let signature = crypto.createHmac( 'sha256', this.options.APISECRET ).update( query ).digest( 'hex' ); // set the HMAC hash header
+        if ( method === 'POST' ) {
+            let opt = this.reqObjPOST(
+                url,
+                data,
+                method,
+                this.options.APIKEY
+            );
+            opt.form.signature = signature;
+            const reqPost =  await this.proxyRequest( opt );
+            return reqPost
+        } else {
+            let opt = this.reqObj(
+                url + '?' + query + '&signature=' + signature,
+                data,
+                method,
+                this.options.APIKEY
+            );
+            const reqGet = await this.proxyRequest( opt );
+            return reqGet
+        }
+    };
+
+    // --- ENDPOINTS --- //
+
+
+    /**
+     * Create a signed spot order
+     * @param {string} side - BUY or SELL
+     * @param {string} symbol - The symbol to buy or sell
+     * @param {string} quantity - The quantity to buy or sell
+     * @param {string} price - The price per unit to transact each unit at
+     * @param {object} flags - additional order settings
+     * @param {function} callback - the callback function
+     * @return {undefined}
+     */
+    async order (side: string, symbol: string, quantity: number, price?: number, flags = {}, callback = false ) {
+        let endpoint = flags.type === 'OCO' ? 'v3/orderList/oco' : 'v3/order';
+        if ( typeof flags.test && flags.test ) endpoint += '/test';
+        let opt = {
+            symbol: symbol,
+            side: side,
+            type: 'LIMIT'
+        };
+        if( typeof flags.quoteOrderQty !== undefined && flags.quoteOrderQty > 0 )
+            opt.quoteOrderQty = flags.quoteOrderQty
+        else
+            opt.quantity = quantity
+        if ( typeof flags.type !== 'undefined' ) opt.type = flags.type;
+        if ( opt.type.includes( 'LIMIT' ) ) {
+            opt.price = price;
+            if ( opt.type !== 'LIMIT_MAKER' ) {
+                opt.timeInForce = 'GTC';
+            }
+        }
+        if ( opt.type == 'MARKET' && typeof flags.quoteOrderQty !== 'undefined' ) {
+            opt.quoteOrderQty = flags.quoteOrderQty
+            delete opt.quantity;
+        }
+        if ( opt.type === 'OCO' ) {
+            opt.price = price;
+            opt.stopLimitPrice = flags.stopLimitPrice;
+            opt.stopLimitTimeInForce = 'GTC';
+            delete opt.type;
+            if ( typeof flags.listClientOrderId !== 'undefined' ) opt.listClientOrderId = flags.listClientOrderId;
+            if ( typeof flags.limitClientOrderId !== 'undefined' ) opt.limitClientOrderId = flags.limitClientOrderId;
+            if ( typeof flags.stopClientOrderId !== 'undefined' ) opt.stopClientOrderId = flags.stopClientOrderId;
+        }
+        if ( typeof flags.timeInForce !== 'undefined' ) opt.timeInForce = flags.timeInForce;
+        if ( typeof flags.newOrderRespType !== 'undefined' ) opt.newOrderRespType = flags.newOrderRespType;
+        if ( typeof flags.newClientOrderId !== 'undefined' ) {
+            opt.newClientOrderId = flags.newClientOrderId;
+        } else {
+            opt.newClientOrderId = this.SPOT_PREFIX + this.uuid22();
+        }
+
+        /*
+         * STOP_LOSS
+         * STOP_LOSS_LIMIT
+         * TAKE_PROFIT
+         * TAKE_PROFIT_LIMIT
+         * LIMIT_MAKER
+         */
+        if ( typeof flags.icebergQty !== 'undefined' ) opt.icebergQty = flags.icebergQty;
+        if ( typeof flags.stopPrice !== 'undefined' ) {
+            opt.stopPrice = flags.stopPrice;
+            if ( opt.type === 'LIMIT' ) throw Error( 'stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT' );
+        }
+        const response = await this.signedRequest( this.getSpotUrl() + endpoint, opt, 'POST' );
+        // to do error handling
+        // if ( !response ) {
+        //     if ( callback ) callback( error, response );
+        //     else this.options.log( 'Order() error:', error );
+        //     return;
+        // }
+        // if ( typeof response.msg !== 'undefined' && response.msg === 'Filter failure: MIN_NOTIONAL' ) {
+        //     this.options.log( 'Order quantity too small. See exchangeInfo() for minimum amounts' );
+        // }
+        // if ( callback ) callback( error, response );
+        // else this.options.log( side + '(' + symbol + ',' + quantity + ',' + price + ') ', response );
+        return response
+    };
+
+
+
+        /**
+        * Get Binance server time
+        * @return {promise or undefined} - omitting the callback returns a promise
+        */
+        async time () {
+            const res = await this.publicRequest( this.getSpotUrl() + 'v3/time', {});
+            return res;
+        }
 
 }
