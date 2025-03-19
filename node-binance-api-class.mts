@@ -11,6 +11,7 @@ import SocksProxyAgent from 'socks-proxy-agent';
 import stringHash from 'string-hash';
 import async from 'async';
 
+
 export default class Binance {
 
     base = 'https://api.binance.com/api/';
@@ -219,7 +220,7 @@ export default class Binance {
         return json;
     }
 
-    reqObj(url: string, data = {}, method = 'GET', key?: string) {
+    reqObj(url: string, data: { [key: string]: any }  ={}, method = 'GET', key?: string) {
         return {
             url: url,
             qs: data,
@@ -236,7 +237,7 @@ export default class Binance {
         }
     }
 
-    reqObjPOST(url: string, data = {}, method = 'POST', key: string) {
+    reqObjPOST(url: string, data: { [key: string]: any }  ={}, method = 'POST', key: string) {
         return {
             url: url,
             form: data,
@@ -257,26 +258,26 @@ export default class Binance {
     }
 
 
-    async publicRequest(url: string, data = {}, method = 'GET') {
+    async publicRequest(url: string, data: { [key: string]: any }  ={}, method = 'GET') {
         let opt = this.reqObj(url, data, method);
         const res = await this.proxyRequest(opt);
         return res;
     };
 
     // used for futures
-    async promiseRequest(url: string, data = {}, flags = {}) {
+    async promiseRequest(url: string, data: { [key: string]: any }  ={}, flags: { [key: string]: any }  ={}) {
         let query = '', headers = {
-            'User-Agent': userAgent,
+            'User-Agent': this.userAgent,
             'Content-type': 'application/x-www-form-urlencoded'
-        };
-        if (typeof flags.method === 'undefined') flags.method = 'GET'; // GET POST PUT DELETE
-        if (typeof flags.type === 'undefined') flags.type = false; // TRADE, SIGNED, MARKET_DATA, USER_DATA, USER_STREAM
+        } as { [key: string]: any };
+        if (!flags.method) flags.method = 'GET'; // GET POST PUT DELETE
+        if (!flags.type) flags.type = false; // TRADE, SIGNED, MARKET_DATA, USER_DATA, USER_STREAM
         else {
-            if (typeof data.recvWindow === 'undefined') data.recvWindow = this.options.recvWindow;
+            if ( !data.recvWindow ) data.recvWindow = this.options.recvWindow;
             this.requireApiKey('promiseRequest');
             headers['X-MBX-APIKEY'] = this.options.APIKEY;
         }
-        let baseURL = typeof flags.base === 'undefined' ? base : flags.base;
+        let baseURL = !flags.base ? this.base : flags.base;
         if (this.options.test && baseURL === this.base) baseURL = this.baseTest;
         if (this.options.test && baseURL === this.fapi) baseURL = this.fapiTest;
         if (this.options.test && baseURL === this.dapi) baseURL = this.dapiTest;
@@ -359,7 +360,7 @@ export default class Binance {
      * @param {string} method - the http method
      * @return {undefined}
      */
-    async apiRequest(url: string, data = {}, method = 'GET') {
+    async apiRequest(url: string, data: { [key: string]: any }  ={}, method = 'GET') {
         this.requireApiKey('apiRequest');
         let opt = this.reqObj(
             url,
@@ -403,7 +404,7 @@ export default class Binance {
  * @param {string} method - the http method
  * @return {undefined}
  */
-    async marketRequest(url: string, data = {}, method = 'GET') {
+    async marketRequest(url: string, data: { [key: string]: any }  ={}, method = 'GET') {
         this.requireApiKey('marketRequest');
         let query = this.makeQueryString(data);
         let opt = this.reqObj(
@@ -426,10 +427,10 @@ export default class Binance {
      * @param {boolean} noDataInSignature - Prevents data from being added to signature
      * @return {undefined}
      */
-    async signedRequest(url, data = {}, method = 'GET', noDataInSignature = false) {
+    async signedRequest(url: string, data: { [key: string]: any }  ={}, method = 'GET', noDataInSignature = false) {
         this.requireApiSecret('signedRequest');
         data.timestamp = new Date().getTime() + this.info.timeOffset;
-        if (typeof data.recvWindow === 'undefined') data.recvWindow = this.options.recvWindow;
+        if (!data.recvWindow) data.recvWindow = this.options.recvWindow;
         let query = method === 'POST' && noDataInSignature ? '' : this.makeQueryString(data);
         let signature = crypto.createHmac('sha256', this.options.APISECRET).update(query).digest('hex'); // set the HMAC hash header
         if (method === 'POST') {
@@ -467,14 +468,14 @@ export default class Binance {
      * @param {function} callback - the callback function
      * @return {undefined}
      */
-    async order(side: string, symbol: string, quantity: number, price?: number, flags = {}) {
+    async order(side: string, symbol: string, quantity: number, price?: number, flags: { [key: string]: any }  ={}) {
         let endpoint = flags.type === 'OCO' ? 'v3/orderList/oco' : 'v3/order';
         if (typeof flags.test && flags.test) endpoint += '/test';
         let opt = {
             symbol: symbol,
             side: side,
             type: 'LIMIT'
-        };
+        } as { [key: string]: any };
         if (typeof flags.quoteOrderQty !== undefined && flags.quoteOrderQty > 0)
             opt.quoteOrderQty = flags.quoteOrderQty
         else
@@ -546,7 +547,7 @@ export default class Binance {
      * @param {function} callback - the callback function
      * @return {undefined}
      */
-    async marginOrder(side, symbol, quantity, price, flags = {}) {
+    async marginOrder(side: string, symbol: string, quantity: number, price?: number, flags: { [key: string]: any }  ={}) {
         let endpoint = 'v1/margin/order';
         if (this.options.test) endpoint += '/test';
         let opt = {
@@ -554,7 +555,7 @@ export default class Binance {
             side: side,
             type: 'LIMIT',
             quantity: quantity
-        };
+        } as { [key: string]: any } ;
         if (typeof flags.type !== 'undefined') opt.type = flags.type;
         if (typeof flags.isIsolated !== 'undefined') opt.isIsolated = flags.isIsolated;
         if (opt.type.includes('LIMIT')) {
@@ -590,21 +591,21 @@ export default class Binance {
 
 
     // Futures internal functions
-    async futuresOrder(side, symbol, quantity, price = false, params = {}) {
+    async futuresOrder(side: string, symbol: string, quantity: number, price = false, params: { [key: string]: any }  ={}) {
         params.symbol = symbol;
         params.side = side;
         if (quantity) params.quantity = quantity;
         // if in the binance futures setting Hedged mode is active, positionSide parameter is mandatory
-        if (typeof params.positionSide === 'undefined' && this.options.hedgeMode) {
+        if (!params.positionSide && this.options.hedgeMode) {
             params.positionSide = side === 'BUY' ? 'LONG' : 'SHORT';
         }
         // LIMIT STOP MARKET STOP_MARKET TAKE_PROFIT TAKE_PROFIT_MARKET
         // reduceOnly stopPrice
         if (price) {
             params.price = price;
-            if (typeof params.type === 'undefined') params.type = 'LIMIT';
+            if (!params.type) params.type = 'LIMIT';
         } else {
-            if (typeof params.type === 'undefined') params.type = 'MARKET';
+            if (!params.type) params.type = 'MARKET';
         }
         if (!params.timeInForce && (params.type.includes('LIMIT') || params.type === 'STOP' || params.type === 'TAKE_PROFIT')) {
             params.timeInForce = 'GTX'; // Post only by default. Use GTC for limit orders.
@@ -617,21 +618,21 @@ export default class Binance {
     };
 
 
-    async deliveryOrder( side: string, symbol: string, quantity: number, price = false, params = {} ) {
+    async deliveryOrder( side: string, symbol: string, quantity: number, price = false, params: { [key: string]: any }  ={} ) {
         params.symbol = symbol;
         params.side = side;
         params.quantity = quantity;
         // if in the binance futures setting Hedged mode is active, positionSide parameter is mandatory
-        if( Binance.options.hedgeMode ){
+        if( this.options.hedgeMode ){
             params.positionSide = side === 'BUY' ? 'LONG' : 'SHORT';
         }
         // LIMIT STOP MARKET STOP_MARKET TAKE_PROFIT TAKE_PROFIT_MARKET
         // reduceOnly stopPrice
         if ( price ) {
             params.price = price;
-            if ( typeof params.type === 'undefined' ) params.type = 'LIMIT';
+            if ( !params.type ) params.type = 'LIMIT';
         } else {
-            if ( typeof params.type === 'undefined' ) params.type = 'MARKET';
+            if ( !params.type ) params.type = 'MARKET';
         }
         if ( !params.timeInForce && ( params.type.includes( 'LIMIT' ) || params.type === 'STOP' || params.type === 'TAKE_PROFIT' ) ) {
             params.timeInForce = 'GTX'; // Post only by default. Use GTC for limit orders.
