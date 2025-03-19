@@ -121,13 +121,13 @@ export default class Binance {
         }
         if (this.options.useServerTime) {
 
-           const res = await this.publicRequest(this.getSpotUrl() + 'v3/time');
-           this.info.timeOffset = res.serverTime - new Date().getTime();
+            const res = await this.publicRequest(this.getSpotUrl() + 'v3/time');
+            this.info.timeOffset = res.serverTime - new Date().getTime();
 
         }
         return this;
     }
- 
+
 
 
     // ---- HELPER FUNCTIONS ---- //
@@ -183,17 +183,17 @@ export default class Binance {
     }
 
 
-    reqHandler(response){
-       this.info.lastRequest = new Date().getTime();
-        if ( response ) {
-           this.info.statusCode = response.status || 0;
-            if ( response.request )this.info.lastURL = response.request.uri.href;
-            if ( response.headers ) {
-               this.info.usedWeight = response.headers['x-mbx-used-weight-1m'] || 0;
-               this.info.orderCount1s = response.headers['x-mbx-order-count-1s'] || 0;
-               this.info.orderCount1m = response.headers['x-mbx-order-count-1m'] || 0;
-               this.info.orderCount1h = response.headers['x-mbx-order-count-1h'] || 0;
-               this.info.orderCount1d = response.headers['x-mbx-order-count-1d'] || 0;
+    reqHandler(response) {
+        this.info.lastRequest = new Date().getTime();
+        if (response) {
+            this.info.statusCode = response.status || 0;
+            if (response.request) this.info.lastURL = response.request.uri.href;
+            if (response.headers) {
+                this.info.usedWeight = response.headers['x-mbx-used-weight-1m'] || 0;
+                this.info.orderCount1s = response.headers['x-mbx-order-count-1s'] || 0;
+                this.info.orderCount1m = response.headers['x-mbx-order-count-1m'] || 0;
+                this.info.orderCount1h = response.headers['x-mbx-order-count-1h'] || 0;
+                this.info.orderCount1d = response.headers['x-mbx-order-count-1d'] || 0;
             }
         }
         // if ( !cb ) return;
@@ -257,10 +257,76 @@ export default class Binance {
     }
 
 
-    async publicRequest(url: string, data = {}, method = 'GET'){
+    async publicRequest(url: string, data = {}, method = 'GET') {
         let opt = this.reqObj(url, data, method);
         const res = await this.proxyRequest(opt);
         return res;
+    };
+
+    // used for futures
+    async promiseRequest(url: string, data = {}, flags = {}) {
+        let query = '', headers = {
+            'User-Agent': userAgent,
+            'Content-type': 'application/x-www-form-urlencoded'
+        };
+        if (typeof flags.method === 'undefined') flags.method = 'GET'; // GET POST PUT DELETE
+        if (typeof flags.type === 'undefined') flags.type = false; // TRADE, SIGNED, MARKET_DATA, USER_DATA, USER_STREAM
+        else {
+            if (typeof data.recvWindow === 'undefined') data.recvWindow = this.options.recvWindow;
+            this.requireApiKey('promiseRequest');
+            headers['X-MBX-APIKEY'] = this.options.APIKEY;
+        }
+        let baseURL = typeof flags.base === 'undefined' ? base : flags.base;
+        if (this.options.test && baseURL === this.base) baseURL = this.baseTest;
+        if (this.options.test && baseURL === this.fapi) baseURL = this.fapiTest;
+        if (this.options.test && baseURL === this.dapi) baseURL = this.dapiTest;
+        let opt = {
+            headers,
+            url: baseURL + url,
+            method: flags.method,
+            timeout: this.options.recvWindow,
+            followAllRedirects: true
+        };
+        if (flags.type === 'SIGNED' || flags.type === 'TRADE' || flags.type === 'USER_DATA') {
+            data.timestamp = new Date().getTime() + this.info.timeOffset;
+            query = this.makeQueryString(data);
+            data.signature = crypto.createHmac('sha256', this.options.APISECRET).update(query).digest('hex'); // HMAC hash header
+            opt.url = `${baseURL}${url}?${query}&signature=${data.signature}`;
+        }
+        opt.qs = data;
+        /*if ( flags.method === 'POST' ) {
+            opt.form = data;
+        } else {
+            opt.qs = data;
+        }*/
+        // try {
+        //     request(addProxy(opt), (error, response, body) => {
+        //         if (error) return reject(error);
+        //         try {
+        //             this.info.lastRequest = new Date().getTime();
+        //             if (response) {
+        //                 this.info.statusCode = response.statusCode || 0;
+        //                 if (response.request) this.info.lastURL = response.request.uri.href;
+        //                 if (response.headers) {
+        //                     this.info.usedWeight = response.headers['x-mbx-used-weight-1m'] || 0;
+        //                     this.info.futuresLatency = response.headers['x-response-time'] || 0;
+        //                 }
+        //             }
+        //             if (!error && response.statusCode == 200) return resolve(JSONbig.parse(body));
+        //             if (typeof response.body !== 'undefined') {
+        //                 return resolve(JSONbig.parse(response.body));
+        //             }
+        //             return reject(response);
+        //         } catch (err) {
+        //             return reject(`promiseRequest error #${response.statusCode}`);
+        //         }
+        //     }).on('error', reject);
+        // } catch (err) {
+        //     return reject(err);
+        // }
+        const response = await this.proxyRequest(opt);
+        return response;
+
     };
 
     // ------ Request Related Functions ------ //
@@ -360,13 +426,13 @@ export default class Binance {
      * @param {boolean} noDataInSignature - Prevents data from being added to signature
      * @return {undefined}
      */
-    async signedRequest( url, data = {}, method = 'GET', noDataInSignature = false ) {
-        this.requireApiSecret( 'signedRequest' );
+    async signedRequest(url, data = {}, method = 'GET', noDataInSignature = false) {
+        this.requireApiSecret('signedRequest');
         data.timestamp = new Date().getTime() + this.info.timeOffset;
-        if ( typeof data.recvWindow === 'undefined' ) data.recvWindow = this.options.recvWindow;
-        let query = method === 'POST' && noDataInSignature ? '' : this.makeQueryString( data );
-        let signature = crypto.createHmac( 'sha256', this.options.APISECRET ).update( query ).digest( 'hex' ); // set the HMAC hash header
-        if ( method === 'POST' ) {
+        if (typeof data.recvWindow === 'undefined') data.recvWindow = this.options.recvWindow;
+        let query = method === 'POST' && noDataInSignature ? '' : this.makeQueryString(data);
+        let signature = crypto.createHmac('sha256', this.options.APISECRET).update(query).digest('hex'); // set the HMAC hash header
+        if (method === 'POST') {
             let opt = this.reqObjPOST(
                 url,
                 data,
@@ -374,7 +440,7 @@ export default class Binance {
                 this.options.APIKEY
             );
             opt.form.signature = signature;
-            const reqPost =  await this.proxyRequest( opt );
+            const reqPost = await this.proxyRequest(opt);
             return reqPost
         } else {
             let opt = this.reqObj(
@@ -383,7 +449,7 @@ export default class Binance {
                 method,
                 this.options.APIKEY
             );
-            const reqGet = await this.proxyRequest( opt );
+            const reqGet = await this.proxyRequest(opt);
             return reqGet
         }
     };
@@ -401,41 +467,41 @@ export default class Binance {
      * @param {function} callback - the callback function
      * @return {undefined}
      */
-    async order (side: string, symbol: string, quantity: number, price?: number, flags = {}, callback = false ) {
+    async order(side: string, symbol: string, quantity: number, price?: number, flags = {}) {
         let endpoint = flags.type === 'OCO' ? 'v3/orderList/oco' : 'v3/order';
-        if ( typeof flags.test && flags.test ) endpoint += '/test';
+        if (typeof flags.test && flags.test) endpoint += '/test';
         let opt = {
             symbol: symbol,
             side: side,
             type: 'LIMIT'
         };
-        if( typeof flags.quoteOrderQty !== undefined && flags.quoteOrderQty > 0 )
+        if (typeof flags.quoteOrderQty !== undefined && flags.quoteOrderQty > 0)
             opt.quoteOrderQty = flags.quoteOrderQty
         else
             opt.quantity = quantity
-        if ( typeof flags.type !== 'undefined' ) opt.type = flags.type;
-        if ( opt.type.includes( 'LIMIT' ) ) {
+        if (typeof flags.type !== 'undefined') opt.type = flags.type;
+        if (opt.type.includes('LIMIT')) {
             opt.price = price;
-            if ( opt.type !== 'LIMIT_MAKER' ) {
+            if (opt.type !== 'LIMIT_MAKER') {
                 opt.timeInForce = 'GTC';
             }
         }
-        if ( opt.type == 'MARKET' && typeof flags.quoteOrderQty !== 'undefined' ) {
+        if (opt.type == 'MARKET' && typeof flags.quoteOrderQty !== 'undefined') {
             opt.quoteOrderQty = flags.quoteOrderQty
             delete opt.quantity;
         }
-        if ( opt.type === 'OCO' ) {
+        if (opt.type === 'OCO') {
             opt.price = price;
             opt.stopLimitPrice = flags.stopLimitPrice;
             opt.stopLimitTimeInForce = 'GTC';
             delete opt.type;
-            if ( typeof flags.listClientOrderId !== 'undefined' ) opt.listClientOrderId = flags.listClientOrderId;
-            if ( typeof flags.limitClientOrderId !== 'undefined' ) opt.limitClientOrderId = flags.limitClientOrderId;
-            if ( typeof flags.stopClientOrderId !== 'undefined' ) opt.stopClientOrderId = flags.stopClientOrderId;
+            if (typeof flags.listClientOrderId !== 'undefined') opt.listClientOrderId = flags.listClientOrderId;
+            if (typeof flags.limitClientOrderId !== 'undefined') opt.limitClientOrderId = flags.limitClientOrderId;
+            if (typeof flags.stopClientOrderId !== 'undefined') opt.stopClientOrderId = flags.stopClientOrderId;
         }
-        if ( typeof flags.timeInForce !== 'undefined' ) opt.timeInForce = flags.timeInForce;
-        if ( typeof flags.newOrderRespType !== 'undefined' ) opt.newOrderRespType = flags.newOrderRespType;
-        if ( typeof flags.newClientOrderId !== 'undefined' ) {
+        if (typeof flags.timeInForce !== 'undefined') opt.timeInForce = flags.timeInForce;
+        if (typeof flags.newOrderRespType !== 'undefined') opt.newOrderRespType = flags.newOrderRespType;
+        if (typeof flags.newClientOrderId !== 'undefined') {
             opt.newClientOrderId = flags.newClientOrderId;
         } else {
             opt.newClientOrderId = this.SPOT_PREFIX + this.uuid22();
@@ -448,12 +514,12 @@ export default class Binance {
          * TAKE_PROFIT_LIMIT
          * LIMIT_MAKER
          */
-        if ( typeof flags.icebergQty !== 'undefined' ) opt.icebergQty = flags.icebergQty;
-        if ( typeof flags.stopPrice !== 'undefined' ) {
+        if (typeof flags.icebergQty !== 'undefined') opt.icebergQty = flags.icebergQty;
+        if (typeof flags.stopPrice !== 'undefined') {
             opt.stopPrice = flags.stopPrice;
-            if ( opt.type === 'LIMIT' ) throw Error( 'stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT' );
+            if (opt.type === 'LIMIT') throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
         }
-        const response = await this.signedRequest( this.getSpotUrl() + endpoint, opt, 'POST' );
+        const response = await this.signedRequest(this.getSpotUrl() + endpoint, opt, 'POST');
         // to do error handling
         // if ( !response ) {
         //     if ( callback ) callback( error, response );
@@ -470,13 +536,121 @@ export default class Binance {
 
 
 
-        /**
-        * Get Binance server time
-        * @return {promise or undefined} - omitting the callback returns a promise
-        */
-        async time () {
-            const res = await this.publicRequest( this.getSpotUrl() + 'v3/time', {});
-            return res;
+    /**
+     * Create a signed margin order
+     * @param {string} side - BUY or SELL
+     * @param {string} symbol - The symbol to buy or sell
+     * @param {string} quantity - The quantity to buy or sell
+     * @param {string} price - The price per unit to transact each unit at
+     * @param {object} flags - additional order settings
+     * @param {function} callback - the callback function
+     * @return {undefined}
+     */
+    async marginOrder(side, symbol, quantity, price, flags = {}) {
+        let endpoint = 'v1/margin/order';
+        if (this.options.test) endpoint += '/test';
+        let opt = {
+            symbol: symbol,
+            side: side,
+            type: 'LIMIT',
+            quantity: quantity
+        };
+        if (typeof flags.type !== 'undefined') opt.type = flags.type;
+        if (typeof flags.isIsolated !== 'undefined') opt.isIsolated = flags.isIsolated;
+        if (opt.type.includes('LIMIT')) {
+            opt.price = price;
+            if (opt.type !== 'LIMIT_MAKER') {
+                opt.timeInForce = 'GTC';
+            }
         }
+
+        if (typeof flags.timeInForce !== 'undefined') opt.timeInForce = flags.timeInForce;
+        if (typeof flags.newOrderRespType !== 'undefined') opt.newOrderRespType = flags.newOrderRespType;
+        // if ( typeof flags.newClientOrderId !== 'undefined' ) opt.newClientOrderId = flags.newClientOrderId;
+        if (typeof flags.newClientOrderId !== 'undefined') {
+            opt.newClientOrderId = flags.newClientOrderId;
+        } else {
+            opt.newClientOrderId = this.SPOT_PREFIX + this.uuid22();
+        }
+        if (typeof flags.sideEffectType !== 'undefined') opt.sideEffectType = flags.sideEffectType;
+
+        /*
+         * STOP_LOSS
+         * STOP_LOSS_LIMIT
+         * TAKE_PROFIT
+         * TAKE_PROFIT_LIMIT
+         */
+        if (typeof flags.icebergQty !== 'undefined') opt.icebergQty = flags.icebergQty;
+        if (typeof flags.stopPrice !== 'undefined') {
+            opt.stopPrice = flags.stopPrice;
+            if (opt.type === 'LIMIT') throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
+        }
+        return await this.signedRequest(this.sapi + endpoint, opt, 'POST');
+    };
+
+
+    // Futures internal functions
+    async futuresOrder(side, symbol, quantity, price = false, params = {}) {
+        params.symbol = symbol;
+        params.side = side;
+        if (quantity) params.quantity = quantity;
+        // if in the binance futures setting Hedged mode is active, positionSide parameter is mandatory
+        if (typeof params.positionSide === 'undefined' && this.options.hedgeMode) {
+            params.positionSide = side === 'BUY' ? 'LONG' : 'SHORT';
+        }
+        // LIMIT STOP MARKET STOP_MARKET TAKE_PROFIT TAKE_PROFIT_MARKET
+        // reduceOnly stopPrice
+        if (price) {
+            params.price = price;
+            if (typeof params.type === 'undefined') params.type = 'LIMIT';
+        } else {
+            if (typeof params.type === 'undefined') params.type = 'MARKET';
+        }
+        if (!params.timeInForce && (params.type.includes('LIMIT') || params.type === 'STOP' || params.type === 'TAKE_PROFIT')) {
+            params.timeInForce = 'GTX'; // Post only by default. Use GTC for limit orders.
+        }
+
+        if (!params.newClientOrderId) {
+            params.newClientOrderId = this.CONTRACT_PREFIX + this.uuid22();
+        }
+        return await this.promiseRequest('v1/order', params, { base: this.fapi, type: 'TRADE', method: 'POST' });
+    };
+
+
+    async deliveryOrder( side: string, symbol: string, quantity: number, price = false, params = {} ) {
+        params.symbol = symbol;
+        params.side = side;
+        params.quantity = quantity;
+        // if in the binance futures setting Hedged mode is active, positionSide parameter is mandatory
+        if( Binance.options.hedgeMode ){
+            params.positionSide = side === 'BUY' ? 'LONG' : 'SHORT';
+        }
+        // LIMIT STOP MARKET STOP_MARKET TAKE_PROFIT TAKE_PROFIT_MARKET
+        // reduceOnly stopPrice
+        if ( price ) {
+            params.price = price;
+            if ( typeof params.type === 'undefined' ) params.type = 'LIMIT';
+        } else {
+            if ( typeof params.type === 'undefined' ) params.type = 'MARKET';
+        }
+        if ( !params.timeInForce && ( params.type.includes( 'LIMIT' ) || params.type === 'STOP' || params.type === 'TAKE_PROFIT' ) ) {
+            params.timeInForce = 'GTX'; // Post only by default. Use GTC for limit orders.
+        }
+
+        if ( !params.newClientOrderId ) {
+            params.newClientOrderId = this.CONTRACT_PREFIX + this.uuid22();
+        }
+        return this.promiseRequest( 'v1/order', params, { base: this.dapi, type:'TRADE', method:'POST' } );
+    };
+
+
+    /**
+    * Get Binance server time
+    * @return {promise or undefined} - omitting the callback returns a promise
+    */
+    async time() {
+        const res = await this.publicRequest(this.getSpotUrl() + 'v3/time', {});
+        return res;
+    }
 
 }
