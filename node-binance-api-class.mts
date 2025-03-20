@@ -809,7 +809,7 @@ export default class Binance {
      * @param {object} opened_callback - the function to call when opened
      * @return {WebSocket} - websocket reference
      */
-  subscribeCombined (streams, callback, reconnect = false, opened_callback = false) {
+    subscribeCombined(streams, callback, reconnect = false, opened_callback = false) {
         let httpsproxy = process.env.https_proxy || false;
         let socksproxy = process.env.socks_proxy || false;
         const queryParams = streams.join('/');
@@ -858,7 +858,7 @@ export default class Binance {
      * @param {boolean} reconnect - auto reconnect after termination
      * @return {undefined}
      */
-  terminate (endpoint, reconnect = false) {
+    terminate(endpoint, reconnect = false) {
         let ws = this.subscriptions[endpoint];
         if (!ws) return;
         ws.removeAllListeners('message');
@@ -891,7 +891,7 @@ export default class Binance {
      * @param {function} openCallback - a callback function
      * @return {undefined}
      */
-  handleFuturesSocketOpen (openCallback) {
+    handleFuturesSocketOpen(openCallback) {
         this.isAlive = true;
         if (Object.keys(this.futuresSubscriptions).length === 0) {
             this.socketHeartbeatInterval = setInterval(futuresSocketHeartbeat, 30000);
@@ -907,7 +907,7 @@ export default class Binance {
      * @param {string} reason - string with the response
      * @return {undefined}
      */
-  handleFuturesSocketClose (reconnect, code, reason) {
+    handleFuturesSocketClose(reconnect, code, reason) {
         delete this.futuresSubscriptions[this.endpoint];
         if (this.futuresSubscriptions && Object.keys(this.futuresSubscriptions).length === 0) {
             clearInterval(this.socketHeartbeatInterval);
@@ -931,7 +931,7 @@ export default class Binance {
      * @param {object} error - error object message
      * @return {undefined}
      */
-  handleFuturesSocketError (error) {
+    handleFuturesSocketError(error) {
         this.options.log('Futures WebSocket error: ' + this.endpoint +
             (error.code ? ' (' + error.code + ')' : '') +
             (error.message ? ' ' + error.message : ''));
@@ -952,7 +952,7 @@ export default class Binance {
      * @param {object} params - Optional reconnect {boolean} (whether to reconnect on disconnect), openCallback {function}, id {string}
      * @return {WebSocket} - websocket reference
      */
-  futuresSubscribeSingle (endpoint, callback, params = {}) {
+    futuresSubscribeSingle(endpoint, callback, params = {}) {
         if (typeof params === 'boolean') params = { reconnect: params };
         if (!params.reconnect) params.reconnect = false;
         if (!params.openCallback) params.openCallback = false;
@@ -1004,7 +1004,7 @@ export default class Binance {
      * @param {object} params - Optional reconnect {boolean} (whether to reconnect on disconnect), openCallback {function}, id {string}
      * @return {WebSocket} - websocket reference
      */
-  futuresSubscribe (streams, callback, params = {}) {
+    futuresSubscribe(streams, callback, params = {}) {
         if (typeof streams === 'string') return futuresSubscribeSingle(streams, callback, params);
         if (typeof params === 'boolean') params = { reconnect: params };
         if (!params.reconnect) params.reconnect = false;
@@ -1058,7 +1058,7 @@ export default class Binance {
      * @param {boolean} reconnect - auto reconnect after termination
      * @return {undefined}
      */
-  futuresTerminate (endpoint, reconnect = false) {
+    futuresTerminate(endpoint, reconnect = false) {
         let ws = this.futuresSubscriptions[endpoint];
         if (!ws) return;
         ws.removeAllListeners('message');
@@ -1116,7 +1116,7 @@ export default class Binance {
      * @param {object} data - liquidation data callback data type
      * @return {object} - user friendly data type
      */
-  fLiquidationConvertData (data) {
+    fLiquidationConvertData(data) {
         let eventType = data.e, eventTime = data.E;
         let {
             s: symbol,
@@ -1139,7 +1139,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  fTickerConvertData (data) {
+    fTickerConvertData(data) {
         let friendlyData = data => {
             let {
                 e: eventType,
@@ -1197,7 +1197,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  fMiniTickerConvertData (data) {
+    fMiniTickerConvertData(data) {
         let friendlyData = data => {
             let {
                 e: eventType,
@@ -1237,7 +1237,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  fBookTickerConvertData (data) {
+    fBookTickerConvertData(data) {
         let {
             u: updateId,
             s: symbol,
@@ -1261,7 +1261,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  fUserDataMarginConvertData (data) {
+    fUserDataMarginConvertData(data) {
         let {
             e: eventType,
             E: eventTime,
@@ -1308,7 +1308,7 @@ export default class Binance {
      * @param {object} data - user config callback data type
      * @return {object} - user friendly data type
      */
-  fUserConfigDataAccountUpdateConvertData (data) {
+    fUserConfigDataAccountUpdateConvertData(data) {
         return {
             eventType: data.e,
             eventTime: data.E,
@@ -1325,7 +1325,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  fUserDataAccountUpdateConvertData (data) {
+    fUserDataAccountUpdateConvertData(data) {
         let {
             e: eventType,
             E: eventTime,
@@ -1407,7 +1407,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  fUserDataOrderUpdateConvertData (data) {
+    fUserDataOrderUpdateConvertData(data) {
         let {
             e: eventType,
             E: eventTime,
@@ -1498,7 +1498,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  fMarkPriceConvertData (data) {
+    fMarkPriceConvertData(data) {
         let friendlyData = data => {
             let {
                 e: eventType,
@@ -1534,7 +1534,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  fAggTradeConvertData (data) {
+    fAggTradeConvertData(data) {
         let friendlyData = data => {
             let {
                 e: eventType,
@@ -1596,7 +1596,7 @@ export default class Binance {
      * @param {function} openCallback - a callback function
      * @return {undefined}
      */
-  handleDeliverySocketOpen (openCallback) {
+    handleDeliverySocketOpen(openCallback) {
         this.isAlive = true;
         if (Object.keys(this.deliverySubscriptions).length === 0) {
             this.socketHeartbeatInterval = setInterval(deliverySocketHeartbeat, 30000);
@@ -1612,7 +1612,7 @@ export default class Binance {
      * @param {string} reason - string with the response
      * @return {undefined}
      */
-  handleDeliverySocketClose (reconnect, code, reason) {
+    handleDeliverySocketClose(reconnect, code, reason) {
         delete this.deliverySubscriptions[this.endpoint];
         if (this.deliverySubscriptions && Object.keys(this.deliverySubscriptions).length === 0) {
             clearInterval(this.socketHeartbeatInterval);
@@ -1636,7 +1636,7 @@ export default class Binance {
      * @param {object} error - error object message
      * @return {undefined}
      */
-  handleDeliverySocketError (error) {
+    handleDeliverySocketError(error) {
         this.options.log('Delivery WebSocket error: ' + this.endpoint +
             (error.code ? ' (' + error.code + ')' : '') +
             (error.message ? ' ' + error.message : ''));
@@ -1657,7 +1657,7 @@ export default class Binance {
      * @param {object} params - Optional reconnect {boolean} (whether to reconnect on disconnect), openCallback {function}, id {string}
      * @return {WebSocket} - websocket reference
      */
-  deliverySubscribeSingle (endpoint, callback, params = {}) {
+    deliverySubscribeSingle(endpoint, callback, params = {}) {
         if (typeof params === 'boolean') params = { reconnect: params };
         if (!params.reconnect) params.reconnect = false;
         if (!params.openCallback) params.openCallback = false;
@@ -1708,7 +1708,7 @@ export default class Binance {
      * @param {object} params - Optional reconnect {boolean} (whether to reconnect on disconnect), openCallback {function}, id {string}
      * @return {WebSocket} - websocket reference
      */
-  deliverySubscribe (streams, callback, params = {}) {
+    deliverySubscribe(streams, callback, params = {}) {
         if (typeof streams === 'string') return deliverySubscribeSingle(streams, callback, params);
         if (typeof params === 'boolean') params = { reconnect: params };
         if (!params.reconnect) params.reconnect = false;
@@ -1762,7 +1762,7 @@ export default class Binance {
      * @param {boolean} reconnect - auto reconnect after termination
      * @return {undefined}
      */
-  deliveryTerminate (endpoint, reconnect = false) {
+    deliveryTerminate(endpoint, reconnect = false) {
         let ws = this.deliverySubscriptions[endpoint];
         if (!ws) return;
         ws.removeAllListeners('message');
@@ -1820,7 +1820,7 @@ export default class Binance {
      * @param {object} data - liquidation data callback data type
      * @return {object} - user friendly data type
      */
-  dLiquidationConvertData (data) {
+    dLiquidationConvertData(data) {
         let eventType = data.e, eventTime = data.E;
         let {
             s: symbol,
@@ -1843,7 +1843,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  dTickerConvertData (data) {
+    dTickerConvertData(data) {
         let friendlyData = data => {
             let {
                 e: eventType,
@@ -1901,7 +1901,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  dMiniTickerConvertData (data) {
+    dMiniTickerConvertData(data) {
         let friendlyData = data => {
             let {
                 e: eventType,
@@ -1941,7 +1941,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  dBookTickerConvertData (data) {
+    dBookTickerConvertData(data) {
         let {
             u: updateId,
             s: symbol,
@@ -1965,7 +1965,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  dMarkPriceConvertData (data) {
+    dMarkPriceConvertData(data) {
         let friendlyData = data => {
             let {
                 e: eventType,
@@ -1999,7 +1999,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  dAggTradeConvertData (data) {
+    dAggTradeConvertData(data) {
         let friendlyData = data => {
             let {
                 e: eventType,
@@ -2137,7 +2137,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {undefined}
      */
-  userDataHandler (data) {
+    userDataHandler(data) {
         let type = data.e;
         if (type === 'outboundAccountInfo') {
             // XXX: Deprecated in 2020-09-08
@@ -2157,7 +2157,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {undefined}
      */
-  userMarginDataHandler (data) {
+    userMarginDataHandler(data) {
         let type = data.e;
         if (type === 'outboundAccountInfo') {
             // XXX: Deprecated in 2020-09-08
@@ -2177,21 +2177,21 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {undefined}
      */
-  userFutureDataHandler (data) {
+    userFutureDataHandler(data) {
         let type = data.e;
         if (type === 'MARGIN_CALL') {
-            this.options.future_margin_call_callback(fUserDataMarginConvertData(data));
+            this.options.future_margin_call_callback(this.fUserDataMarginConvertData(data));
         } else if (type === 'ACCOUNT_UPDATE') {
             if (this.options.future_account_update_callback) {
-                this.options.future_account_update_callback(fUserDataAccountUpdateConvertData(data));
+                this.options.future_account_update_callback(this.fUserDataAccountUpdateConvertData(data));
             }
         } else if (type === 'ORDER_TRADE_UPDATE') {
             if (this.options.future_order_update_callback) {
-                this.options.future_order_update_callback(fUserDataOrderUpdateConvertData(data));
+                this.options.future_order_update_callback(this.fUserDataOrderUpdateConvertData(data));
             }
         } else if (type === 'ACCOUNT_CONFIG_UPDATE') {
             if (this.options.future_account_config_update_callback) {
-                this.options.future_account_config_update_callback(fUserConfigDataAccountUpdateConvertData(data));
+                this.options.future_account_config_update_callback(this.fUserConfigDataAccountUpdateConvertData(data));
             }
         } else {
             this.options.log('Unexpected userFutureData: ' + type);
@@ -2207,18 +2207,18 @@ export default class Binance {
         let type = data.e;
         if (type === "MARGIN_CALL") {
             this.options.delivery_margin_call_callback(
-                fUserDataMarginConvertData(data)
+                this.fUserDataMarginConvertData(data)
             );
         } else if (type === "ACCOUNT_UPDATE") {
             if (this.options.delivery_account_update_callback) {
                 this.options.delivery_account_update_callback(
-                    fUserDataAccountUpdateConvertData(data)
+                    this.fUserDataAccountUpdateConvertData(data)
                 );
             }
         } else if (type === "ORDER_TRADE_UPDATE") {
             if (this.options.delivery_order_update_callback) {
                 this.options.delivery_order_update_callback(
-                    dUserDataOrderUpdateConvertData(data)
+                    this.dUserDataOrderUpdateConvertData(data)
                 );
             }
         } else {
@@ -2231,77 +2231,41 @@ export default class Binance {
     * @param {string} type - ENUM , example MAIN_UMFUTURE for SPOT to USDT futures, see https://binance-docs.github.io/apidocs/spot/en/#user-universal-transfer
     * @param {string} asset - the asset - example :USDT    * 
     * @param {number} amount - the callback function
-    * @param {function} callback - the callback function
     * @return {promise}
     */
-    universalTransfer(type, asset, amount, callback = false) {
+    async universalTransfer(type: string, asset: string, amount: number) {
         let parameters = Object.assign({
             asset,
             amount,
             type,
         });
-        if (!callback) {
-            return new Promise((resolve, reject) => {
-                signedRequest(
-                    sapi + "v1/asset/transfer",
-                    parameters,
-                    function (error, data) {
-                        if (error) return reject(error);
-                        return resolve(data);
-                    },
-                    "POST"
-                );
-            });
-        }
-        signedRequest(
-            sapi + "v1/asset/transfer",
+        return await this.signedRequest(
+            this.sapi + "v1/asset/transfer",
             parameters,
-            function (error, data) {
-                if (callback) return callback(error, data);
-            },
             "POST"
         );
-
     }
 
     /**
    * Transfer between main account and futures/delivery accounts
    * @param {string} asset - the asset
    * @param {number} amount - the asset
-   * @param {function} callback - the callback function
    * @param {object} options - additional options
    * @return {undefined}
    */
-    const transferBetweenMainAndFutures = function (
-        asset,
-        amount,
-        type,
-        callback
+    async transferBetweenMainAndFutures(
+        asset: string,
+        amount: number,
+        type: string,
     ) {
         let parameters = Object.assign({
             asset,
             amount,
             type,
         });
-        if (!callback) {
-            return new Promise((resolve, reject) => {
-                signedRequest(
-                    sapi + "v1/futures/transfer",
-                    parameters,
-                    function (error, data) {
-                        if (error) return reject(error);
-                        return resolve(data);
-                    },
-                    "POST"
-                );
-            });
-        }
-        signedRequest(
-            sapi + "v1/futures/transfer",
+        return await this.signedRequest(
+            this.sapi + "v1/futures/transfer",
             parameters,
-            function (error, data) {
-                if (callback) return callback(error, data);
-            },
             "POST"
         );
     };
@@ -2311,7 +2275,7 @@ export default class Binance {
      * @param {object} data - user data callback data type
      * @return {object} - user friendly data type
      */
-  prevDayConvertData (data) {
+    prevDayConvertData(data) {
         let convertData = data => {
             let {
                 e: eventType,
@@ -2384,7 +2348,7 @@ export default class Binance {
      * @return {undefined}
      */
     prevDayStreamHandler(data, callback) {
-        const converted = prevDayConvertData(data);
+        const converted = this.prevDayConvertData(data);
         callback(null, converted);
     };
 
@@ -2410,7 +2374,7 @@ export default class Binance {
      * @param {array} data - array of symbols
      * @return {object} - symbols with their bids and asks data
      */
-  bookPriceData (data) {
+    bookPriceData(data) {
         let prices = {};
         for (let obj of data) {
             prices[obj.symbol] = {
@@ -2428,7 +2392,7 @@ export default class Binance {
      * @param {array} data - account info object
      * @return {object} - balances hel with available, onorder amounts
      */
-  balanceData (data) {
+    balanceData(data) {
         let balances = {};
         if (typeof data === 'undefined') return {};
         if (typeof data.balances === 'undefined') {
@@ -2518,7 +2482,7 @@ export default class Binance {
      */
     futuresKlineData(symbol, interval, ticks) {
         let last_time = 0;
-        if (isIterable(ticks)) {
+        if (this.isIterable(ticks)) {
             for (let tick of ticks) {
                 // eslint-disable-next-line no-unused-vars
                 let [time, open, high, low, close, volume, closeTime, quoteVolume, trades, takerBuyBaseVolume, takerBuyQuoteVolume, ignored] = tick;
@@ -2538,7 +2502,7 @@ export default class Binance {
      */
     deliveryKlineData(symbol, interval, ticks) {
         let last_time = 0;
-        if (isIterable(ticks)) {
+        if (this.isIterable(ticks)) {
             for (let tick of ticks) {
                 // eslint-disable-next-line no-unused-vars
                 let [time, open, high, low, close, volume, closeTime, quoteVolume, trades, takerBuyBaseVolume, takerBuyQuoteVolume, ignored] = tick;
@@ -2554,7 +2518,7 @@ export default class Binance {
      * @param {object} data - containing the bids and asks
      * @return {undefined}
      */
-  depthData (data) {
+    depthData(data) {
         if (!data) return { bids: [], asks: [] };
         let bids = {}, asks = {}, obj;
         if (typeof data.bids !== 'undefined') {
@@ -2575,7 +2539,7 @@ export default class Binance {
      * @param {object} depth - information
      * @return {undefined}
      */
-  depthHandler (depth) {
+    depthHandler(depth) {
         let symbol = depth.s, obj;
         let context = this.depthCacheContext[symbol];
         let updateDepthCache = () => {
@@ -2633,7 +2597,7 @@ export default class Binance {
      * @param {string} symbol - the symbol to fetch
      * @return {object} - the depth cache object
      */
-  getDepthCache (symbol) {
+    getDepthCache(symbol: string) {
         if (typeof this.depthCache[symbol] === 'undefined') return { bids: {}, asks: {} };
         return this.depthCache[symbol];
     };
@@ -2643,8 +2607,8 @@ export default class Binance {
      * @param {string} symbol - the symbol to fetch
      * @return {object} - the depth volume cache object
      */
-  depthVolume (symbol) {
-        let cache = getDepthCache(symbol), quantity, price;
+    depthVolume(symbol: string) {
+        let cache = this.getDepthCache(symbol), quantity, price;
         let bidbase = 0, askbase = 0, bidqty = 0, askqty = 0;
         for (price in cache.bids) {
             quantity = cache.bids[price];
@@ -2664,7 +2628,7 @@ export default class Binance {
      * @param {array} array - the array to check
      * @return {boolean} - true or false
      */
-  isArrayUnique (array) {
+    isArrayUnique(array) {
         return new Set(array).size === array.length;
     };
 
