@@ -254,7 +254,7 @@ export default class Binance {
             forever: this.options.keepAlive,
             qsStringifyOptions: {
                 arrayFormat: 'repeat'
-            }
+            },
             headers: {
                 'User-Agent': this.userAgent,
                 'Content-type': this.contentType,
@@ -1010,7 +1010,7 @@ export default class Binance {
      * Futures heartbeat code with a shared single interval tick
      * @return {undefined}
      */
-    const futuresSocketHeartbeat = () => {
+    futuresSocketHeartbeat () {
         /* Sockets removed from subscriptions during a manual terminate()
          will no longer be at risk of having functions called on them */
         for (let endpointId in this.futuresSubscriptions) {
@@ -1716,7 +1716,7 @@ export default class Binance {
      * Delivery heartbeat code with a shared single interval tick
      * @return {undefined}
      */
-    const deliverySocketHeartbeat = () => {
+    deliverySocketHeartbeat () {
         /* Sockets removed from subscriptions during a manual terminate()
          will no longer be at risk of having functions called on them */
         for (let endpointId in this.deliverySubscriptions) {
@@ -3161,7 +3161,7 @@ export default class Binance {
     * Gets the the exchange info
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    exchangeInfo() {
+    async exchangeInfo() {
         return await this.publicRequest(this.getSpotUrl() + 'v3/exchangeInfo', {});
     }
 
@@ -3308,7 +3308,7 @@ export default class Binance {
     * Tell api to use the server time to offset time indexes
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    useServerTime() {
+    async useServerTime() {
         const response = await this.publicRequest(this.getSpotUrl() + 'v3/time', {});
         this.info.timeOffset = response.serverTime - new Date().getTime();
         return response;
@@ -3415,7 +3415,7 @@ export default class Binance {
     * @param {object} options - additional options
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    candlesticks(symbol: string, interval = '5m', options = { limit: 500 }) {
+    async candlesticks(symbol: string, interval = '5m', options = { limit: 500 }) {
         let params = Object.assign({ symbol: symbol, interval: interval }, options);
         return await this.publicRequest(this.getSpotUrl() + 'v3/klines', params);
     }
@@ -4145,7 +4145,7 @@ export default class Binance {
      * @param {function} callback - the callback function
      * @return {undefined}
      */
-    mgCancelOrders(symbol: string) {
+    async mgCancelOrders(symbol: string) {
         // signedRequest(this.sapi + 'v1/margin/openOrders', { symbol: symbol }, function (error, json) {
         //     if (json.length === 0) {
         //         if (callback) return callback.call(this, 'No orders present for this symbol', {}, symbol);
@@ -4405,7 +4405,7 @@ export default class Binance {
      * @param {string} speed - 1 second updates. leave blank for default 3 seconds
      * @return {string} the websocket endpoint
      */
-    futuresMarkPriceStream(symbol: string? = false, callback = console.log, speed = '@1s') {
+    futuresMarkPriceStream(symbol?: string = false, callback = console.log, speed = '@1s') {
         if (typeof symbol == 'function') {
             callback = symbol;
             symbol = false;
@@ -4845,7 +4845,7 @@ export default class Binance {
             this.options.listenKey = response.listenKey;
             setTimeout(function userDataKeepAlive() { // keepalive
                 try {
-                    apiRequest(this.getSpotUrl() + 'v3/userDataStream?listenKey=' + this.options.listenKey, {}, function (err) {
+                    apiRequest(this.getSpotUrl() + 'v3/userDataStream?listenKey=' + this.options.listenKey, {}, function (err: any) {
                         if (err) setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
                         else setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
                     }, 'PUT');
@@ -4877,7 +4877,7 @@ export default class Binance {
             this.options.listenMarginKey = response.listenKey;
             setTimeout(function userDataKeepAlive() { // keepalive
                 try {
-                    apiRequest(this.sapi + 'v1/userDataStream?listenKey=' + this.options.listenMarginKey, {}, function (err) {
+                    apiRequest(this.sapi + 'v1/userDataStream?listenKey=' + this.options.listenMarginKey, {}, function (err: any) {
                         if (err) setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
                         else setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
                     }, 'PUT');
@@ -4911,7 +4911,7 @@ export default class Binance {
             this.options.listenFutureKey = response.listenKey;
             setTimeout(function userDataKeepAlive() { // keepalive
                 try {
-                    apiRequest(url + 'v1/listenKey?listenKey=' + this.options.listenFutureKey, {}, function (err) {
+                    apiRequest(url + 'v1/listenKey?listenKey=' + this.options.listenFutureKey, {}, function (err: any) {
                         if (err) setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
                         else setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
                     }, 'PUT');
@@ -4966,7 +4966,7 @@ export default class Binance {
                             "v1/listenKey?listenKey=" +
                             this.options.listenDeliveryKey,
                             {},
-                            function (err) {
+                            function (err: any) {
                                 if (err) setTimeout(userDataKeepAlive, 60000);
                                 // retry in 1 minute
                                 else setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
@@ -5168,7 +5168,7 @@ export default class Binance {
      * @param {String|Array} symbols   - a single symbol, or an array of symbols, to clear the cache of
      * @returns {void}
      */
-    clearDepthCache(symbols) {
+    clearDepthCache(symbols: string[] | string) {
         const symbolsArr = Array.isArray(symbols) ? symbols : [symbols];
         symbolsArr.forEach(thisSymbol => {
             delete this.depthCache[thisSymbol];
@@ -5286,7 +5286,7 @@ export default class Binance {
         };
 
         let getSymbolKlineSnapshot = (symbol, limit = 500) => {
-            publicRequest(this.getSpotUrl() + 'v3/klines', { symbol: symbol, interval: interval, limit: limit }, function (error, data) {
+            this.publicRequest(this.getSpotUrl() + 'v3/klines', { symbol: symbol, interval: interval, limit: limit }, function (error, data) {
                 klineData(symbol, interval, data);
                 //this.options.log('/klines at ' +this.info[symbol][interval].timestamp);
                 if (typeof this.klineQueue[symbol][interval] !== 'undefined') {
@@ -5353,7 +5353,7 @@ export default class Binance {
         let reconnect = () => {
             if (this.options.reconnect) miniTicker(callback);
         };
-        let subscription = this.subscribe('!miniTicker@arr', function (data) {
+        let subscription = this.subscribe('!miniTicker@arr', function (data: any) {
             let markets = {};
             for (let obj of data) {
                 markets[obj.s] = {
@@ -5409,18 +5409,18 @@ export default class Binance {
             let streams = symbols.map(function (symbol) {
                 return symbol.toLowerCase() + '@ticker';
             });
-            subscription = this.subscribeCombined(streams, function (data) {
+            subscription = this.subscribeCombined(streams, function (data: any) {
                 this.prevDayStreamHandler(data, callback);
             }, reconnect);
             // Raw stream for  a single symbol
         } else if (symbols) {
             let symbol = symbols;
-            subscription = this.subscribe(symbol.toLowerCase() + '@ticker', function (data) {
+            subscription = this.subscribe(symbol.toLowerCase() + '@ticker', function (data: any) {
                 this.prevDayStreamHandler(data, callback);
             }, reconnect);
             // Raw stream of all listed symbols
         } else {
-            subscription = this.subscribe('!ticker@arr', function (data) {
+            subscription = this.subscribe('!ticker@arr', function (data: any) {
                 if (singleCallback) {
                     this.prevDayStreamHandler(data, callback);
                 } else {
