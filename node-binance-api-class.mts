@@ -274,7 +274,6 @@ export default class Binance {
         }
     }
 
-
     async publicRequest(url: string, data: { [key: string]: any } = {}, method = 'GET') {
         let opt = this.reqObj(url, data, method);
         const res = await this.proxyRequest(opt);
@@ -282,7 +281,7 @@ export default class Binance {
     };
 
     // used for futures
-    async promiseRequest(url: string, data: { [key: string]: any } = {}, flags: { [key: string]: any } = {}) {
+    async futuresRequest(url: string, data: { [key: string]: any } = {}, flags: { [key: string]: any } = {}) {
         let query = '', headers = {
             'User-Agent': this.userAgent,
             'Content-type': 'application/x-www-form-urlencoded'
@@ -306,7 +305,10 @@ export default class Binance {
             followAllRedirects: true
         };
         if (flags.type === 'SIGNED' || flags.type === 'TRADE' || flags.type === 'USER_DATA') {
-            data.timestamp = new Date().getTime() + this.info.timeOffset;
+            data.timestamp = new Date().getTime();
+            if (this.info.timeOffset){
+                data.timestamp += this.info.timeOffset;
+            }
             query = this.makeQueryString(data);
             data.signature = crypto.createHmac('sha256', this.options.APISECRET).update(query).digest('hex'); // HMAC hash header
             opt.url = `${baseURL}${url}?${query}&signature=${data.signature}`;
@@ -773,7 +775,7 @@ export default class Binance {
         if (!params.newClientOrderId) {
             params.newClientOrderId = this.CONTRACT_PREFIX + this.uuid22();
         }
-        return await this.promiseRequest('v1/order', params, { base: this.fapi, type: 'TRADE', method: 'POST' });
+        return await this.futuresRequest('v1/order', params, { base: this.fapi, type: 'TRADE', method: 'POST' });
     };
 
 
@@ -800,7 +802,7 @@ export default class Binance {
         if (!params.newClientOrderId) {
             params.newClientOrderId = this.CONTRACT_PREFIX + this.uuid22();
         }
-        return await this.promiseRequest('v1/order', params, { base: this.dapi, type: 'TRADE', method: 'POST' });
+        return await this.futuresRequest('v1/order', params, { base: this.dapi, type: 'TRADE', method: 'POST' });
     };
 
     // ------ WS RELATED FUNCTIONS ------ //
@@ -3517,91 +3519,91 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async lending(params = {}) {
-        return await this.promiseRequest('v1/lending/union/account', params, { base: this.sapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/lending/union/account', params, { base: this.sapi, type: 'SIGNED' });
     }
 
     //** Futures methods */
     async futuresPing(params = {}) {
-        return await this.promiseRequest('v1/ping', params, { base: this.fapi });
+        return await this.futuresRequest('v1/ping', params, { base: this.fapi });
     }
 
     async futuresTime(params = {}) {
-        return await this.promiseRequest('v1/time', params, { base: this.fapi }).then(r => r.serverTime);
+        return await this.futuresRequest('v1/time', params, { base: this.fapi }).then(r => r.serverTime);
     }
 
     async futuresExchangeInfo() {
-        return await this.promiseRequest('v1/exchangeInfo', {}, { base: this.fapi });
+        return await this.futuresRequest('v1/exchangeInfo', {}, { base: this.fapi });
     }
 
     async futuresPrices(params = {}) {
-        let data = await this.promiseRequest('v2/ticker/price', params, { base: this.fapi });
+        let data = await this.futuresRequest('v2/ticker/price', params, { base: this.fapi });
         return Array.isArray(data) ? data.reduce((out, i) => ((out[i.symbol] = i.price), out), {}) : data;
     }
 
     async futuresDaily(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        let data = await this.promiseRequest('v1/ticker/24hr', params, { base: this.fapi });
+        let data = await this.futuresRequest('v1/ticker/24hr', params, { base: this.fapi });
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
     async futuresOpenInterest(symbol: string) {
-        return await this.promiseRequest('v1/openInterest', { symbol }, { base: this.fapi }).then(r => r.openInterest);
+        return await this.futuresRequest('v1/openInterest', { symbol }, { base: this.fapi });
     }
 
     async futuresCandles(symbol: string, interval = "30m", params: { [key: string]: any } = {}) {
         params.symbol = symbol;
         params.interval = interval;
-        return await this.promiseRequest('v1/klines', params, { base: this.fapi });
+        return await this.futuresRequest('v1/klines', params, { base: this.fapi });
     }
 
     async futuresMarkPrice(symbol = false) {
-        return await this.promiseRequest('v1/premiumIndex', symbol ? { symbol } : {}, { base: this.fapi });
+        return await this.futuresRequest('v1/premiumIndex', symbol ? { symbol } : {}, { base: this.fapi });
     }
 
     async futuresTrades(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/trades', params, { base: this.fapi });
+        return await this.futuresRequest('v1/trades', params, { base: this.fapi });
     }
 
     async futuresHistoricalTrades(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/historicalTrades', params, { base: this.fapi, type: 'MARKET_DATA' });
+        return await this.futuresRequest('v1/historicalTrades', params, { base: this.fapi, type: 'MARKET_DATA' });
     }
 
     async futuresAggTrades(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/aggTrades', params, { base: this.fapi });
+        return await this.futuresRequest('v1/aggTrades', params, { base: this.fapi });
     }
 
     async futuresForceOrders(params = {}) {
-        return await this.promiseRequest('v1/forceOrders', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/forceOrders', params, { base: this.fapi, type: 'SIGNED' });
     }
 
     async futuresDeleverageQuantile(params = {}) {
-        return await this.promiseRequest('v1/adlQuantile', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/adlQuantile', params, { base: this.fapi, type: 'SIGNED' });
     }
 
     async futuresUserTrades(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/userTrades', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/userTrades', params, { base: this.fapi, type: 'SIGNED' });
     }
 
     async futuresGetDataStream(params = {}) {
         //A User Data Stream listenKey is valid for 60 minutes after creation. setInterval
-        return await this.promiseRequest('v1/listenKey', params, { base: this.fapi, type: 'SIGNED', method: 'POST' });
+        return await this.futuresRequest('v1/listenKey', params, { base: this.fapi, type: 'SIGNED', method: 'POST' });
     }
 
     async futuresKeepDataStream(params = {}) {
-        return await this.promiseRequest('v1/listenKey', params, { base: this.fapi, type: 'SIGNED', method: 'PUT' });
+        return await this.futuresRequest('v1/listenKey', params, { base: this.fapi, type: 'SIGNED', method: 'PUT' });
     }
 
     async futuresCloseDataStream(params = {}) {
-        return await this.promiseRequest('v1/listenKey', params, { base: this.fapi, type: 'SIGNED', method: 'DELETE' });
+        return await this.futuresRequest('v1/listenKey', params, { base: this.fapi, type: 'SIGNED', method: 'DELETE' });
     }
 
     async futuresLiquidationOrders(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v1/allForceOrders', params, { base: this.fapi });
+        return await this.futuresRequest('v1/allForceOrders', params, { base: this.fapi });
     }
 
     /**
@@ -3614,7 +3616,7 @@ export default class Binance {
     */
     async futuresPositionRisk(params = {}, useV2 = false) {
         const endpoint = useV2 ? 'v2/positionRisk' : 'v3/positionRisk'
-        return await this.promiseRequest(endpoint, params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest(endpoint, params, { base: this.fapi, type: 'SIGNED' });
     }
 
     async futuresPositionRiskV2(params = {}) {
@@ -3623,36 +3625,36 @@ export default class Binance {
 
     async futuresFundingRate(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/fundingRate', params, { base: this.fapi });
+        return await this.futuresRequest('v1/fundingRate', params, { base: this.fapi });
     }
 
     async futuresLeverageBracket(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v1/leverageBracket', params, { base: this.fapi, type: 'USER_DATA' });
+        return await this.futuresRequest('v1/leverageBracket', params, { base: this.fapi, type: 'USER_DATA' });
     }
 
     async futuresTradingStatus(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v1/apiTradingStatus', params, { base: this.fapi, type: 'USER_DATA' });
+        return await this.futuresRequest('v1/apiTradingStatus', params, { base: this.fapi, type: 'USER_DATA' });
     }
 
     async futuresCommissionRate(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v1/commissionRate', params, { base: this.fapi, type: 'USER_DATA' });
+        return await this.futuresRequest('v1/commissionRate', params, { base: this.fapi, type: 'USER_DATA' });
     }
 
     // leverage 1 to 125
     async futuresLeverage(symbol: string, leverage: number, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
         params.leverage = leverage;
-        return await this.promiseRequest('v1/leverage', params, { base: this.fapi, method: 'POST', type: 'SIGNED' });
+        return await this.futuresRequest('v1/leverage', params, { base: this.fapi, method: 'POST', type: 'SIGNED' });
     }
 
     // ISOLATED, CROSSED
     async futuresMarginType(symbol: string, marginType: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
         params.marginType = marginType;
-        return await this.promiseRequest('v1/marginType', params, { base: this.fapi, method: 'POST', type: 'SIGNED' });
+        return await this.futuresRequest('v1/marginType', params, { base: this.fapi, method: 'POST', type: 'SIGNED' });
     }
 
     // type: 1: Add postion margin，2: Reduce postion margin
@@ -3660,36 +3662,36 @@ export default class Binance {
         params.symbol = symbol;
         params.amount = amount;
         params.type = type;
-        return await this.promiseRequest('v1/positionMargin', params, { base: this.fapi, method: 'POST', type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionMargin', params, { base: this.fapi, method: 'POST', type: 'SIGNED' });
     }
 
     async futuresPositionMarginHistory(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/positionMargin/history', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionMargin/history', params, { base: this.fapi, type: 'SIGNED' });
     }
 
     async futuresIncome(params = {}) {
-        return await this.promiseRequest('v1/income', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/income', params, { base: this.fapi, type: 'SIGNED' });
     }
 
     async futuresBalance(params = {}) {
-        return await this.promiseRequest('v2/balance', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v2/balance', params, { base: this.fapi, type: 'SIGNED' });
     }
 
     async futuresAccount(params = {}) {
-        return await this.promiseRequest('v3/account', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v3/account', params, { base: this.fapi, type: 'SIGNED' });
     }
 
     async futuresDepth(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/depth', params, { base: this.fapi });
+        return await this.futuresRequest('v1/depth', params, { base: this.fapi });
     }
 
     async futuresQuote(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
         //let data = await this.promiseRequest( 'v1/ticker/bookTicker', params, {base:fapi} );
         //return data.reduce((out, i) => ((out[i.symbol] = i), out), {}),
-        let data = await this.promiseRequest('v1/ticker/bookTicker', params, { base: this.fapi });
+        let data = await this.futuresRequest('v1/ticker/bookTicker', params, { base: this.fapi });
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
@@ -3716,62 +3718,62 @@ export default class Binance {
             }
         }
         let params = { batchOrders: JSON.stringify(orders) };
-        return await this.promiseRequest('v1/batchOrders', params, { base: this.fapi, type: 'TRADE', method: 'POST' });
+        return await this.futuresRequest('v1/batchOrders', params, { base: this.fapi, type: 'TRADE', method: 'POST' });
     }
 
     // futuresOrder, // side symbol quantity [price] [params]
 
     async futuresOrderStatus(symbol: string, params: { [key: string]: any } = {}) { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
-        return await this.promiseRequest('v1/order', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/order', params, { base: this.fapi, type: 'SIGNED' });
     }
 
     async futuresCancel(symbol: string, params: { [key: string]: any } = {}) { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
-        return await this.promiseRequest('v1/order', params, { base: this.fapi, type: 'SIGNED', method: 'DELETE' });
+        return await this.futuresRequest('v1/order', params, { base: this.fapi, type: 'SIGNED', method: 'DELETE' });
     }
 
     async futuresCancelAll(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/allOpenOrders', params, { base: this.fapi, type: 'SIGNED', method: 'DELETE' });
+        return await this.futuresRequest('v1/allOpenOrders', params, { base: this.fapi, type: 'SIGNED', method: 'DELETE' });
     }
 
     async futuresCountdownCancelAll(symbol, countdownTime = 0, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
         params.countdownTime = countdownTime;
-        return await this.promiseRequest('v1/countdownCancelAll', params, { base: this.fapi, type: 'SIGNED', method: 'POST' });
+        return await this.futuresRequest('v1/countdownCancelAll', params, { base: this.fapi, type: 'SIGNED', method: 'POST' });
     }
 
     async futuresOpenOrders(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v1/openOrders', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/openOrders', params, { base: this.fapi, type: 'SIGNED' });
     }
 
     async futuresAllOrders(symbol?: string, params: { [key: string]: any } = {}) { // Get all account orders; active, canceled, or filled.
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v1/allOrders', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/allOrders', params, { base: this.fapi, type: 'SIGNED' });
     }
 
     async futuresPositionSideDual(params = {}) {
-        return await this.promiseRequest('v1/positionSide/dual', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.fapi, type: 'SIGNED' });
     }
 
     async futuresChangePositionSideDual(dualSidePosition, params: { [key: string]: any } = {}) {
         params.dualSidePosition = dualSidePosition;
-        return await this.promiseRequest('v1/positionSide/dual', params, { base: this.fapi, type: 'SIGNED', method: 'POST' });
+        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.fapi, type: 'SIGNED', method: 'POST' });
     }
     async futuresTransferAsset(asset, amount, type) {
         let params = Object.assign({ asset, amount, type });
-        return await this.promiseRequest('v1/futures/transfer', params, { base: this.sapi, type: 'SIGNED', method: 'POST' });
+        return await this.futuresRequest('v1/futures/transfer', params, { base: this.sapi, type: 'SIGNED', method: 'POST' });
     }
 
     async futuresHistDataId(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v1/futuresHistDataId', params, { base: this.sapi, type: 'SIGNED', method: 'POST' })
+        return await this.futuresRequest('v1/futuresHistDataId', params, { base: this.sapi, type: 'SIGNED', method: 'POST' })
     }
 
     async futuresDownloadLink(downloadId) {
-        return await this.promiseRequest('v1/downloadLink', { downloadId }, { base: this.sapi, type: 'SIGNED' })
+        return await this.futuresRequest('v1/downloadLink', { downloadId }, { base: this.sapi, type: 'SIGNED' })
     }
 
     // futures websockets support: ticker bookTicker miniTicker aggTrade markPrice
@@ -3820,130 +3822,130 @@ export default class Binance {
     //** Delivery methods */
 
     async deliveryPing(params = {}) {
-        return await this.promiseRequest('v1/ping', params, { base: this.dapi });
+        return await this.futuresRequest('v1/ping', params, { base: this.dapi });
     }
 
     async deliveryTime(params = {}) {
-        return await this.promiseRequest('v1/time', params, { base: this.dapi }).then(r => r.serverTime);
+        return await this.futuresRequest('v1/time', params, { base: this.dapi }).then(r => r.serverTime);
     }
 
     async deliveryExchangeInfo() {
-        return await this.promiseRequest('v1/exchangeInfo', {}, { base: this.dapi })
+        return await this.futuresRequest('v1/exchangeInfo', {}, { base: this.dapi })
     };
 
     async deliveryPrices(params = {}) {
-        let data = await this.promiseRequest('v1/ticker/price', params, { base: this.dapi });
+        let data = await this.futuresRequest('v1/ticker/price', params, { base: this.dapi });
         return data.reduce((out, i) => ((out[i.symbol] = i.price), out), {});
     }
 
     async deliveryDaily(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        let data = await this.promiseRequest('v1/ticker/24hr', params, { base: this.dapi });
+        let data = await this.futuresRequest('v1/ticker/24hr', params, { base: this.dapi });
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
     async deliveryOpenInterest(symbol: string) {
-        return await this.promiseRequest('v1/openInterest', { symbol }, { base: this.dapi }).then(r => r.openInterest);
+        return await this.futuresRequest('v1/openInterest', { symbol }, { base: this.dapi }).then(r => r.openInterest);
     }
 
     async deliveryCandles(symbol: string, interval = "30m", params: { [key: string]: any } = {}) {
         params.symbol = symbol;
         params.interval = interval;
-        return await this.promiseRequest('v1/klines', params, { base: this.dapi });
+        return await this.futuresRequest('v1/klines', params, { base: this.dapi });
     }
 
     async deliveryContinuousKlines(pair: string, contractType = "CURRENT_QUARTER", interval = "30m", params: { [key: string]: any } = {}) {
         params.pair = pair;
         params.interval = interval;
         params.contractType = contractType;
-        return await this.promiseRequest('v1/continuousKlines', params, { base: this.dapi });
+        return await this.futuresRequest('v1/continuousKlines', params, { base: this.dapi });
     }
 
     async deliveryIndexKlines(pair: string, interval = "30m", params: { [key: string]: any } = {}) {
         params.pair = pair;
         params.interval = interval;
-        return await this.promiseRequest('v1/indexPriceKlines', params, { base: this.dapi });
+        return await this.futuresRequest('v1/indexPriceKlines', params, { base: this.dapi });
     }
 
     async deliveryMarkPriceKlines(symbol: string, interval = "30m", params: { [key: string]: any } = {}) {
         params.symbol = symbol;
         params.interval = interval;
-        return await this.promiseRequest('v1/markPriceKlines', params, { base: this.dapi });
+        return await this.futuresRequest('v1/markPriceKlines', params, { base: this.dapi });
     }
 
     async deliveryMarkPrice(symbol = false) {
-        return await this.promiseRequest('v1/premiumIndex', symbol ? { symbol } : {}, { base: this.dapi });
+        return await this.futuresRequest('v1/premiumIndex', symbol ? { symbol } : {}, { base: this.dapi });
     }
 
     async deliveryTrades(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/trades', params, { base: this.dapi });
+        return await this.futuresRequest('v1/trades', params, { base: this.dapi });
     }
 
     async deliveryHistoricalTrades(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/historicalTrades', params, { base: this.dapi, type: 'MARKET_DATA' });
+        return await this.futuresRequest('v1/historicalTrades', params, { base: this.dapi, type: 'MARKET_DATA' });
     }
 
     async deliveryAggTrades(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/aggTrades', params, { base: this.dapi });
+        return await this.futuresRequest('v1/aggTrades', params, { base: this.dapi });
     }
 
     async deliveryUserTrades(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/userTrades', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/userTrades', params, { base: this.dapi, type: 'SIGNED' });
     }
 
     async deliveryCommissionRate(symbol: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v1/commissionRate', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/commissionRate', params, { base: this.dapi, type: 'SIGNED' });
     }
 
     async deliveryGetDataStream(params = {}) {
         //A User Data Stream listenKey is valid for 60 minutes after creation. setInterval
-        return await this.promiseRequest('v1/listenKey', params, { base: this.dapi, type: 'SIGNED', method: 'POST' });
+        return await this.futuresRequest('v1/listenKey', params, { base: this.dapi, type: 'SIGNED', method: 'POST' });
     }
 
     async deliveryKeepDataStream(params = {}) {
-        return await this.promiseRequest('v1/listenKey', params, { base: this.dapi, type: 'SIGNED', method: 'PUT' });
+        return await this.futuresRequest('v1/listenKey', params, { base: this.dapi, type: 'SIGNED', method: 'PUT' });
     }
 
     async deliveryCloseDataStream(params = {}) {
-        return await this.promiseRequest('v1/listenKey', params, { base: this.dapi, type: 'SIGNED', method: 'DELETE' });
+        return await this.futuresRequest('v1/listenKey', params, { base: this.dapi, type: 'SIGNED', method: 'DELETE' });
     }
 
     async deliveryLiquidationOrders(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v1/allForceOrders', params, { base: this.dapi });
+        return await this.futuresRequest('v1/allForceOrders', params, { base: this.dapi });
     }
 
     async deliveryPositionRisk(params = {}) {
-        return await this.promiseRequest('v1/positionRisk', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionRisk', params, { base: this.dapi, type: 'SIGNED' });
     }
 
     async deliveryLeverageBracket(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v1/leverageBracket', params, { base: this.dapi, type: 'USER_DATA' });
+        return await this.futuresRequest('v1/leverageBracket', params, { base: this.dapi, type: 'USER_DATA' });
     }
 
     async deliveryLeverageBracketSymbols(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v2/leverageBracket', params, { base: this.dapi, type: 'USER_DATA' });
+        return await this.futuresRequest('v2/leverageBracket', params, { base: this.dapi, type: 'USER_DATA' });
     }
 
     // leverage 1 to 125
     async deliveryLeverage(symbol: string, leverage: number, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
         params.leverage = leverage;
-        return await this.promiseRequest('v1/leverage', params, { base: this.dapi, method: 'POST', type: 'SIGNED' });
+        return await this.futuresRequest('v1/leverage', params, { base: this.dapi, method: 'POST', type: 'SIGNED' });
     }
 
     // ISOLATED, CROSSED
     async deliveryMarginType(symbol: string, marginType: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
         params.marginType = marginType;
-        return await this.promiseRequest('v1/marginType', params, { base: this.dapi, method: 'POST', type: 'SIGNED' });
+        return await this.futuresRequest('v1/marginType', params, { base: this.dapi, method: 'POST', type: 'SIGNED' });
     }
 
     // type: 1: Add postion margin，2: Reduce postion margin
@@ -3951,36 +3953,36 @@ export default class Binance {
         params.symbol = symbol;
         params.amount = amount;
         params.type = type;
-        return await this.promiseRequest('v1/positionMargin', params, { base: this.dapi, method: 'POST', type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionMargin', params, { base: this.dapi, method: 'POST', type: 'SIGNED' });
     }
 
     async deliveryPositionMarginHistory(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/positionMargin/history', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionMargin/history', params, { base: this.dapi, type: 'SIGNED' });
     }
 
     async deliveryIncome(params = {}) {
-        return await this.promiseRequest('v1/income', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/income', params, { base: this.dapi, type: 'SIGNED' });
     }
 
     async deliveryBalance(params = {}) {
-        return await this.promiseRequest('v1/balance', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/balance', params, { base: this.dapi, type: 'SIGNED' });
     }
 
     async deliveryAccount(params = {}) {
-        return await this.promiseRequest('v1/account', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/account', params, { base: this.dapi, type: 'SIGNED' });
     }
 
     async deliveryDepth(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/depth', params, { base: this.dapi });
+        return await this.futuresRequest('v1/depth', params, { base: this.dapi });
     }
 
     async deliveryQuote(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
         //let data = await this.promiseRequest( 'v1/ticker/bookTicker', params, {base:dapi} );
         //return data.reduce((out, i) => ((out[i.symbol] = i), out), {}),
-        let data = await this.promiseRequest('v1/ticker/bookTicker', params, { base: this.dapi });
+        let data = await this.futuresRequest('v1/ticker/bookTicker', params, { base: this.dapi });
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
@@ -4004,42 +4006,42 @@ export default class Binance {
 
     async deliveryOrderStatus(symbol: string, params: { [key: string]: any } = {}) { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
-        return await this.promiseRequest('v1/order', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/order', params, { base: this.dapi, type: 'SIGNED' });
     }
 
     async deliveryCancel(symbol: string, params: { [key: string]: any } = {}) { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
-        return await this.promiseRequest('v1/order', params, { base: this.dapi, type: 'SIGNED', method: 'DELETE' });
+        return await this.futuresRequest('v1/order', params, { base: this.dapi, type: 'SIGNED', method: 'DELETE' });
     }
 
     async deliveryCancelAll(symbol: string, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
-        return await this.promiseRequest('v1/allOpenOrders', params, { base: this.dapi, type: 'SIGNED', method: 'DELETE' });
+        return await this.futuresRequest('v1/allOpenOrders', params, { base: this.dapi, type: 'SIGNED', method: 'DELETE' });
     }
 
     async deliveryCountdownCancelAll(symbol: string, countdownTime = 0, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
         params.countdownTime = countdownTime;
-        return await this.promiseRequest('v1/countdownCancelAll', params, { base: this.dapi, type: 'SIGNED', method: 'POST' });
+        return await this.futuresRequest('v1/countdownCancelAll', params, { base: this.dapi, type: 'SIGNED', method: 'POST' });
     }
 
     async deliveryOpenOrders(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v1/openOrders', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/openOrders', params, { base: this.dapi, type: 'SIGNED' });
     }
 
     async deliveryAllOrders(symbol?: string, params: { [key: string]: any } = {}) { // Get all account orders; active, canceled, or filled.
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v1/allOrders', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/allOrders', params, { base: this.dapi, type: 'SIGNED' });
     }
 
     async deliveryPositionSideDual(params = {}) {
-        return await this.promiseRequest('v1/positionSide/dual', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.dapi, type: 'SIGNED' });
     }
 
     async deliveryChangePositionSideDual(dualSidePosition, params: { [key: string]: any } = {}) {
         params.dualSidePosition = dualSidePosition;
-        return await this.promiseRequest('v1/positionSide/dual', params, { base: this.dapi, type: 'SIGNED', method: 'POST' });
+        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.dapi, type: 'SIGNED', method: 'POST' });
     }
 
     //** Margin methods */
@@ -4527,7 +4529,7 @@ export default class Binance {
         };
 
         let getFuturesKlineSnapshot = async (symbol: string, limit = 500) => {
-            let data = await this.promiseRequest('v1/klines', { symbol, interval, limit }, { base: this.fapi });
+            let data = await this.futuresRequest('v1/klines', { symbol, interval, limit }, { base: this.fapi });
             this.futuresKlineData(symbol, interval, data);
             //this.options.log('/futures klines at ' + this.futuresMeta[symbol][interval].timestamp);
             if (typeof this.futuresKlineQueue[symbol][interval] !== 'undefined') {
@@ -4754,7 +4756,7 @@ export default class Binance {
         };
 
         let getDeliveryKlineSnapshot = async (symbol: string, limit = 500) => {
-            let data = await this.promiseRequest('v1/klines', { symbol, interval, limit }, { base: this.fapi });
+            let data = await this.futuresRequest('v1/klines', { symbol, interval, limit }, { base: this.fapi });
             this.deliveryKlineData(symbol, interval, data);
             //this.options.log('/delivery klines at ' + this.deliveryMeta[symbol][interval].timestamp);
             if (typeof this.deliveryKlineQueue[symbol][interval] !== 'undefined') {
