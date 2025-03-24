@@ -7,7 +7,7 @@ import file from 'fs';
 import url from 'url';
 import JSONbig from 'json-bigint';
 import HttpsProxyAgent from 'https-proxy-agent';
-import SocksProxyAgent from 'socks-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import stringHash from 'string-hash';
 import async from 'async';
 
@@ -32,6 +32,10 @@ export default class Binance {
     dstreamTest = 'wss://dstream.binancefuture.com/stream?streams=';
     stream = 'wss://stream.binance.com:9443/ws/';
     combineStream = 'wss://stream.binance.com:9443/stream?streams=';
+
+    APIKEY: string = undefined;
+    APISECRET: string = undefined;
+    test = false;
 
 
     userAgent = 'Mozilla/4.0 (compatible; Node Binance API)';
@@ -126,6 +130,11 @@ export default class Binance {
             if (typeof urls.dstreamTest === 'string') this.dstreamTest = urls.dstreamTest;
             if (typeof urls.dstreamSingleTest === 'string') this.dstreamSingleTest = urls.dstreamSingleTest;
         }
+
+        if (this.options.APIKEY) this.APIKEY = this.options.APIKEY;
+        if (this.options.APISECRET) this.APISECRET = this.options.APISECRET;
+        if (this.options.test) this.test = true;
+
         if (this.options.useServerTime) {
 
             const res = await this.publicRequest(this.getSpotUrl() + 'v3/time');
@@ -145,7 +154,7 @@ export default class Binance {
     }
 
     uuid22(a?: any) {
-        return a ? (a ^ Math.random() * 16 >> a / 4).toString(16) : ([1e7] + 1e3 + 4e3 + 8e5).replace(/[018]/g, uuid22);
+        return a ? (a ^ Math.random() * 16 >> a / 4).toString(16) : ([1e7] + 1e3 + 4e3 + 8e5).replace(/[018]/g, this.uuid22);
     };
 
     // ------ Request Related Functions ------ //
@@ -190,7 +199,7 @@ export default class Binance {
     }
 
 
-    reqHandler(response) {
+    async reqHandler(response) {
         this.info.lastRequest = new Date().getTime();
         if (response) {
             this.info.statusCode = response.status || 0;
@@ -208,20 +217,22 @@ export default class Binance {
         // if ( response && response.statusCode !== 200 ) return cb( response, {} );
         // return cb( null, JSONbig.parse( body ) );
         if (response && response.status !== 200) {
-            throw Error(response);
+            throw Error(await response.text());
         }
     }
 
     async proxyRequest(opt: any) {
         // const req = request(this.addProxy(opt), this.reqHandler(cb)).on('error', (err) => { cb(err, {}) });
+        // family: opt.family,
+        // timeout: opt.timeout,
+        const urlBody = new URLSearchParams(opt.form);
         const response = await fetch(opt.url, {
             method: opt.method,
             headers: opt.headers,
-            // family: opt.family,
-            // timeout: opt.timeout,
-            body: JSON.stringify(opt.form)
+            body: urlBody
+            // body: (opt.form)
         })
-        this.reqHandler(response);
+        await this.reqHandler(response);
         const json = await response.json();
         return json;
     }
@@ -281,7 +292,7 @@ export default class Binance {
         else {
             if (!data.recvWindow) data.recvWindow = this.options.recvWindow;
             this.requireApiKey('promiseRequest');
-            headers['X-MBX-APIKEY'] = this.options.APIKEY;
+            headers['X-MBX-APIKEY'] = this.APIKEY;
         }
         let baseURL = !flags.base ? this.base : flags.base;
         if (this.options.test && baseURL === this.base) baseURL = this.baseTest;
@@ -372,7 +383,7 @@ export default class Binance {
             url,
             data,
             method,
-            this.options.APIKEY
+            this.APIKEY
         );
         const res = await this.proxyRequest(opt);
         return res;
@@ -380,7 +391,7 @@ export default class Binance {
 
 
     requireApiKey(source = 'requireApiKey', fatalError = true) {
-        if (!this.options.APIKEY) {
+        if (!this.APIKEY) {
             if (fatalError) throw Error(`${source}: Invalid API Key!`);
             return false;
         }
@@ -390,11 +401,11 @@ export default class Binance {
 
     // Check if API secret is present
     requireApiSecret(source = 'requireApiSecret', fatalError = true) {
-        if (!this.options.APIKEY) {
+        if (!this.APIKEY) {
             if (fatalError) throw Error(`${source}: Invalid API Key!`);
             return false;
         }
-        if (!this.options.APISECRET) {
+        if (!this.APISECRET) {
             if (fatalError) throw Error(`${source}: Invalid API Secret!`);
             return false;
         }
@@ -417,7 +428,7 @@ export default class Binance {
             url + (query ? '?' + query : ''),
             data,
             method,
-            this.options.APIKEY
+            this.APIKEY
         );
         const res = await this.proxyRequest(opt);
         return res;
@@ -435,7 +446,10 @@ export default class Binance {
      */
     async signedRequest(url: string, data: { [key: string]: any } = {}, method = 'GET', noDataInSignature = false) {
         this.requireApiSecret('signedRequest');
-        data.timestamp = new Date().getTime() + this.info.timeOffset;
+
+        data.timestamp = new Date().getTime();
+        if (this.info.timeOffset) data.timestamp += this.info.timeOffset;
+
         if (!data.recvWindow) data.recvWindow = this.options.recvWindow;
         let query = method === 'POST' && noDataInSignature ? '' : this.makeQueryString(data);
         let signature = crypto.createHmac('sha256', this.options.APISECRET).update(query).digest('hex'); // set the HMAC hash header
@@ -444,7 +458,7 @@ export default class Binance {
                 url,
                 data,
                 method,
-                this.options.APIKEY
+                this.APIKEY
             );
             opt.form.signature = signature;
             const reqPost = await this.proxyRequest(opt);
@@ -454,7 +468,7 @@ export default class Binance {
                 url + '?' + query + '&signature=' + signature,
                 data,
                 method,
-                this.options.APIKEY
+                this.APIKEY
             );
             const reqGet = await this.proxyRequest(opt);
             return reqGet
@@ -763,7 +777,7 @@ export default class Binance {
     };
 
 
-    async deliveryOrder(side: string, symbol: string, quantity: number, price?:number, params: { [key: string]: any } = {}) {
+    async deliveryOrder(side: string, symbol: string, quantity: number, price?: number, params: { [key: string]: any } = {}) {
         params.symbol = symbol;
         params.side = side;
         params.quantity = quantity;
@@ -831,12 +845,12 @@ export default class Binance {
 
     /**
      * Called when socket is closed, subscriptions are de-registered for later reference
-     * @param {boolean} reconnect - true or false to reconnect the socket
+     * @param {Function} reconnect - reconnect callback
      * @param {string} code - code associated with the socket
      * @param {string} reason - string with the response
      * @return {undefined}
      */
-    handleSocketClose(reconnect: boolean, code, reason: string) {
+    handleSocketClose(reconnect: Function, code, reason: string) {
         delete this.subscriptions[this.endpoint];
         if (this.subscriptions && Object.keys(this.subscriptions).length === 0) {
             clearInterval(this.socketHeartbeatInterval);
@@ -848,7 +862,7 @@ export default class Binance {
             if (this.endpoint && parseInt(this.endpoint.length, 10) === 60) this.options.log('Account data WebSocket reconnecting...');
             else this.options.log('WebSocket reconnecting: ' + this.endpoint + '...');
             try {
-                this.reconnect();
+               reconnect();
             } catch (error) {
                 this.options.log('WebSocket reconnect error: ' + error.message);
             }
@@ -901,7 +915,7 @@ export default class Binance {
     subscribe(endpoint: string, callback: Function, reconnect?: Function, opened_callback?: Function) {
         let httpsproxy = process.env.https_proxy || false;
         let socksproxy = process.env.socks_proxy || false;
-        let ws: WebSocket = undefined;
+        let ws: any = undefined;
 
         if (socksproxy !== false) {
             socksproxy = this.proxyReplacewithIp(socksproxy);
@@ -925,10 +939,10 @@ export default class Binance {
         ws.reconnect = this.options.reconnect;
         ws.endpoint = endpoint;
         ws.isAlive = false;
-        ws.on('open', handleSocketOpen.bind(ws, opened_callback));
-        ws.on('pong', handleSocketHeartbeat);
-        ws.on('error', handleSocketError);
-        ws.on('close', handleSocketClose.bind(ws, reconnect));
+        ws.on('open', this.handleSocketOpen.bind(ws, opened_callback));
+        ws.on('pong', this.handleSocketHeartbeat);
+        ws.on('error', this.handleSocketError);
+        ws.on('close', this.handleSocketClose.bind(ws, reconnect));
         ws.on('message', data => {
             try {
                 callback(JSON.parse(data));
@@ -951,7 +965,7 @@ export default class Binance {
         let httpsproxy = process.env.https_proxy || false;
         let socksproxy = process.env.socks_proxy || false;
         const queryParams = streams.join('/');
-        let ws = false;
+        let ws: any = undefined;
         if (socksproxy !== false) {
             socksproxy = this.proxyReplacewithIp(socksproxy);
             if (this.options.verbose) this.options.log('using socks proxy server ' + socksproxy);
@@ -976,10 +990,10 @@ export default class Binance {
         if (this.options.verbose) {
             this.options.log('CombinedStream: Subscribed to [' + ws.endpoint + '] ' + queryParams);
         }
-        ws.on('open', handleSocketOpen.bind(ws, opened_callback));
-        ws.on('pong', handleSocketHeartbeat);
-        ws.on('error', handleSocketError);
-        ws.on('close', handleSocketClose.bind(ws, reconnect));
+        ws.on('open', this.handleSocketOpen.bind(ws, opened_callback));
+        ws.on('pong', this.handleSocketHeartbeat);
+        ws.on('error', this.handleSocketError);
+        ws.on('close', this.handleSocketClose.bind(ws, reconnect));
         ws.on('message', data => {
             try {
                 callback(JSON.parse(data).data);
@@ -1010,7 +1024,7 @@ export default class Binance {
      * Futures heartbeat code with a shared single interval tick
      * @return {undefined}
      */
-    futuresSocketHeartbeat () {
+    futuresSocketHeartbeat() {
         /* Sockets removed from subscriptions during a manual terminate()
          will no longer be at risk of having functions called on them */
         for (let endpointId in this.futuresSubscriptions) {
@@ -1098,7 +1112,7 @@ export default class Binance {
         if (!params.id) params.id = false;
         let httpsproxy = process.env.https_proxy || false;
         let socksproxy = process.env.socks_proxy || false;
-        let ws = false;
+        let ws: any = undefined;
 
         if (socksproxy !== false) {
             socksproxy = this.proxyReplacewithIp(socksproxy);
@@ -1122,10 +1136,10 @@ export default class Binance {
         ws.reconnect = this.options.reconnect;
         ws.endpoint = endpoint;
         ws.isAlive = false;
-        ws.on('open', handleFuturesSocketOpen.bind(ws, params.openCallback));
-        ws.on('pong', handleFuturesSocketHeartbeat);
-        ws.on('error', handleFuturesSocketError);
-        ws.on('close', handleFuturesSocketClose.bind(ws, params.reconnect));
+        ws.on('open', this.handleFuturesSocketOpen.bind(ws, params.openCallback));
+        ws.on('pong', this.handleFuturesSocketHeartbeat);
+        ws.on('error', this.handleFuturesSocketError);
+        ws.on('close', this.handleFuturesSocketClose.bind(ws, params.reconnect));
         ws.on('message', data => {
             try {
                 callback(JSONbig.parse(data));
@@ -1152,7 +1166,7 @@ export default class Binance {
         let httpsproxy = process.env.https_proxy || false;
         let socksproxy = process.env.socks_proxy || false;
         const queryParams = streams.join('/');
-        let ws = false;
+        let ws: any = undefined;
         if (socksproxy !== false) {
             socksproxy = this.proxyReplacewithIp(socksproxy);
             if (this.options.verbose) this.options.log(`futuresSubscribe: using socks proxy server ${socksproxy}`);
@@ -1177,10 +1191,10 @@ export default class Binance {
         if (this.options.verbose) {
             this.options.log(`futuresSubscribe: Subscribed to [${ws.endpoint}] ${queryParams}`);
         }
-        ws.on('open', handleFuturesSocketOpen.bind(ws, params.openCallback));
-        ws.on('pong', handleFuturesSocketHeartbeat);
-        ws.on('error', handleFuturesSocketError);
-        ws.on('close', handleFuturesSocketClose.bind(ws, params.reconnect));
+        ws.on('open', this.handleFuturesSocketOpen.bind(ws, params.openCallback));
+        ws.on('pong', this.handleFuturesSocketHeartbeat);
+        ws.on('error', this.handleFuturesSocketError);
+        ws.on('close', this.handleFuturesSocketClose.bind(ws, params.reconnect));
         ws.on('message', data => {
             try {
                 callback(JSON.parse(data).data);
@@ -1716,7 +1730,7 @@ export default class Binance {
      * Delivery heartbeat code with a shared single interval tick
      * @return {undefined}
      */
-    deliverySocketHeartbeat () {
+    deliverySocketHeartbeat() {
         /* Sockets removed from subscriptions during a manual terminate()
          will no longer be at risk of having functions called on them */
         for (let endpointId in this.deliverySubscriptions) {
@@ -1739,7 +1753,7 @@ export default class Binance {
     handleDeliverySocketOpen(openCallback: Function) {
         this.isAlive = true;
         if (Object.keys(this.deliverySubscriptions).length === 0) {
-            this.socketHeartbeatInterval = setInterval(deliverySocketHeartbeat, 30000);
+            this.socketHeartbeatInterval = setInterval(this.deliverySocketHeartbeat, 30000);
         }
         this.deliverySubscriptions[this.endpoint] = this;
         if (typeof openCallback === 'function') openCallback(this.endpoint);
@@ -1804,7 +1818,7 @@ export default class Binance {
         if (!params.id) params.id = false;
         let httpsproxy = process.env.https_proxy || false;
         let socksproxy = process.env.socks_proxy || false;
-        let ws = false;
+        let ws: any = undefined;
         if (socksproxy !== false) {
             socksproxy = this.proxyReplacewithIp(socksproxy);
             if (this.options.verbose) this.options.log(`deliverySubscribeSingle: using socks proxy server: ${socksproxy}`);
@@ -1827,10 +1841,10 @@ export default class Binance {
         ws.reconnect = this.options.reconnect;
         ws.endpoint = endpoint;
         ws.isAlive = false;
-        ws.on('open', handleDeliverySocketOpen.bind(ws, params.openCallback));
-        ws.on('pong', handleDeliverySocketHeartbeat);
-        ws.on('error', handleDeliverySocketError);
-        ws.on('close', handleDeliverySocketClose.bind(ws, params.reconnect));
+        ws.on('open', this.handleDeliverySocketOpen.bind(ws, params.openCallback));
+        ws.on('pong', this.handleDeliverySocketHeartbeat);
+        ws.on('error', this.handleDeliverySocketError);
+        ws.on('close', this.handleDeliverySocketClose.bind(ws, params.reconnect));
         ws.on('message', data => {
             try {
                 callback(JSON.parse(data));
@@ -1857,7 +1871,7 @@ export default class Binance {
         let httpsproxy = process.env.https_proxy || false;
         let socksproxy = process.env.socks_proxy || false;
         const queryParams = streams.join('/');
-        let ws = false;
+        let ws: any = undefined;
         if (socksproxy !== false) {
             socksproxy = this.proxyReplacewithIp(socksproxy);
             if (this.options.verbose) this.options.log(`deliverySubscribe: using socks proxy server ${socksproxy}`);
@@ -1882,10 +1896,10 @@ export default class Binance {
         if (this.options.verbose) {
             this.options.log(`deliverySubscribe: Subscribed to [${ws.endpoint}] ${queryParams}`);
         }
-        ws.on('open', handleDeliverySocketOpen.bind(ws, params.openCallback));
-        ws.on('pong', handleDeliverySocketHeartbeat);
-        ws.on('error', handleDeliverySocketError);
-        ws.on('close', handleDeliverySocketClose.bind(ws, params.reconnect));
+        ws.on('open', this.handleDeliverySocketOpen.bind(ws, params.openCallback));
+        ws.on('pong', this.handleDeliverySocketHeartbeat);
+        ws.on('error', this.handleDeliverySocketError);
+        ws.on('close', this.handleDeliverySocketClose.bind(ws, params.reconnect));
         ws.on('message', data => {
             try {
                 callback(JSON.parse(data).data);
@@ -2890,7 +2904,7 @@ export default class Binance {
     * @param {string} baseValue - the object
     * @return {object} - the object
     */
-    sortAsks(symbol: string, max = Infinity, baseValue = false) {
+    sortAsks(symbol: string, max = Infinity, baseValue?: string) {
         let object = {}, count = 0, cache;
         if (typeof symbol === 'object') cache = symbol;
         else cache = this.getDepthCache(symbol).asks;
@@ -3200,7 +3214,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async withdraw(asset: string, address: string, amount: number, addressTag = false, name = false) {
-        let params = { asset, address, amount };
+        const params = { asset, address, amount };
         if (name) params.name = name;
         if (addressTag) params.addressTag = addressTag;
 
@@ -3688,17 +3702,17 @@ export default class Binance {
     }
 
     async futuresMarketBuy(symbol: string, quantity: number, params: { [key: string]: any } = {}) {
-        return await this.futuresOrder('BUY', symbol, quantity, false, params);
+        return await this.futuresOrder('BUY', symbol, quantity, undefined, params);
     }
 
     async futuresMarketSell(symbol: string, quantity: number, params: { [key: string]: any } = {}) {
-        return await this.futuresOrder('SELL', symbol, quantity, false, params);
+        return await this.futuresOrder('SELL', symbol, quantity, undefined, params);
     }
 
-    async futuresMultipleOrders(orders = [{}]) {
+    async futuresMultipleOrders(orders:  { [key: string]: any } [] = []) {
         for (let i = 0; i < orders.length; i++) {
             if (!orders[i].newClientOrderId) {
-                orders[i].newClientOrderId = CONTRACT_PREFIX + uuid22();
+                orders[i].newClientOrderId = this.CONTRACT_PREFIX + this.uuid22();
             }
         }
         let params = { batchOrders: JSON.stringify(orders) };
@@ -3748,16 +3762,16 @@ export default class Binance {
     }
     async futuresTransferAsset(asset, amount, type) {
         let params = Object.assign({ asset, amount, type });
-        return await this.promiseRequest('v1/futures/transfer', params, { base: sapi, type: 'SIGNED', method: 'POST' });
+        return await this.promiseRequest('v1/futures/transfer', params, { base: this.sapi, type: 'SIGNED', method: 'POST' });
     }
 
     async futuresHistDataId(symbol?: string, params: { [key: string]: any } = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.promiseRequest('v1/futuresHistDataId', params, { base: sapi, type: 'SIGNED', method: 'POST' })
+        return await this.promiseRequest('v1/futuresHistDataId', params, { base: this.sapi, type: 'SIGNED', method: 'POST' })
     }
 
     async futuresDownloadLink(downloadId) {
-        return await this.promiseRequest('v1/downloadLink', { downloadId }, { base: sapi, type: 'SIGNED' })
+        return await this.promiseRequest('v1/downloadLink', { downloadId }, { base: this.sapi, type: 'SIGNED' })
     }
 
     // futures websockets support: ticker bookTicker miniTicker aggTrade markPrice
@@ -3979,11 +3993,11 @@ export default class Binance {
     }
 
     async deliveryMarketBuy(symbol: string, quantity: number, params: { [key: string]: any } = {}) {
-        return await this.deliveryOrder('BUY', symbol, quantity, false, params);
+        return await this.deliveryOrder('BUY', symbol, quantity, undefined, params);
     }
 
     async deliveryMarketSell(symbol: string, quantity: number, params: { [key: string]: any } = {}) {
-        return await this.deliveryOrder('SELL', symbol, quantity, false, params);
+        return await this.deliveryOrder('SELL', symbol, quantity, undefined, params);
     }
 
     // deliveryOrder, // side symbol quantity [price] [params]
@@ -4053,7 +4067,7 @@ export default class Binance {
      * @param {string} isIsolated - the isolate margin option
      * @return {undefined}
      */
-    async mgBuy(symbol: string, quantity: number, price:number, flags = {}, isIsolated = 'FALSE') {
+    async mgBuy(symbol: string, quantity: number, price: number, flags = {}, isIsolated = 'FALSE') {
         return await this.marginOrder('BUY', symbol, quantity, price, { ...flags, isIsolated });
     }
 
@@ -4066,7 +4080,7 @@ export default class Binance {
      * @param {string} isIsolated - the isolate margin option
      * @return {undefined}
      */
-    async mgSell(symbol: string, quantity: number, price:number, flags = {}, isIsolated = 'FALSE') {
+    async mgSell(symbol: string, quantity: number, price: number, flags = {}, isIsolated = 'FALSE') {
         return await this.marginOrder('SELL', symbol, quantity, price, { ...flags, isIsolated });
     }
 
@@ -4382,7 +4396,7 @@ export default class Binance {
      * @param {function} callback - callback function
      * @return {string} the websocket endpoint
      */
-    futuresAggTradeStream(symbols: string[], callback: Function) {
+    futuresAggTradeStream(symbols: string[] | string, callback: Function) {
         let reconnect = () => {
             if (this.options.reconnect) this.futuresAggTradeStream(symbols, callback);
         };
@@ -4392,7 +4406,7 @@ export default class Binance {
             let streams = symbols.map(symbol => symbol.toLowerCase() + '@aggTrade');
             subscription = this.futuresSubscribe(streams, cleanCallback, { reconnect });
         } else {
-            let symbol = symbols;
+            let symbol = symbols as string;
             subscription = this.futuresSubscribeSingle(symbol.toLowerCase() + '@aggTrade', cleanCallback, { reconnect });
         }
         return (subscription as any).endpoint;
@@ -4436,15 +4450,11 @@ export default class Binance {
      * @return {string} the websocket endpoint
      */
     futuresTickerStream(symbol?: string, callback = console.log) {
-        if (typeof symbol == 'function') {
-            callback = symbol;
-            symbol = false;
-        }
         let reconnect = () => {
             if (this.options.reconnect) this.futuresTickerStream(symbol, callback);
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@ticker` : '!ticker@arr'
-        let subscription = this.futuresSubscribeSingle(endpoint, data => callback(fTickerConvertData(data)), { reconnect });
+        let subscription = this.futuresSubscribeSingle(endpoint, data => callback(this.fTickerConvertData(data)), { reconnect });
         return (subscription as any).endpoint;
     }
 
@@ -4454,11 +4464,7 @@ export default class Binance {
      * @param {function} callback - callback function
      * @return {string} the websocket endpoint
      */
-    futuresMiniTickerStream(symbol?: string, callback = console.log) {
-        if (typeof symbol == 'function') {
-            callback = symbol;
-            symbol = false;
-        }
+    futuresMiniTickerStream(symbol?: string, callback: Function = console.log) {
         let reconnect = () => {
             if (this.options.reconnect) this.futuresMiniTickerStream(symbol, callback);
         };
@@ -4768,7 +4774,7 @@ export default class Binance {
         } else {
             let symbol = symbols;
             deliveryChartInit(symbol);
-            subscription =  this.deliverySubscribeSingle(symbol.toLowerCase() + '@kline_' + interval, handleDeliveryKlineStream, reconnect);
+            subscription = this.deliverySubscribeSingle(symbol.toLowerCase() + '@kline_' + interval, handleDeliveryKlineStream, reconnect);
             getDeliveryKlineSnapshot(symbol, limit);
         }
         return (subscription as any).endpoint;
@@ -4783,16 +4789,16 @@ export default class Binance {
      */
     deliveryCandlesticks(symbols: string[] | string, interval: string, callback: Function) {
         let reconnect = () => {
-            if (this.options.reconnect)  this.deliveryCandlesticks(symbols, interval, callback);
+            if (this.options.reconnect) this.deliveryCandlesticks(symbols, interval, callback);
         };
         let subscription;
         if (Array.isArray(symbols)) {
             if (!this.isArrayUnique(symbols)) throw Error('deliveryCandlesticks: "symbols" array cannot contain duplicate elements.');
             let streams = symbols.map(symbol => symbol.toLowerCase() + '@kline_' + interval);
-            subscription =  this.deliverySubscribe(streams, callback, { reconnect });
+            subscription = this.deliverySubscribe(streams, callback, { reconnect });
         } else {
             let symbol = symbols.toLowerCase();
-            subscription =  this.deliverySubscribeSingle(symbol + '@kline_' + interval, callback, { reconnect });
+            subscription = this.deliverySubscribeSingle(symbol + '@kline_' + interval, callback, { reconnect });
         }
         return (subscription as any).endpoint;
     }
@@ -4805,28 +4811,27 @@ export default class Binance {
      * @param {function} list_status_callback - status callback
      * @return {undefined}
      */
-    userData(callback, execution_callback = false, subscribed_callback = false, list_status_callback = false) {
+    async userData(callback: Function, execution_callback?: Function, subscribed_callback?: Function, list_status_callback?: Function) {
         let reconnect = () => {
             if (this.options.reconnect) this.userData(callback, execution_callback, subscribed_callback);
         };
-        apiRequest(this.getSpotUrl() + 'v3/userDataStream', {}, function (error, response) {
-            this.options.listenKey = response.listenKey;
-            setTimeout(function userDataKeepAlive() { // keepalive
-                try {
-                    apiRequest(this.getSpotUrl() + 'v3/userDataStream?listenKey=' + this.options.listenKey, {}, function (err: any) {
-                        if (err) setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
-                        else setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
-                    }, 'PUT');
-                } catch (error) {
-                    setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
-                }
-            }, 60 * 30 * 1000); // 30 minute keepalive
-            this.options.balance_callback = callback;
-            this.options.execution_callback = execution_callback ? execution_callback : callback;//This change is required to listen for Orders
-            this.options.list_status_callback = list_status_callback;
-            const subscription = this.subscribe(this.options.listenKey, userDataHandler, reconnect);
-            if (subscribed_callback) subscribed_callback(subscription.endpoint);
-        }, 'POST');
+        const response = await this.apiRequest(this.getSpotUrl() + 'v3/userDataStream', {}, 'POST');
+        this.options.listenKey = response.listenKey;
+        setTimeout(async function userDataKeepAlive() { // keepalive
+            try {
+                await this.apiRequest(this.getSpotUrl() + 'v3/userDataStream?listenKey=' + this.options.listenKey, {}, function (err: any) {
+                    if (err) setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
+                    else setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
+                }, 'PUT');
+            } catch (error) {
+                setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
+            }
+        }, 60 * 30 * 1000); // 30 minute keepalive
+        this.options.balance_callback = callback;
+        this.options.execution_callback = execution_callback ? execution_callback : callback;//This change is required to listen for Orders
+        this.options.list_status_callback = list_status_callback;
+        const subscription = this.subscribe(this.options.listenKey, this.userDataHandler, reconnect);
+        if (subscribed_callback) subscribed_callback(subscription.endpoint);
     }
 
     /**
@@ -4837,11 +4842,11 @@ export default class Binance {
      * @param {function} list_status_callback - status callback
      * @return {undefined}
      */
-    userMarginData(callback: Function, execution_callback?: Function, subscribed_callback?: Function, list_status_callback?: Function) {
+    async userMarginData(callback: Function, execution_callback?: Function, subscribed_callback?: Function, list_status_callback?: Function) {
         let reconnect = () => {
             if (this.options.reconnect) this.userMarginData(callback, execution_callback, subscribed_callback);
         };
-        const response = this.apiRequest(this.sapi + 'v1/userDataStream', {}, 'POST');
+        const response = await this.apiRequest(this.sapi + 'v1/userDataStream', {}, 'POST');
         this.options.listenMarginKey = response.listenKey;
         const url = this.sapi + 'v1/userDataStream?listenKey=' + this.options.listenMarginKey
         const apiRequest = this.apiRequest;
@@ -4868,21 +4873,19 @@ export default class Binance {
      * @param {function} order_update_callback
      * @param {Function} subscribed_callback - subscription callback
      */
-    userFutureData(margin_call_callback, account_update_callback = undefined, order_update_callback = undefined, subscribed_callback = undefined, account_config_update_callback = undefined) {
-        const url = (this.options.test) ? fapiTest : fapi;
+    async userFutureData(margin_call_callback, account_update_callback = undefined, order_update_callback = undefined, subscribed_callback = undefined, account_config_update_callback = undefined) {
+        const url = (this.options.test) ? this.fapiTest : this.fapi;
 
         let reconnect = () => {
             if (this.options.reconnect) this.userFutureData(margin_call_callback, account_update_callback, order_update_callback, subscribed_callback)
         }
 
-        apiRequest(url + 'v1/listenKey', {}, function (error, response) {
+        const response = await this.apiRequest(url + 'v1/listenKey', {}, 'POST');
             this.options.listenFutureKey = response.listenKey;
-            setTimeout(function userDataKeepAlive() { // keepalive
+            setTimeout(async function userDataKeepAlive() { // keepalive
                 try {
-                    apiRequest(url + 'v1/listenKey?listenKey=' + this.options.listenFutureKey, {}, function (err: any) {
-                        if (err) setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
-                        else setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
-                    }, 'PUT');
+                    await this.apiRequest(url + 'v1/listenKey?listenKey=' + this.options.listenFutureKey, {}, 'PUT');
+                    setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
                 } catch (error) {
                     setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
                 }
@@ -4891,9 +4894,8 @@ export default class Binance {
             this.options.future_account_update_callback = account_update_callback;
             this.options.future_account_config_update_callback = account_config_update_callback;
             this.options.future_order_update_callback = order_update_callback;
-            const subscription = futuresSubscribe(this.options.listenFutureKey, userFutureDataHandler, { reconnect });
+            const subscription = this.futuresSubscribe(this.options.listenFutureKey, this.userFutureDataHandler, { reconnect });
             if (subscribed_callback) subscribed_callback(subscription.endpoint);
-        }, 'POST');
     }
 
     /**
@@ -4903,7 +4905,7 @@ export default class Binance {
    * @param {function} order_update_callback
    * @param {Function} subscribed_callback - subscription callback
    */
-    userDeliveryData(
+    async userDeliveryData(
         margin_call_callback: Function,
         account_update_callback?: Function,
         order_update_callback?: Function,
@@ -4911,9 +4913,9 @@ export default class Binance {
     ) {
         const url = this.options.test ? this.dapiTest : this.dapi;
 
-        let reconnect = () => {
+        let reconnect = async () => {
             if (this.options.reconnect)
-                this.userDeliveryData(
+                await this.userDeliveryData(
                     margin_call_callback,
                     account_update_callback,
                     order_update_callback,
@@ -4921,42 +4923,38 @@ export default class Binance {
                 );
         };
 
-        this.apiRequest( // fix this remove callback
-            url + "v1/listenKey",
-            {},
-            function (error, response) {
-                this.options.listenDeliveryKey = response.listenKey;
-                setTimeout(function userDataKeepAlive() {
-                    // keepalive
-                    try {
-                        apiRequest(
-                            url +
-                            "v1/listenKey?listenKey=" +
-                            this.options.listenDeliveryKey,
-                            {},
-                            function (err: any) {
-                                if (err) setTimeout(userDataKeepAlive, 60000);
-                                // retry in 1 minute
-                                else setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
-                            },
-                            "PUT"
-                        );
-                    } catch (error) {
-                        setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
-                    }
-                }, 60 * 30 * 1000); // 30 minute keepalive
-                this.options.delivery_margin_call_callback = margin_call_callback;
-                this.options.delivery_account_update_callback = account_update_callback;
-                this.options.delivery_order_update_callback = order_update_callback;
-                const subscription = this.deliverySubscribe(
-                    this.options.listenDeliveryKey,
-                    userDeliveryDataHandler,
-                    { reconnect }
+        const response = await this.apiRequest(url + "v1/listenKey", {}, "POST");
+        this.options.listenDeliveryKey = response.listenKey;
+        const getDeliveryKey = () => this.options.listenDeliveryKey;
+        const apiRequest = this.apiRequest.bind(this);
+        setTimeout(async function userDataKeepAlive() {
+            // keepalive
+            try {
+                await apiRequest(
+                    url +
+                    "v1/listenKey?listenKey=" +
+                    getDeliveryKey(),
+                    {},
+                    "PUT"
                 );
-                if (subscribed_callback) subscribed_callback(subscription.endpoint);
-            },
-            "POST"
+                // function (err: any) {
+                //     if (err) setTimeout(userDataKeepAlive, 60000);
+                //     // retry in 1 minute
+                setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
+            } catch (error) {
+                setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
+            }
+        }, 60 * 30 * 1000); // 30 minute keepalive
+        this.options.delivery_margin_call_callback = margin_call_callback;
+        this.options.delivery_account_update_callback = account_update_callback;
+        this.options.delivery_order_update_callback = order_update_callback;
+        const subscription = this.deliverySubscribe(
+            this.options.listenDeliveryKey,
+            this.userDeliveryDataHandler,
+            { reconnect }
         );
+        if (subscribed_callback) subscribed_callback(subscription.endpoint);
+        // }
     }
 
     // /**
@@ -5030,9 +5028,9 @@ export default class Binance {
      * @param {int} limit - the number of entries
      * @return {string} the websocket endpoint
      */
-    depthCacheStream(symbols: string[] | undefined, callback: Function, limit = 500) {
+    depthCacheStream(symbols: string[] | string, callback: Function, limit = 500) {
         let reconnect = () => {
-            if (this.options.reconnect)  this.depthCacheStream(symbols, limit);
+            if (this.options.reconnect) this.depthCacheStream(symbols, callback, limit);
         };
 
         let symbolDepthInit = symbol => {
@@ -5249,7 +5247,7 @@ export default class Binance {
         };
 
         let getSymbolKlineSnapshot = async (symbol: string, limit = 500) => {
-            const data = await this.publicRequest(this.getSpotUrl() + 'v3/klines', { symbol: symbol, interval: interval, limit: limit } );
+            const data = await this.publicRequest(this.getSpotUrl() + 'v3/klines', { symbol: symbol, interval: interval, limit: limit });
             // function (error, data) {
             //     klineData(symbol, interval, data);
             //     //this.options.log('/klines at ' +this.info[symbol][interval].timestamp);
@@ -5260,11 +5258,11 @@ export default class Binance {
             //     if (callback) callback(symbol, interval, this.klineConcat(symbol, interval));
             // }
             this.klineData(symbol, interval, data);
-                if (typeof this.klineQueue[symbol][interval] !== 'undefined') {
-                    for (let kline of this.klineQueue[symbol][interval]) this.klineHandler(symbol, kline, this.info[symbol][interval].timestamp);
-                    delete this.klineQueue[symbol][interval];
-                }
-                if (callback) callback(symbol, interval, this.klineConcat(symbol, interval));
+            if (typeof this.klineQueue[symbol][interval] !== 'undefined') {
+                for (let kline of this.klineQueue[symbol][interval]) this.klineHandler(symbol, kline, this.info[symbol][interval].timestamp);
+                delete this.klineQueue[symbol][interval];
+            }
+            if (callback) callback(symbol, interval, this.klineConcat(symbol, interval));
         };
 
         let subscription;
@@ -5349,7 +5347,7 @@ export default class Binance {
      */
     bookTickersStream(symbol?: string, callback = console.log) {
         let reconnect = () => {
-            if (this.options.reconnect)  this.bookTickersStream(symbol, callback);
+            if (this.options.reconnect) this.bookTickersStream(symbol, callback);
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@bookTicker` : '!bookTicker'
         let subscription = this.subscribe(endpoint, data => callback(this.fBookTickerConvertData(data)), reconnect);
