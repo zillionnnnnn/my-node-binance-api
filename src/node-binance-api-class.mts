@@ -4882,7 +4882,7 @@ export default class Binance {
      * @param {function} order_update_callback
      * @param {Function} subscribed_callback - subscription callback
      */
-    async userFutureData(margin_call_callback, account_update_callback = undefined, order_update_callback = undefined, subscribed_callback = undefined, account_config_update_callback = undefined) {
+    async userFutureData(margin_call_callback, account_update_callback?:Function, order_update_callback?:Function, subscribed_callback?:Function, account_config_update_callback?:Function) {
         const url = (this.options.test) ? this.fapiTest : this.fapi;
 
         let reconnect = () => {
