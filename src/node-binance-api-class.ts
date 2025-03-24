@@ -6,7 +6,8 @@ import crypto from 'crypto';
 import file from 'fs';
 import url from 'url';
 import JSONbig from 'json-bigint';
-import HttpsProxyAgent from 'https-proxy-agent';
+// @ts-ignore
+import { HttpsProxyAgent } from 'https-proxy-agent'; // @ts-ignore
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import stringHash from 'string-hash';
 import async from 'async';
@@ -97,7 +98,7 @@ export default class Binance {
     };
 
 
-    constructor(userparams: Dict = {}) {
+    constructor(userOptions: Dict = {}) {
 
         if (userOptions) {
             this.setOptions(userOptions);
@@ -163,7 +164,7 @@ export default class Binance {
     }
 
     uuid22(a?: any) {
-        return a ? (a ^ Math.random() * 16 >> a / 4).toString(16) : ([1e7] + 1e3 + 4e3 + 8e5).replace(/[018]/g, this.uuid22);
+        return a ? (a ^ Math.random() * 16 >> a / 4).toString(16) : (([1e7] as any) + 1e3 + 4e3 + 8e5).replace(/[018]/g, this.uuid22);
     };
 
     // ------ Request Related Functions ------ //
@@ -322,7 +323,7 @@ export default class Binance {
             data.signature = crypto.createHmac('sha256', this.options.APISECRET).update(query).digest('hex'); // HMAC hash header
             opt.url = `${baseURL}${url}?${query}&signature=${data.signature}`;
         }
-        opt.qs = data;
+        (opt as any).qs = data;
         /*if ( flags.method === 'POST' ) {
             opt.form = data;
         } else {
@@ -863,7 +864,7 @@ export default class Binance {
             (code ? ' (' + code + ')' : '') +
             (reason ? ' ' + reason : ''));
         if (this.options.reconnect && this.reconnect && reconnect) {
-            if (this.endpoint && parseInt(this.endpoint.length, 10) === 60) this.options.log('Account data WebSocket reconnecting...');
+            if (this.endpoint && this.endpoint.length === 60) this.options.log('Account data WebSocket reconnecting...');
             else this.options.log('WebSocket reconnecting: ' + this.endpoint + '...');
             try {
                reconnect();
@@ -1035,7 +1036,7 @@ export default class Binance {
             const ws = this.futuresSubscriptions[endpointId];
             if (ws.isAlive) {
                 ws.isAlive = false;
-                if (ws.readyState === WebSocket.OPEN) ws.ping(noop);
+                if (ws.readyState === WebSocket.OPEN) ws.ping(this.noop);
             } else {
                 if (this.options.verbose) this.options.log(`Terminating zombie futures WebSocket: ${ws.endpoint}`);
                 if (ws.readyState === WebSocket.OPEN) ws.terminate();
@@ -1073,7 +1074,7 @@ export default class Binance {
             (code ? ' (' + code + ')' : '') +
             (reason ? ' ' + reason : ''));
         if (this.options.reconnect && this.reconnect && reconnect) {
-            if (this.endpoint && parseInt(this.endpoint.length, 10) === 60) this.options.log('Futures account data WebSocket reconnecting...');
+            if (this.endpoint && this.endpoint.length === 60) this.options.log('Futures account data WebSocket reconnecting...');
             else this.options.log('Futures WebSocket reconnecting: ' + this.endpoint + '...');
             try {
                 reconnect();
@@ -1251,7 +1252,7 @@ export default class Binance {
      * @param {string} firstTime - time filter
      * @return {undefined}
      */
-    futuresKlineHandler(symbol: string, kline: string, firstTime = 0) {
+    futuresKlineHandler(symbol: string, kline: any, firstTime = 0) {
         // eslint-disable-next-line no-unused-vars
         let { e: eventType, E: eventTime, k: ticks } = kline;
         // eslint-disable-next-line no-unused-vars
@@ -1741,7 +1742,7 @@ export default class Binance {
             const ws = this.deliverySubscriptions[endpointId];
             if (ws.isAlive) {
                 ws.isAlive = false;
-                if (ws.readyState === WebSocket.OPEN) ws.ping(noop);
+                if (ws.readyState === WebSocket.OPEN) ws.ping(this.noop);
             } else {
                 if (this.options.verbose) this.options.log(`Terminating zombie delivery WebSocket: ${ws.endpoint}`);
                 if (ws.readyState === WebSocket.OPEN) ws.terminate();
@@ -1779,7 +1780,7 @@ export default class Binance {
             (code ? ' (' + code + ')' : '') +
             (reason ? ' ' + reason : ''));
         if (this.options.reconnect && this.reconnect && reconnect) {
-            if (this.endpoint && parseInt(this.endpoint.length, 10) === 60) this.options.log('Delivery account data WebSocket reconnecting...');
+            if (this.endpoint && this.endpoint.length === 60) this.options.log('Delivery account data WebSocket reconnecting...');
             else this.options.log('Delivery WebSocket reconnecting: ' + this.endpoint + '...');
             try {
                 reconnect();
@@ -2884,7 +2885,7 @@ export default class Binance {
     * @param {string} baseValue - the object
     * @return {object} - the object
     */
-    sortBids(symbol: string, max = Infinity, baseValue = false) {
+    sortBids(symbol: string, max = Infinity, baseValue?: string) {
         let object = {}, count = 0, cache;
         if (typeof symbol === 'object') cache = symbol;
         else cache = this.getDepthCache(symbol).bids;
@@ -5211,7 +5212,7 @@ export default class Binance {
             });
             subscription = this.subscribeCombined(streams, callback, reconnect);
         } else {
-            let symbol = symbols;
+            let symbol = symbols as string;
             subscription = this.subscribe(symbol.toLowerCase() + '@trade', callback, reconnect);
         }
         return (subscription as any).endpoint;
