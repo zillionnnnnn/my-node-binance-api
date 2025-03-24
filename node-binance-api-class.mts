@@ -97,7 +97,7 @@ export default class Binance {
     };
 
 
-    constructor(userOptions = {}) {
+    constructor(userparams: Dict = {}) {
 
         if (userOptions) {
             this.setOptions(userOptions);
@@ -495,46 +495,46 @@ export default class Binance {
      * @param {string} symbol - The symbol to buy or sell
      * @param {string} quantity - The quantity to buy or sell
      * @param {string} price - The price per unit to transact each unit at
-     * @param {object} flags - additional order settings
+     * @param {object} params - additional order settings
      * @param {function} callback - the callback function
      * @return {undefined}
      */
-    async order(side: string, symbol: string, quantity: number, price?: number, flags: Dict = {}) {
-        let endpoint = flags.type === 'OCO' ? 'v3/orderList/oco' : 'v3/order';
-        if (typeof flags.test && flags.test) endpoint += '/test';
+    async order(side: string, symbol: string, quantity: number, price?: number, params: Dict = {}) {
+        let endpoint = params.type === 'OCO' ? 'v3/orderList/oco' : 'v3/order';
+        if (typeof params.test && params.test) endpoint += '/test';
         let opt = {
             symbol: symbol,
             side: side,
             type: 'LIMIT'
         } as Dict;
-        if (typeof flags.quoteOrderQty !== undefined && flags.quoteOrderQty > 0)
-            opt.quoteOrderQty = flags.quoteOrderQty
+        if (typeof params.quoteOrderQty !== undefined && params.quoteOrderQty > 0)
+            opt.quoteOrderQty = params.quoteOrderQty
         else
             opt.quantity = quantity
-        if (typeof flags.type !== 'undefined') opt.type = flags.type;
+        if (typeof params.type !== 'undefined') opt.type = params.type;
         if (opt.type.includes('LIMIT')) {
             opt.price = price;
             if (opt.type !== 'LIMIT_MAKER') {
                 opt.timeInForce = 'GTC';
             }
         }
-        if (opt.type == 'MARKET' && typeof flags.quoteOrderQty !== 'undefined') {
-            opt.quoteOrderQty = flags.quoteOrderQty
+        if (opt.type == 'MARKET' && typeof params.quoteOrderQty !== 'undefined') {
+            opt.quoteOrderQty = params.quoteOrderQty
             delete opt.quantity;
         }
         if (opt.type === 'OCO') {
             opt.price = price;
-            opt.stopLimitPrice = flags.stopLimitPrice;
+            opt.stopLimitPrice = params.stopLimitPrice;
             opt.stopLimitTimeInForce = 'GTC';
             delete opt.type;
-            if (typeof flags.listClientOrderId !== 'undefined') opt.listClientOrderId = flags.listClientOrderId;
-            if (typeof flags.limitClientOrderId !== 'undefined') opt.limitClientOrderId = flags.limitClientOrderId;
-            if (typeof flags.stopClientOrderId !== 'undefined') opt.stopClientOrderId = flags.stopClientOrderId;
+            if (typeof params.listClientOrderId !== 'undefined') opt.listClientOrderId = params.listClientOrderId;
+            if (typeof params.limitClientOrderId !== 'undefined') opt.limitClientOrderId = params.limitClientOrderId;
+            if (typeof params.stopClientOrderId !== 'undefined') opt.stopClientOrderId = params.stopClientOrderId;
         }
-        if (typeof flags.timeInForce !== 'undefined') opt.timeInForce = flags.timeInForce;
-        if (typeof flags.newOrderRespType !== 'undefined') opt.newOrderRespType = flags.newOrderRespType;
-        if (typeof flags.newClientOrderId !== 'undefined') {
-            opt.newClientOrderId = flags.newClientOrderId;
+        if (typeof params.timeInForce !== 'undefined') opt.timeInForce = params.timeInForce;
+        if (typeof params.newOrderRespType !== 'undefined') opt.newOrderRespType = params.newOrderRespType;
+        if (typeof params.newClientOrderId !== 'undefined') {
+            opt.newClientOrderId = params.newClientOrderId;
         } else {
             opt.newClientOrderId = this.SPOT_PREFIX + this.uuid22();
         }
@@ -546,9 +546,9 @@ export default class Binance {
          * TAKE_PROFIT_LIMIT
          * LIMIT_MAKER
          */
-        if (typeof flags.icebergQty !== 'undefined') opt.icebergQty = flags.icebergQty;
-        if (typeof flags.stopPrice !== 'undefined') {
-            opt.stopPrice = flags.stopPrice;
+        if (typeof params.icebergQty !== 'undefined') opt.icebergQty = params.icebergQty;
+        if (typeof params.stopPrice !== 'undefined') {
+            opt.stopPrice = params.stopPrice;
             if (opt.type === 'LIMIT') throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
         }
         const response = await this.signedRequest(this.getSpotUrl() + endpoint, opt, 'POST');
@@ -597,13 +597,12 @@ export default class Binance {
 * Creates a market buy order
 * @param {string} symbol - the symbol to buy
 * @param {numeric} quantity - the quantity required
-* @param {object} flags - additional buy order flags
-* @param {function} callback - the callback function
+* @param {object} params - additional buy order flags
 * @return {promise or undefined} - omitting the callback returns a promise
 */
-    async marketBuy(symbol: string, quantity: number, flags = { type: 'MARKET' }) {
-        if (typeof flags.type === 'undefined') flags.type = 'MARKET';
-        return await this.order('BUY', symbol, quantity, 0, flags);
+    async marketBuy(symbol: string, quantity: number, params: Dict = {}) {
+        params.type = 'MARKET';
+        return await this.order('BUY', symbol, quantity, 0, params);
     }
 
     /**
@@ -611,12 +610,11 @@ export default class Binance {
     * @param {string} symbol - the symbol to sell
     * @param {numeric} quantity - the quantity required
     * @param {object} flags - additional buy order flags
-    * @param {function} callback - the callback function
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async marketSell(symbol: string, quantity: number, flags = { type: 'MARKET' }) {
-        if (typeof flags.type === 'undefined') flags.type = 'MARKET';
-        return await this.order('SELL', symbol, quantity, 0, flags);
+    async marketSell(symbol: string, quantity: number, params: Dict = {}) {
+        params.type = 'MARKET';
+        return await this.order('SELL', symbol, quantity, 0, params);
     }
 
 
@@ -627,8 +625,8 @@ export default class Binance {
     * @param {string} orderid - the orderid to cancel
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async cancel(symbol: string, orderid: string) {
-        return await this.signedRequest(this.getSpotUrl() + 'v3/order', { symbol: symbol, orderId: orderid }, 'DELETE');
+    async cancel(symbol: string, orderid: string, params: Dict = {}) {
+        return await this.signedRequest(this.getSpotUrl() + 'v3/order', this.extend({ symbol: symbol, orderId: orderid }, params), 'DELETE');
     }
 
 
@@ -652,9 +650,9 @@ export default class Binance {
 * @param {string} symbol - the symbol to get
 * @return {promise or undefined} - omitting the callback returns a promise
 */
-    async openOrders(symbol: string) {
-        let parameters = symbol ? { symbol: symbol } : {};
-        return await this.signedRequest(this.getSpotUrl() + 'v3/openOrders', parameters,);
+    async openOrders(symbol?: string, params: Dict = {}) {
+        const parameters = symbol ? { symbol: symbol } : {};
+        return await this.signedRequest(this.getSpotUrl() + 'v3/openOrders', this.extend(parameters, params));
     }
 
     /**
@@ -662,22 +660,17 @@ export default class Binance {
     * @param {string} symbol - the symbol to cancel all orders for
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async cancelAll(symbol: string) {
-        return await this.signedRequest(this.getSpotUrl() + 'v3/openOrders', { symbol }, 'DELETE');
+    async cancelAll(symbol: string,  params: Dict = {}) {
+        return await this.signedRequest(this.getSpotUrl() + 'v3/openOrders', this.extend({ symbol }, params), 'DELETE');
     }
-
-
 
     /**
     * Cancels all orders of a given symbol
     * @param {string} symbol - the symbol to cancel all orders for
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async cancelOrders(symbol: string) {
-
-        const json = await this.signedRequest(this.getSpotUrl() + 'v3/openOrders', { symbol: symbol }, 'DELETE');
-
-
+    async cancelOrders(symbol: string,  params: Dict = {}) {
+        const json = await this.signedRequest(this.getSpotUrl() + 'v3/openOrders', this.extend({ symbol: symbol }, params), 'DELETE');
         // if (json.length === 0) {
         //     return callback.call(this, 'No orders present for this symbol', {}, symbol);
         // }
@@ -701,8 +694,8 @@ export default class Binance {
     * @param {object} options - additional options
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async allOrders(symbol: string, options = {}) {
-        let parameters = Object.assign({ symbol }, options);
+    async allOrders(symbol: string, params: Dict = {}) {
+        let parameters = this.extend({ symbol }, params);
         return await this.signedRequest(this.getSpotUrl() + 'v3/allOrders', parameters);
     }
 
@@ -713,37 +706,37 @@ export default class Binance {
      * @param {string} symbol - The symbol to buy or sell
      * @param {string} quantity - The quantity to buy or sell
      * @param {string} price - The price per unit to transact each unit at
-     * @param {object} flags - additional order settings
+     * @param {object} params - additional order settings
      * @param {function} callback - the callback function
      * @return {undefined}
      */
-    async marginOrder(side: string, symbol: string, quantity: number, price?: number, flags: Dict = {}) {
+    async marginOrder(side: string, symbol: string, quantity: number, price?: number, params: Dict = {}) {
         let endpoint = 'v1/margin/order';
         if (this.options.test) endpoint += '/test';
-        let opt = {
+        let request = {
             symbol: symbol,
             side: side,
             type: 'LIMIT',
             quantity: quantity
         } as Dict;
-        if (typeof flags.type !== 'undefined') opt.type = flags.type;
-        if (typeof flags.isIsolated !== 'undefined') opt.isIsolated = flags.isIsolated;
-        if (opt.type.includes('LIMIT')) {
-            opt.price = price;
-            if (opt.type !== 'LIMIT_MAKER') {
-                opt.timeInForce = 'GTC';
+        if (typeof params.type !== 'undefined') request.type = params.type;
+        if ('isIsolated' in params) request.isIsolated = params.isIsolated;
+        if (request.type.includes('LIMIT')) {
+            request.price = price;
+            if (request.type !== 'LIMIT_MAKER') {
+                request.timeInForce = 'GTC';
             }
         }
 
-        if (typeof flags.timeInForce !== 'undefined') opt.timeInForce = flags.timeInForce;
-        if (typeof flags.newOrderRespType !== 'undefined') opt.newOrderRespType = flags.newOrderRespType;
+        if (typeof params.timeInForce !== 'undefined') request.timeInForce = params.timeInForce;
+        if (typeof params.newOrderRespType !== 'undefined') request.newOrderRespType = params.newOrderRespType;
         // if ( typeof flags.newClientOrderId !== 'undefined' ) opt.newClientOrderId = flags.newClientOrderId;
-        if (typeof flags.newClientOrderId !== 'undefined') {
-            opt.newClientOrderId = flags.newClientOrderId;
+        if (typeof params.newClientOrderId !== 'undefined') {
+            request.newClientOrderId = params.newClientOrderId;
         } else {
-            opt.newClientOrderId = this.SPOT_PREFIX + this.uuid22();
+            request.newClientOrderId = this.SPOT_PREFIX + this.uuid22();
         }
-        if (typeof flags.sideEffectType !== 'undefined') opt.sideEffectType = flags.sideEffectType;
+        if (typeof params.sideEffectType !== 'undefined') request.sideEffectType = params.sideEffectType;
 
         /*
          * STOP_LOSS
@@ -751,12 +744,12 @@ export default class Binance {
          * TAKE_PROFIT
          * TAKE_PROFIT_LIMIT
          */
-        if (typeof flags.icebergQty !== 'undefined') opt.icebergQty = flags.icebergQty;
-        if (typeof flags.stopPrice !== 'undefined') {
-            opt.stopPrice = flags.stopPrice;
-            if (opt.type === 'LIMIT') throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
+        if (typeof params.icebergQty !== 'undefined') request.icebergQty = params.icebergQty;
+        if (typeof params.stopPrice !== 'undefined') {
+            request.stopPrice = params.stopPrice;
+            if (request.type === 'LIMIT') throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
         }
-        return await this.signedRequest(this.sapi + endpoint, opt, 'POST');
+        return await this.signedRequest(this.sapi + endpoint, this.extend(request, params), 'POST');
     };
 
 
@@ -1058,7 +1051,7 @@ export default class Binance {
     handleFuturesSocketOpen(openCallback: Function) {
         this.isAlive = true;
         if (Object.keys(this.futuresSubscriptions).length === 0) {
-            this.socketHeartbeatInterval = setInterval(futuresSocketHeartbeat, 30000);
+            this.socketHeartbeatInterval = setInterval(this.futuresSocketHeartbeat, 30000);
         }
         this.futuresSubscriptions[this.endpoint] = this;
         if (typeof openCallback === 'function') openCallback(this.endpoint);
@@ -3365,8 +3358,8 @@ export default class Binance {
     * @param {object} options - additional optoins
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async aggTrades(symbol: string, options = {}) { //fromId startTime endTime limit
-        let parameters = Object.assign({ symbol }, options);
+    async aggTrades(symbol: string, params: Dict = {}) { //fromId startTime endTime limit
+        let parameters = Object.assign({ symbol }, params);
         return await this.publicRequest(this.getSpotUrl() + 'v3/aggTrades', parameters);
     }
 
@@ -3775,8 +3768,8 @@ export default class Binance {
         params.dualSidePosition = dualSidePosition;
         return await this.futuresRequest('v1/positionSide/dual', params, { base: this.fapi, type: 'SIGNED', method: 'POST' });
     }
-    async futuresTransferAsset(asset, amount, type) {
-        let params = Object.assign({ asset, amount, type });
+    async futuresTransferAsset(asset: string, amount: number, type: string,  params: Dict = {}) {
+        params = Object.assign({ asset, amount, type });
         return await this.futuresRequest('v1/futures/transfer', params, { base: this.sapi, type: 'SIGNED', method: 'POST' });
     }
 
@@ -3886,8 +3879,9 @@ export default class Binance {
         return await this.futuresRequest('v1/markPriceKlines', params, { base: this.dapi });
     }
 
-    async deliveryMarkPrice(symbol = false) {
-        return await this.futuresRequest('v1/premiumIndex', symbol ? { symbol } : {}, { base: this.dapi });
+    async deliveryMarkPrice(symbol? : string, params: Dict = {}) {
+        if (symbol) params.symbol = symbol;
+        return await this.futuresRequest('v1/premiumIndex', params, { base: this.dapi });
     }
 
     async deliveryTrades(symbol: string, params: Dict = {}) {
@@ -4065,12 +4059,12 @@ export default class Binance {
      * @param {string} symbol - the symbol to buy
      * @param {numeric} quantity - the quantity required
      * @param {numeric} price - the price to pay for each unit
-     * @param {object} flags - additional buy order flags
+     * @param {object} params - additional buy order flags
      * @param {string} isIsolated - the isolate margin option
      * @return {undefined}
      */
-    async mgOrder(side: string, symbol: string, quantity: number, price: number, flags: Dict = {}, isIsolated = 'FALSE') {
-        return await this.marginOrder(side, symbol, quantity, price, { ...flags, isIsolated });
+    async mgOrder(side: string, symbol: string, quantity: number, price: number, params: Dict = {}, isIsolated = 'FALSE') {
+        return await this.marginOrder(side, symbol, quantity, price, { ...params, isIsolated });
     }
 
     /**
@@ -4078,12 +4072,12 @@ export default class Binance {
      * @param {string} symbol - the symbol to buy
      * @param {numeric} quantity - the quantity required
      * @param {numeric} price - the price to pay for each unit
-     * @param {object} flags - additional buy order flags
+     * @param {object} params - additional buy order flags
      * @param {string} isIsolated - the isolate margin option
      * @return {undefined}
      */
-    async mgBuy(symbol: string, quantity: number, price: number, flags: Dict = {}, isIsolated = 'FALSE') {
-        return await this.marginOrder('BUY', symbol, quantity, price, { ...flags, isIsolated });
+    async mgBuy(symbol: string, quantity: number, price: number, params: Dict = {}, isIsolated = 'FALSE') {
+        return await this.marginOrder('BUY', symbol, quantity, price, { ...params, isIsolated });
     }
 
     /**
@@ -4107,9 +4101,9 @@ export default class Binance {
      * @param {string} isIsolated - the isolate margin option
      * @return {undefined}
      */
-    async mgMarketBuy(symbol: string, quantity: number, flags = { type: 'MARKET' }, isIsolated = 'FALSE') {
-        if (typeof flags.type === 'undefined') flags.type = 'MARKET';
-        return await this.marginOrder('BUY', symbol, quantity, 0, { ...flags, isIsolated });
+    async mgMarketBuy(symbol: string, quantity: number, params: Dict = {}, isIsolated = 'FALSE') {
+        params.type = 'MARKET';
+        return await this.marginOrder('BUY', symbol, quantity, 0, { ...params, isIsolated });
     }
 
     /**
@@ -4120,9 +4114,9 @@ export default class Binance {
      * @param {string} isIsolated - the isolate margin option
      * @return {undefined}
      */
-    async mgMarketSell(symbol: string, quantity: number, flags = { type: 'MARKET' }, isIsolated = 'FALSE') {
-        if (typeof flags.type === 'undefined') flags.type = 'MARKET';
-        return await this.marginOrder('SELL', symbol, quantity, 0, { ...flags, isIsolated });
+    async mgMarketSell(symbol: string, quantity: number, params: Dict = {}, isIsolated = 'FALSE') {
+        params.type = 'MARKET';
+        return await this.marginOrder('SELL', symbol, quantity, 0, { ...params, isIsolated });
     }
 
     /**
@@ -4141,8 +4135,8 @@ export default class Binance {
     * @param {object} options - additional options
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async mgAllOrders(symbol: string, options = {}) {
-        let parameters = Object.assign({ symbol: symbol }, options);
+    async mgAllOrders(symbol: string, params: Dict = {}) {
+        let parameters = Object.assign({ symbol: symbol }, params);
         return await this.signedRequest(this.sapi + 'v1/margin/allOrders', parameters);
     }
 
@@ -4163,9 +4157,9 @@ export default class Binance {
      * @param {string} symbol - the symbol to get
      * @return {undefined}
      */
-    async mgOpenOrders(symbol: string) {
-        let parameters = symbol ? { symbol: symbol } : {};
-        return await this.signedRequest(this.sapi + 'v1/margin/openOrders', parameters);
+    async mgOpenOrders(symbol?: string, params: Dict = {}) {
+        if (symbol) params.symbol = symbol;
+        return await this.signedRequest(this.sapi + 'v1/margin/openOrders', params);
     }
 
     /**
@@ -4174,7 +4168,7 @@ export default class Binance {
      * @param {function} callback - the callback function
      * @return {undefined}
      */
-    async mgCancelOrders(symbol: string) {
+    async mgCancelOrders(symbol: string, params: Dict = {}) {
         // signedRequest(this.sapi + 'v1/margin/openOrders', { symbol: symbol }, function (error, json) {
         //     if (json.length === 0) {
         //         if (callback) return callback.call(this, 'No orders present for this symbol', {}, symbol);
@@ -4187,7 +4181,7 @@ export default class Binance {
         //         }, 'DELETE');
         //     }
         // }); // to do check this
-        return await this.signedRequest(this.sapi + 'v1/margin/openOrders', { symbol: symbol }, 'DELETE');
+        return await this.signedRequest(this.sapi + 'v1/margin/openOrders', this.extend({ symbol: symbol }, params), 'DELETE');
     }
 
     /**
@@ -4197,9 +4191,9 @@ export default class Binance {
      * @param {object} options - additional options
      * @return {undefined}
      */
-    async mgTransferMainToMargin(asset: string, amount: number) {
-        let parameters = Object.assign({ asset: asset, amount: amount, type: 1 });
-        return await this.signedRequest(this.sapi + 'v1/margin/transfer', parameters, 'POST');
+    async mgTransferMainToMargin(asset: string, amount: number, params: Dict = {}) {
+        params = this.extend({ asset: asset, amount: amount, type: 1 }, params);
+        return await this.signedRequest(this.sapi + 'v1/margin/transfer', params, 'POST');
     }
 
     /**
@@ -4229,8 +4223,8 @@ export default class Binance {
     * @param {object} options - additional options
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async mgTrades(symbol: string, options = {}) {
-        let parameters = Object.assign({ symbol: symbol }, options);
+    async mgTrades(symbol: string, params: Dict = {}) {
+        let parameters = Object.assign({ symbol: symbol }, params);
         return await this.signedRequest(this.sapi + 'v1/margin/myTrades', parameters);
     }
 
