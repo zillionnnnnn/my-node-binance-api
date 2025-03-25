@@ -13,6 +13,7 @@ import stringHash from 'string-hash';
 import async from 'async';
 
 import {interval, symbol, callback, IConstructorArgs} from './types'
+export {interval, symbol, callback, IConstructorArgs} from './types'
 
 export interface Dictionary<T> {
     [key: string]: T;

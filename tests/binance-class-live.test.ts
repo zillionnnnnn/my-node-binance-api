@@ -1,4 +1,4 @@
-import Binance from '../src/node-binance-api-class';
+import Binance from '../src/node-binance-api';
 import {assert} from 'chai';
 import util from 'util';
 
