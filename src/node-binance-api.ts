@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import file from 'fs';
 import url from 'url';
 import JSONbig from 'json-bigint';
+// @ts-ignore
 import { HttpsProxyAgent } from 'https-proxy-agent';
 // @ts-ignore
 import { SocksProxyAgent } from 'socks-proxy-agent';
