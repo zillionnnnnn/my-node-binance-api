@@ -1,7 +1,7 @@
 import chai from 'chai';
 import path from 'path';
 import utils from 'util';
-import Binance from  '../node-binance-api.js'
+import Binance from  '../dist/cjs/node-binance-api.js';
 import nock from 'nock';
 const assert = chai.assert;
 
