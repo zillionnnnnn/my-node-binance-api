@@ -26,7 +26,7 @@ jobs:
     - name: Static Tests (TS ESM)
       run: npm run ts-test-static
     - name: Live Tests (TS ESM)
-      run: ts-test-live
+      run: npm run ts-test-live
     - name: Static Tests (JS CJS)
       run: npm run static-test (JS CJS)
     - name: Live Tests
