@@ -17,6 +17,9 @@
   "scripts": {
     "test": "mocha ./tests/live-tests.js",
     "static-test": "mocha ./tests/static-tests.mjs",
+    "ts-test-live": "mocha ./tests/binance-class-live.test.ts",
+    "ts-test-static": "mocha ./tests/binance-class-static.test.ts",
+    "test-cjs": "mocha ./tests/cjs-test.js",
     "test-debug": "mocha --inspect-brk",
     "lint": "eslint -c .eslintrc.js node-binance-api.js test.js",
     "cover": "istanbul cover _mocha --report lcovonly",
@@ -42,7 +45,6 @@
   "devDependencies": {
     "@types/async": "^3.2.24",
     "@types/chai": "^5.0.1",
-    "@types/jest": "^29.5.14",
     "@types/json-bigint": "^1.0.4",
     "@types/mocha": "^10.0.10",
     "@types/request": "^2.48.12",
@@ -62,6 +64,7 @@
     "nock": "^14.0.1",
     "nyc": "^17.1.0",
     "ts-jest": "^29.3.0",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   }
 }
