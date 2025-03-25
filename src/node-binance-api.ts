@@ -13,8 +13,8 @@ import { SocksProxyAgent } from 'socks-proxy-agent';
 import stringHash from 'string-hash';
 import async from 'async';
 
-import {interval, symbol, callback, IConstructorArgs} from './types'
-export {interval, symbol, callback, IConstructorArgs} from './types'
+import {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate} from './types'
+export {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs} from './types'
 
 export interface Dictionary<T> {
     [key: string]: T;
@@ -510,21 +510,21 @@ export default class Binance {
 
     /**
      * Create a signed spot order
-     * @param {string} side - BUY or SELL
+     * @param {OrderType} type - LIMIT, MARKET, STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, LIMIT_MAKER
+     * @param {OrderSide} side - BUY or SELL
      * @param {string} symbol - The symbol to buy or sell
      * @param {string} quantity - The quantity to buy or sell
      * @param {string} price - The price per unit to transact each unit at
      * @param {object} params - additional order settings
-    
      * @return {undefined}
      */
-    async order(side: string, symbol: string, quantity: number, price?: number, params: Dict = {}) {
+    async order(type: OrderType, side: OrderSide, symbol: string, quantity: number, price?: number, params: Dict = {}) {
         let endpoint = params.type === 'OCO' ? 'v3/orderList/oco' : 'v3/order';
         if (typeof params.test && params.test) endpoint += '/test';
         let opt = {
             symbol: symbol,
             side: side,
-            type: 'LIMIT'
+            type: type
         } as Dict;
         if (typeof params.quoteOrderQty !== undefined && params.quoteOrderQty > 0)
             opt.quoteOrderQty = params.quoteOrderQty
@@ -591,11 +591,10 @@ export default class Binance {
     * @param {numeric} quantity - the quantity required
     * @param {numeric} price - the price to pay for each unit
     * @param {object} flags - additional buy order flags
-   
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async buy(symbol: string, quantity: number, price: number, flags = {}) {
-        return await this.order('BUY', symbol, quantity, price, flags);
+        return await this.order('LIMIT', 'BUY', symbol, quantity, price, flags);
     }
 
     /**
@@ -608,7 +607,7 @@ export default class Binance {
 * @return {promise or undefined} - omitting the callback returns a promise
 */
     async sell(symbol: string, quantity: number, price: number, flags = {}) {
-        return await this.order('SELL', symbol, quantity, price, flags);
+        return await this.order('LIMIT', 'SELL', symbol, quantity, price, flags);
     }
 
 
@@ -620,8 +619,7 @@ export default class Binance {
 * @return {promise or undefined} - omitting the callback returns a promise
 */
     async marketBuy(symbol: string, quantity: number, params: Dict = {}) {
-        params.type = 'MARKET';
-        return await this.order('BUY', symbol, quantity, 0, params);
+        return await this.order('MARKET', 'BUY', symbol, quantity, 0, params);
     }
 
     /**
@@ -632,8 +630,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async marketSell(symbol: string, quantity: number, params: Dict = {}) {
-        params.type = 'MARKET';
-        return await this.order('SELL', symbol, quantity, 0, params);
+        return await this.order('MARKET', 'SELL', symbol, quantity, 0, params);
     }
 
 
@@ -773,9 +770,10 @@ export default class Binance {
 
 
     // Futures internal functions
-    async futuresOrder(side: string, symbol: string, quantity: number, price?: number, params: Dict = {}) {
+    async futuresOrder(type: OrderType, side: string, symbol: string, quantity: number, price?: number, params: Dict = {}): Promise<FuturesOrder> {
         params.symbol = symbol;
         params.side = side;
+        params.type = type;
         if (quantity) params.quantity = quantity;
         // if in the binance futures setting Hedged mode is active, positionSide parameter is mandatory
         if (!params.positionSide && this.Options.hedgeMode) {
@@ -785,9 +783,6 @@ export default class Binance {
         // reduceOnly stopPrice
         if (price) {
             params.price = price;
-            if (!params.type) params.type = 'LIMIT';
-        } else {
-            if (!params.type) params.type = 'MARKET';
         }
         if (!params.timeInForce && (params.type.includes('LIMIT') || params.type === 'STOP' || params.type === 'TAKE_PROFIT')) {
             params.timeInForce = 'GTX'; // Post only by default. Use GTC for limit orders.
@@ -800,10 +795,11 @@ export default class Binance {
     };
 
 
-    async deliveryOrder(side: string, symbol: string, quantity: number, price?: number, params: Dict = {}) {
+    async deliveryOrder(type: OrderType, side: string, symbol: string, quantity: number, price?: number, params: Dict = {}): Promise<FuturesOrder> {
         params.symbol = symbol;
         params.side = side;
         params.quantity = quantity;
+        params.type = type;
         // if in the binance futures setting Hedged mode is active, positionSide parameter is mandatory
         if (this.Options.hedgeMode) {
             params.positionSide = side === 'BUY' ? 'LONG' : 'SHORT';
@@ -856,7 +852,7 @@ export default class Binance {
      * @param {function} opened_callback - a callback function
      * @return {undefined}
      */
-    handleSocketOpen(opened_callback: callback) {
+    handleSocketOpen(opened_callback: Callback) {
         this.isAlive = true;
         if (Object.keys(this.subscriptions).length === 0) {
             this.socketHeartbeatInterval = setInterval(this.socketHeartbeat, 30000);
@@ -935,7 +931,7 @@ export default class Binance {
      * @param {object} opened_callback - the function to call when opened
      * @return {WebSocket} - websocket reference
      */
-    subscribe(endpoint: string, callback: callback, reconnect?: Function, opened_callback?: Function) {
+    subscribe(endpoint: string, callback: Callback, reconnect?: Function, opened_callback?: Function) {
         let httpsproxy = process.env.https_proxy || false;
         let socksproxy = process.env.socks_proxy || false;
         let ws: any = undefined;
@@ -984,7 +980,7 @@ export default class Binance {
      * @param {object} opened_callback - the function to call when opened
      * @return {WebSocket} - websocket reference
      */
-    subscribeCombined(streams: any, callback: callback, reconnect?: Function, opened_callback?: Function) {
+    subscribeCombined(streams: any, callback: Callback, reconnect?: Function, opened_callback?: Function) {
         let httpsproxy = process.env.https_proxy || false;
         let socksproxy = process.env.socks_proxy || false;
         const queryParams = streams.join('/');
@@ -1067,7 +1063,7 @@ export default class Binance {
      * @param {function} openCallback - a callback function
      * @return {undefined}
      */
-    handleFuturesSocketOpen(openCallback: callback) {
+    handleFuturesSocketOpen(openCallback: Callback) {
         this.isAlive = true;
         if (Object.keys(this.futuresSubscriptions).length === 0) {
             this.socketHeartbeatInterval = setInterval(this.futuresSocketHeartbeat, 30000);
@@ -1128,7 +1124,7 @@ export default class Binance {
      * @param {object} params - Optional reconnect {boolean} (whether to reconnect on disconnect), openCallback {function}, id {string}
      * @return {WebSocket} - websocket reference
      */
-    futuresSubscribeSingle(endpoint: string, callback: callback, params: Dict = {}) {
+    futuresSubscribeSingle(endpoint: string, callback: Callback, params: Dict = {}) {
         if (typeof params === 'boolean') params = { reconnect: params };
         if (!params.reconnect) params.reconnect = false;
         if (!params.openCallback) params.openCallback = false;
@@ -1180,7 +1176,7 @@ export default class Binance {
      * @param {object} params - Optional reconnect {boolean} (whether to reconnect on disconnect), openCallback {function}, id {string}
      * @return {WebSocket} - websocket reference
      */
-    futuresSubscribe(streams, callback: callback, params: Dict = {}) {
+    futuresSubscribe(streams, callback: Callback, params: Dict = {}) {
         if (typeof streams === 'string') return this.futuresSubscribeSingle(streams, callback, params);
         if (typeof params === 'boolean') params = { reconnect: params };
         if (!params.reconnect) params.reconnect = false;
@@ -1249,7 +1245,7 @@ export default class Binance {
      * @param {string} interval - time interval
      * @return {array} - interval data for given symbol
      */
-    futuresKlineConcat(symbol: string, interval: interval) {
+    futuresKlineConcat(symbol: string, interval: Interval) {
         let output = this.futuresTicks[symbol][interval];
         if (typeof this.futuresRealtime[symbol][interval].time === 'undefined') return output;
         const time = this.futuresRealtime[symbol][interval].time;
@@ -1773,7 +1769,7 @@ export default class Binance {
      * @param {function} openCallback - a callback function
      * @return {undefined}
      */
-    handleDeliverySocketOpen(openCallback: callback) {
+    handleDeliverySocketOpen(openCallback: Callback) {
         this.isAlive = true;
         if (Object.keys(this.deliverySubscriptions).length === 0) {
             this.socketHeartbeatInterval = setInterval(this.deliverySocketHeartbeat, 30000);
@@ -1834,7 +1830,7 @@ export default class Binance {
      * @param {object} params - Optional reconnect {boolean} (whether to reconnect on disconnect), openCallback {function}, id {string}
      * @return {WebSocket} - websocket reference
      */
-    deliverySubscribeSingle(endpoint: string, callback: callback, params: Dict = {}) {
+    deliverySubscribeSingle(endpoint: string, callback: Callback, params: Dict = {}) {
         if (typeof params === 'boolean') params = { reconnect: params };
         if (!params.reconnect) params.reconnect = false;
         if (!params.openCallback) params.openCallback = false;
@@ -1885,7 +1881,7 @@ export default class Binance {
      * @param {object} params - Optional reconnect {boolean} (whether to reconnect on disconnect), openCallback {function}, id {string}
      * @return {WebSocket} - websocket reference
      */
-    deliverySubscribe(streams, callback: callback, params: Dict = {}) {
+    deliverySubscribe(streams, callback: Callback, params: Dict = {}) {
         if (typeof streams === 'string') return this.deliverySubscribeSingle(streams, callback, params);
         if (typeof params === 'boolean') params = { reconnect: params };
         if (!params.reconnect) params.reconnect = false;
@@ -1954,7 +1950,7 @@ export default class Binance {
      * @param {string} interval - time interval
      * @return {array} - interval data for given symbol
      */
-    deliveryKlineConcat(symbol: string, interval: interval) {
+    deliveryKlineConcat(symbol: string, interval: Interval) {
         let output = this.deliveryTicks[symbol][interval];
         if (typeof this.deliveryRealtime[symbol][interval].time === 'undefined') return output;
         const time = this.deliveryRealtime[symbol][interval].time;
@@ -2525,7 +2521,7 @@ export default class Binance {
      * @param {function} callback - user data callback data type
      * @return {undefined}
      */
-    prevDayStreamHandler(data, callback: callback) {
+    prevDayStreamHandler(data, callback: Callback) {
         const converted = this.prevDayConvertData(data);
         callback(null, converted);
     };
@@ -2610,7 +2606,7 @@ export default class Binance {
      * @param {string} interval - time interval, 1m, 3m, 5m ....
      * @return {array} - interval data for given symbol
      */
-    klineConcat(symbol: string, interval: interval) {
+    klineConcat(symbol: string, interval: Interval) {
         let output = this.ohlc[symbol][interval];
         if (typeof this.ohlcLatest[symbol][interval].time === 'undefined') return output;
         const time = this.ohlcLatest[symbol][interval].time;
@@ -2658,7 +2654,7 @@ export default class Binance {
      * @param {array} ticks - tick array
      * @return {undefined}
      */
-    futuresKlineData(symbol: string, interval: interval, ticks: any[]) {
+    futuresKlineData(symbol: string, interval: Interval, ticks: any[]) {
         let last_time = 0;
         if (this.isIterable(ticks)) {
             for (let tick of ticks) {
@@ -3456,7 +3452,7 @@ export default class Binance {
     * @param {object} options - additional options
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async candlesticks(symbol: string, interval = '5m', params: Dict = {}) {
+    async candlesticks(symbol: string, interval: Interval = '5m', params: Dict = {}) {
         if (!params.limit) params.limit = 500;
         params = Object.assign({ symbol: symbol, interval: interval }, params);
         return await this.publicRequest(this.getSpotUrl() + 'v3/klines', params);
@@ -3576,7 +3572,7 @@ export default class Binance {
         return await this.futuresRequest('v1/openInterest', { symbol }, { base: this.fapi });
     }
 
-    async futuresCandles(symbol: string, interval = "30m", params: Dict = {}) {
+    async futuresCandles(symbol: string, interval: Interval = "30m", params: Dict = {}) {
         params.symbol = symbol;
         params.interval = interval;
         return await this.futuresRequest('v1/klines', params, { base: this.fapi });
@@ -3634,22 +3630,22 @@ export default class Binance {
 
     /**
     * Get the account binance lending information
-   
+
     * @param {string} symbol - position symbol, optional
     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-Information-V3
     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-Information-V2
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async futuresPositionRisk(params: Dict = {}, useV2 = false) {
+    async futuresPositionRisk(params: Dict = {}, useV2 = false): Promise<PositionRisk[]> {
         const endpoint = useV2 ? 'v2/positionRisk' : 'v3/positionRisk'
         return await this.futuresRequest(endpoint, params, { base: this.fapi, type: 'SIGNED' });
     }
 
-    async futuresPositionRiskV2(params: Dict = {}) {
+    async futuresPositionRiskV2(params: Dict = {}): Promise<PositionRisk[]> {
         return this.futuresPositionRisk(params, true)
     }
 
-    async futuresFundingRate(symbol: string, params: Dict = {}) {
+    async futuresFundingRate(symbol: string, params: Dict = {}): Promise<FundingRate[]> {
         params.symbol = symbol;
         return await this.futuresRequest('v1/fundingRate', params, { base: this.fapi });
     }
@@ -3722,22 +3718,22 @@ export default class Binance {
     }
 
     async futuresBuy(symbol: string, quantity: number, price: number, params: Dict = {}) {
-        return await this.futuresOrder('BUY', symbol, quantity, price, params);
+        return await this.futuresOrder('LIMIT', 'BUY', symbol, quantity, price, params);
     }
 
     async futuresSell(symbol: string, quantity: number, price: number, params: Dict = {}) {
-        return await this.futuresOrder('SELL', symbol, quantity, price, params);
+        return await this.futuresOrder('LIMIT', 'SELL', symbol, quantity, price, params);
     }
 
     async futuresMarketBuy(symbol: string, quantity: number, params: Dict = {}) {
-        return await this.futuresOrder('BUY', symbol, quantity, undefined, params);
+        return await this.futuresOrder('MARKET', 'BUY', symbol, quantity, undefined, params);
     }
 
     async futuresMarketSell(symbol: string, quantity: number, params: Dict = {}) {
-        return await this.futuresOrder('SELL', symbol, quantity, undefined, params);
+        return await this.futuresOrder('MARKET', 'SELL', symbol, quantity, undefined, params);
     }
 
-    async futuresMultipleOrders(orders: Dict[] = []) {
+    async futuresMultipleOrders(orders: Dict[] = []): Promise<FuturesOrder[]> {
         for (let i = 0; i < orders.length; i++) {
             if (!orders[i].newClientOrderId) {
                 orders[i].newClientOrderId = this.CONTRACT_PREFIX + this.uuid22();
@@ -4386,7 +4382,7 @@ export default class Binance {
     //  * @param {object} params - Optional reconnect {boolean} (whether to reconnect on disconnect), openCallback {function}, id {string}
     //  * @return {WebSocket} the websocket reference
     //  */
-    // async this.futuresSubscribeSingle(url, callback: callback, params: Dict = {}) {
+    // async this.futuresSubscribeSingle(url, callback: Callback, params: Dict = {}) {
     //     return this.futuresSubscribeSingle(url, callback, params);
     // }
 
@@ -4397,7 +4393,7 @@ export default class Binance {
     //  * @param {object} params - Optional reconnect {boolean} (whether to reconnect on disconnect), openCallback {function}, id {string}
     //  * @return {WebSocket} the websocket reference
     //  */
-    // futuresSubscribe(streams, callback: callback, params: Dict = {}) {
+    // futuresSubscribe(streams, callback: Callback, params: Dict = {}) {
     //     return futuresSubscribe(streams, callback, params);
     // }
 
@@ -4425,7 +4421,7 @@ export default class Binance {
      * @param {function} callback - callback function
      * @return {string} the websocket endpoint
      */
-    futuresAggTradeStream(symbols: string[] | string, callback: callback) {
+    futuresAggTradeStream(symbols: string[] | string, callback: Callback) {
         let reconnect = () => {
             if (this.Options.reconnect) this.futuresAggTradeStream(symbols, callback);
         };
@@ -4493,7 +4489,7 @@ export default class Binance {
      * @param {function} callback - callback function
      * @return {string} the websocket endpoint
      */
-    futuresMiniTickerStream(symbol?: string, callback: callback = console.log) {
+    futuresMiniTickerStream(symbol?: string, callback: Callback = console.log) {
         let reconnect = () => {
             if (this.Options.reconnect) this.futuresMiniTickerStream(symbol, callback);
         };
@@ -4525,7 +4521,7 @@ export default class Binance {
      * @param {int} limit - maximum results, no more than 1000
      * @return {string} the websocket endpoint
      */
-    futuresChart(symbols: string[] | string, interval: interval, callback: callback, limit = 500) {
+    futuresChart(symbols: string[] | string, interval: Interval, callback: Callback, limit = 500) {
         let reconnect = () => {
             if (this.Options.reconnect) this.futuresChart(symbols, interval, callback, limit);
         };
@@ -4589,7 +4585,7 @@ export default class Binance {
      * @param {function} callback - callback function
      * @return {string} the websocket endpoint
      */
-    futuresCandlesticks(symbols: string[] | string, interval: interval, callback: callback) {
+    futuresCandlesticks(symbols: string[] | string, interval: Interval, callback: Callback) {
         let reconnect = () => {
             if (this.Options.reconnect) this.futuresCandlesticks(symbols, interval, callback);
         };
@@ -4613,7 +4609,7 @@ export default class Binance {
      * @param {object} params - Optional reconnect {boolean} (whether to reconnect on disconnect), openCallback {function}, id {string}
      * @return {WebSocket} the websocket reference
      */
-    // deliverySubscribeSingle(url, callback: callback, params: Dict = {}) {
+    // deliverySubscribeSingle(url, callback: Callback, params: Dict = {}) {
     //     return deliverySubscribeSingle(url, callback, params);
     // }
 
@@ -4624,7 +4620,7 @@ export default class Binance {
     //  * @param {object} params - Optional reconnect {boolean} (whether to reconnect on disconnect), openCallback {function}, id {string}
     //  * @return {WebSocket} the websocket reference
     //  */
-    // deliverySubscribe(streams, callback: callback, params: Dict = {}) {
+    // deliverySubscribe(streams, callback: Callback, params: Dict = {}) {
     //     return deliverySubscribe(streams, callback, params);
     // }
 
@@ -4652,7 +4648,7 @@ export default class Binance {
      * @param {function} callback - callback function
      * @return {string} the websocket endpoint
      */
-    deliveryAggTradeStream(symbols: string[] | string, callback: callback) {
+    deliveryAggTradeStream(symbols: string[] | string, callback: Callback) {
         let reconnect = () => {
             if (this.Options.reconnect) this.deliveryAggTradeStream(symbols, callback);
         };
@@ -4752,7 +4748,7 @@ export default class Binance {
      * @param {int} limit - maximum results, no more than 1000
      * @return {string} the websocket endpoint
      */
-    deliveryChart(symbols: string[] | string, interval: interval, callback: callback, limit = 500) {
+    deliveryChart(symbols: string[] | string, interval: Interval, callback: Callback, limit = 500) {
         let reconnect = () => {
             if (this.Options.reconnect) this.deliveryChart(symbols, interval, callback, limit);
         };
@@ -4816,7 +4812,7 @@ export default class Binance {
      * @param {function} callback - callback function
      * @return {string} the websocket endpoint
      */
-    deliveryCandlesticks(symbols: string[] | string, interval: interval, callback: callback) {
+    deliveryCandlesticks(symbols: string[] | string, interval: Interval, callback: Callback) {
         let reconnect = () => {
             if (this.Options.reconnect) this.deliveryCandlesticks(symbols, interval, callback);
         };
@@ -4840,7 +4836,7 @@ export default class Binance {
      * @param {function} list_status_callback - status callback
      * @return {undefined}
      */
-    async userData(callback: callback, execution_callback?: Function, subscribed_callback?: Function, list_status_callback?: Function) {
+    async userData(callback: Callback, execution_callback?: Function, subscribed_callback?: Function, list_status_callback?: Function) {
         let reconnect = () => {
             if (this.Options.reconnect) this.userData(callback, execution_callback, subscribed_callback);
         };
@@ -4871,7 +4867,7 @@ export default class Binance {
      * @param {function} list_status_callback - status callback
      * @return {undefined}
      */
-    async userMarginData(callback: callback, execution_callback?: Function, subscribed_callback?: Function, list_status_callback?: Function) {
+    async userMarginData(callback: Callback, execution_callback?: Function, subscribed_callback?: Function, list_status_callback?: Function) {
         let reconnect = () => {
             if (this.Options.reconnect) this.userMarginData(callback, execution_callback, subscribed_callback);
         };
@@ -4935,7 +4931,7 @@ export default class Binance {
    * @param {Function} subscribed_callback - subscription callback
    */
     async userDeliveryData(
-        margin_call_callback: callback,
+        margin_call_callback: Callback,
         account_update_callback?: Function,
         order_update_callback?: Function,
         subscribed_callback?: Function
@@ -5032,7 +5028,7 @@ export default class Binance {
      * @param {function} callback - callback function
      * @return {string} the websocket endpoint
      */
-    depthStream(symbols: string[] | string, callback: callback) {
+    depthStream(symbols: string[] | string, callback: Callback) {
         let reconnect = () => {
             if (this.Options.reconnect) this.depthStream(symbols, callback);
         };
@@ -5057,7 +5053,7 @@ export default class Binance {
      * @param {int} limit - the number of entries
      * @return {string} the websocket endpoint
      */
-    depthCacheStream(symbols: string[] | string, callback: callback, limit = 500) {
+    depthCacheStream(symbols: string[] | string, callback: Callback, limit = 500) {
         let reconnect = () => {
             if (this.Options.reconnect) this.depthCacheStream(symbols, callback, limit);
         };
@@ -5173,7 +5169,7 @@ export default class Binance {
      * @param {int} stagger - ms between each depth cache
      * @return {Promise} the websocket endpoint
      */
-    depthCacheStaggered(symbols: string[] | string, callback: callback, limit = 100, stagger = 200) {
+    depthCacheStaggered(symbols: string[] | string, callback: Callback, limit = 100, stagger = 200) {
         if (!Array.isArray(symbols)) symbols = [symbols];
         let chain = null;
 
@@ -5194,7 +5190,7 @@ export default class Binance {
      * @param {function} callback - callback function
      * @return {string} the websocket endpoint
      */
-    aggTradesStream(symbols: string[] | string, callback: callback) {
+    aggTradesStream(symbols: string[] | string, callback: Callback) {
         let reconnect = () => {
             if (this.Options.reconnect) this.aggTradesStream(symbols, callback);
         };
@@ -5218,7 +5214,7 @@ export default class Binance {
     * @param {function} callback - callback function
     * @return {string} the websocket endpoint
     */
-    tradesStream(symbols: string[], callback: callback) {
+    tradesStream(symbols: string[], callback: Callback) {
         let reconnect = () => {
             if (this.Options.reconnect) this.tradesStream(symbols, callback);
         };
@@ -5245,7 +5241,7 @@ export default class Binance {
      * @param {int} limit - maximum results, no more than 1000
      * @return {string} the websocket endpoint
      */
-    chart(symbols: string[] | string, interval: interval, callback: callback, limit = 500) {
+    chart(symbols: string[] | string, interval: Interval, callback: Callback, limit = 500) {
         let reconnect = () => {
             if (this.Options.reconnect) this.chart(symbols, interval, callback, limit);
         };
@@ -5319,7 +5315,7 @@ export default class Binance {
      * @param {function} callback - callback function
      * @return {string} the websocket endpoint
      */
-    candlesticksStream(symbols: string[] | string, interval: interval, callback: callback) {
+    candlesticksStream(symbols: string[] | string, interval: Interval, callback: Callback) {
         let reconnect = () => {
             if (this.Options.reconnect) this.candlesticksStream(symbols, interval, callback);
         };
@@ -5390,7 +5386,7 @@ export default class Binance {
      * @param {boolean} singleCallback - avoid call one callback for each symbol in data array
      * @return {string} the websocket endpoint
      */
-    prevDayStream(symbols: string[] | string, callback: callback, singleCallback: callback) {
+    prevDayStream(symbols: string[] | string, callback: Callback, singleCallback: Callback) {
         let reconnect = () => {
             if (this.Options.reconnect) this.prevDayStream(symbols, callback, singleCallback);
         };
