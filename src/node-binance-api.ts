@@ -15,7 +15,7 @@ import zip from 'lodash.zipobject'
 import stringHash from 'string-hash';
 import async from 'async';
 
-import {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade} from './types'
+import {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance} from './types'
 export {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs} from './types'
 
 export interface Dictionary<T> {
@@ -3287,6 +3287,7 @@ export default class Binance {
     */
     async withdraw(asset: string, address: string, amount: number, addressTag?: string, name?: string, params: Dict = {}): Promise<WithdrawResponse> {
         // const params = { asset, address, amount };
+        params.asset = asset;
         params.address = address;
         params.amount = amount;
         if (name) params.name = name;
@@ -3339,10 +3340,18 @@ export default class Binance {
 
     /**
     * Get the account status
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/account-endpoints#account-information-user_data
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async accountStatus(params: Dict = {}) {
         return await this.signedRequest(this.sapi + 'v3/account', params);
+    }
+
+    /**
+    * @return {promise or undefined} - omitting the callback returns a promise
+    */
+    async apiPermission(params: Dict = {}) {
+        return await this.signedRequest(this.sapi + 'v1/account/apiRestrictions', params);
     }
 
     /**
@@ -3370,7 +3379,7 @@ export default class Binance {
     * @see https://developers.binance.com/docs/binance-spot-api-docs/testnet/rest-api/account-endpoints#account-information-user_data
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async account(params: Dict = {}) {
+    async account(params: Dict = {}): Promise<Account> {
         return await this.signedRequest(this.getSpotUrl() + 'v3/account', params);
     }
 
@@ -3398,6 +3407,7 @@ export default class Binance {
 
     /**
     * Tell api to use the server time to offset time indexes
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/general-endpoints#check-server-time
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async useServerTime() {
@@ -3417,6 +3427,7 @@ export default class Binance {
 
     /**
     * Ping binance
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/general-endpoints#test-connectivity
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async ping() {
@@ -3425,6 +3436,7 @@ export default class Binance {
 
     /**
     * Get agg trades for given symbol
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#compressedaggregate-trades-list
     * @param {string} symbol - the symbol
     * @param {object} options - additional optoins
     * @return {promise or undefined} - omitting the callback returns a promise
@@ -3436,16 +3448,18 @@ export default class Binance {
 
     /**
     * Get the recent trades
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#old-trade-lookup
     * @param {string} symbol - the symbol
     * @param {int} limit - limit the number of items returned
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async recentTrades(symbol: string, limit = 500, params: Dict = {}): Promise<Trade[]> {
-        return await this.marketRequest(this.getSpotUrl() + 'v1/trades', this.extend({ symbol: symbol, limit: limit }, params));
+        return await this.marketRequest(this.getSpotUrl() + 'v3/trades', this.extend({ symbol: symbol, limit: limit }, params));
     }
 
     /**
     * Get the historical trade info
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#old-trade-lookup
     * @param {string} symbol - the symbol
     * @param {int} limit - limit the number of items returned
     * @param {int} fromId - from this id
@@ -3759,9 +3773,9 @@ export default class Binance {
     }
 
     /**
-     * @param symbol 
-     * @param params 
-     * @returns 
+     * @param symbol
+     * @param params
+     * @returns
      */
     async futuresFundingRate(symbol: string, params: Dict = {}): Promise<FundingRate[]> {
         params.symbol = symbol;
@@ -3784,6 +3798,9 @@ export default class Binance {
     }
 
     // leverage 1 to 125
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Change-Initial-Leverage
+     */
     async futuresLeverage(symbol: string, leverage: number, params: Dict = {}) {
         params.symbol = symbol;
         params.leverage = leverage;
@@ -3791,6 +3808,13 @@ export default class Binance {
     }
 
     // ISOLATED, CROSSED
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Change-Margin-Type
+     * @param symbol
+     * @param marginType
+     * @param params
+     * @returns
+     */
     async futuresMarginType(symbol: string, marginType: string, params: Dict = {}) {
         params.symbol = symbol;
         params.marginType = marginType;
@@ -3810,15 +3834,26 @@ export default class Binance {
         return await this.futuresRequest('v1/positionMargin/history', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Get-Income-History
+     */
     async futuresIncome(params: Dict = {}) {
         return await this.futuresRequest('v1/income', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
-    async futuresBalance(params: Dict = {}) {
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Futures-Account-Balance-V2
+    */
+    async futuresBalance(params: Dict = {}): Promise<FuturesBalance[]> {
         return await this.futuresRequest('v2/balance', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
-    async futuresAccount(params: Dict = {}) {
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Account-Information-V3
+     * @param params
+     * @returns
+     */
+    async futuresAccount(params: Dict = {}): Promise<FuturesAccountInfo> {
         return await this.futuresRequest('v3/account', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
@@ -3845,6 +3880,9 @@ export default class Binance {
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Symbol-Order-Book-Ticker
+     */
     async futuresBookTicker(symbol?: string, params: Dict = {}){
         return await this.futuresQuote(symbol, params);
     }
