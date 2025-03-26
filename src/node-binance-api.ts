@@ -15,7 +15,7 @@ import zip from 'lodash.zipobject'
 import stringHash from 'string-hash';
 import async from 'async';
 
-import {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook} from './types'
+import {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker} from './types'
 export {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs} from './types'
 
 export interface Dictionary<T> {
@@ -512,6 +512,9 @@ export default class Binance {
 
     /**
      * Create a signed spot order
+     * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-trade
+     * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#test-new-order-trade
+     * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-list---oco-trade
      * @param {OrderType} type - LIMIT, MARKET, STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, LIMIT_MAKER
      * @param {OrderSide} side - BUY or SELL
      * @param {string} symbol - The symbol to buy or sell
@@ -615,6 +618,9 @@ export default class Binance {
 
     /**
 * Creates a market buy order
+* @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-trade
+* @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#test-new-order-trade
+* @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-list---oco-trade
 * @param {string} symbol - the symbol to buy
 * @param {numeric} quantity - the quantity required
 * @param {object} params - additional buy order flags
@@ -626,6 +632,9 @@ export default class Binance {
 
     /**
     * Creates a market sell order
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-trade
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#test-new-order-trade
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-list---oco-trade
     * @param {string} symbol - the symbol to sell
     * @param {numeric} quantity - the quantity required
     * @param {object} flags - additional buy order flags
@@ -639,6 +648,7 @@ export default class Binance {
 
     /**
     * Cancels an order
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#cancel-order-trade
     * @param {string} symbol - the symbol to cancel
     * @param {string} orderid - the orderid to cancel
     * @return {promise or undefined} - omitting the callback returns a promise
@@ -648,8 +658,9 @@ export default class Binance {
     }
 
 
-    /**
+/**
 * Gets the status of an order
+* @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#query-order-user_data
 * @param {string} symbol - the symbol to check
 * @param {string} orderid - the orderid to check if !orderid then  use flags to search
 * @param {object} flags - any additional flags
@@ -663,8 +674,9 @@ export default class Binance {
         return await this.signedRequest(this.getSpotUrl() + 'v3/order', parameters);
     }
 
-    /**
+/**
 * Gets open orders
+* @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#current-open-orders-user_data
 * @param {string} symbol - the symbol to get
 * @return {promise or undefined} - omitting the callback returns a promise
 */
@@ -675,6 +687,7 @@ export default class Binance {
 
     /**
     * Cancels all orders of a given symbol
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#cancel-all-open-orders-on-a-symbol-trade
     * @param {string} symbol - the symbol to cancel all orders for
     * @return {promise or undefined} - omitting the callback returns a promise
     */
@@ -708,6 +721,7 @@ export default class Binance {
 
     /**
     * Gets all order of a given symbol
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#all-orders-user_data
     * @param {string} symbol - the symbol
     * @param {object} options - additional options
     * @return {promise or undefined} - omitting the callback returns a promise
@@ -3154,6 +3168,7 @@ export default class Binance {
 
     /**
     * Gets the depth information for a given symbol
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#order-book
     * @param {string} symbol - the symbol
     * @param {int} limit - limit the number of returned orders
     * @return {promise or undefined} - omitting the callback returns a promise
@@ -3165,6 +3180,7 @@ export default class Binance {
 
     /**
     * Gets the average prices of a given symbol
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#current-average-price
     * @param {string} symbol - the symbol
     * @return {promise or undefined} - omitting the callback returns a promise
     */
@@ -3175,6 +3191,7 @@ export default class Binance {
     /**
     * Gets the prices of a given symbol(s)
     * @param {string} symbol - the symbol
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#symbol-price-ticker
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async prices(symbol: string) {
@@ -3184,6 +3201,7 @@ export default class Binance {
 
     /**
     * Gets the book tickers of given symbol(s)
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/testnet/rest-api/market-data-endpoints#symbol-order-book-ticker
     * @param {string} symbol - the symbol
     * @return {promise or undefined} - omitting the callback returns a promise
     */
@@ -3194,6 +3212,7 @@ export default class Binance {
 
     /**
     * Gets the prevday percentage change
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#24hr-ticker-price-change-statistics
     * @param {string} symbol - the symbol or symbols
     * @return {promise or undefined} - omitting the callback returns a promise
     */
@@ -3204,6 +3223,7 @@ export default class Binance {
 
     /**
     * Gets the the exchange info
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/general-endpoints#exchange-information
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async exchangeInfo() {
@@ -3237,6 +3257,7 @@ export default class Binance {
 
     /**
     * Withdraws asset to given wallet id
+    * @see https://developers.binance.com/docs/wallet/capital/withdraw
     * @param {string} asset - the asset symbol
     * @param {string} address - the wallet to transfer it to
     * @param {number} amount - the amount to transfer
@@ -3246,7 +3267,6 @@ export default class Binance {
     */
     async withdraw(asset: string, address: string, amount: number, addressTag?: string, name?: string, params: Dict = {}): Promise<WithdrawResponse> {
         // const params = { asset, address, amount };
-        params.asset = asset;
         params.address = address;
         params.amount = amount;
         if (name) params.name = name;
@@ -3257,6 +3277,7 @@ export default class Binance {
 
     /**
     * Get the Withdraws history for a given asset
+    * @see https://developers.binance.com/docs/wallet/capital/withdraw-history
     * @param {object} params - supports limit and fromId parameters
     * @return {promise or undefined} - omitting the callback returns a promise
     */
@@ -3267,6 +3288,7 @@ export default class Binance {
 
     /**
     * Get the deposit history
+    * @see https://developers.binance.com/docs/wallet/capital/deposite-history#http-request
     * @param {object} params - additional params
     * @return {promise or undefined} - omitting the callback returns a promise
     */
@@ -3325,6 +3347,7 @@ export default class Binance {
 
     /**
     * Get the account
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/testnet/rest-api/account-endpoints#account-information-user_data
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async account(params: Dict = {}) {
@@ -3333,6 +3356,7 @@ export default class Binance {
 
     /**
     * Get the balance data
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/testnet/rest-api/account-endpoints#account-information-user_data
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async balance(params: Dict = {}) {
@@ -3342,6 +3366,7 @@ export default class Binance {
 
     /**
     * Get trades for a given symbol
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/testnet/rest-api/account-endpoints#account-trade-list-user_data
     * @param {string} symbol - the symbol
     * @param {object} options - additional options
     * @return {promise or undefined} - omitting the callback returns a promise
@@ -3724,12 +3749,16 @@ export default class Binance {
         return this.parseOrderBook(res);
     }
 
-    async futuresQuote(symbol?: string, params: Dict = {}) {
+    async futuresQuote(symbol?: string, params: Dict = {}): Promise<{ [key: string]: Ticker }> {
         if (symbol) params.symbol = symbol;
         //let data = await this.promiseRequest( 'v1/ticker/bookTicker', params, {base:fapi} );
         //return data.reduce((out, i) => ((out[i.symbol] = i), out), {}),
         let data = await this.futuresRequest('v1/ticker/bookTicker', params, { base: this.fapi });
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
+    }
+
+    async futuresBookTicker(symbol?: string, params: Dict = {}): Promise<{ [key: string]: Ticker }> {
+        return await this.futuresQuote(symbol, params);
     }
 
     async futuresBuy(symbol: string, quantity: number, price: number, params: Dict = {}) {
