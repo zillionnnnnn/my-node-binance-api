@@ -10,10 +10,12 @@ import JSONbig from 'json-bigint';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 // @ts-ignore
 import { SocksProxyAgent } from 'socks-proxy-agent';
+// @ts-ignore
+import zip from 'lodash.zipobject'
 import stringHash from 'string-hash';
 import async from 'async';
 
-import {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate} from './types'
+import {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook} from './types'
 export {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs} from './types'
 
 export interface Dictionary<T> {
@@ -518,7 +520,7 @@ export default class Binance {
      * @param {object} params - additional order settings
      * @return {undefined}
      */
-    async order(type: OrderType, side: OrderSide, symbol: string, quantity: number, price?: number, params: Dict = {}) {
+    async order(type: OrderType, side: OrderSide, symbol: string, quantity: number, price?: number, params: Dict = {}): Promise<Order> {
         let endpoint = params.type === 'OCO' ? 'v3/orderList/oco' : 'v3/order';
         if (typeof params.test && params.test) endpoint += '/test';
         let opt = {
@@ -641,7 +643,7 @@ export default class Binance {
     * @param {string} orderid - the orderid to cancel
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async cancel(symbol: string, orderid: string, params: Dict = {}) {
+    async cancel(symbol: string, orderid: string, params: Dict = {}): Promise<CancelOrder> {
         return await this.signedRequest(this.getSpotUrl() + 'v3/order', this.extend({ symbol: symbol, orderId: orderid }, params), 'DELETE');
     }
 
@@ -931,7 +933,7 @@ export default class Binance {
      * @param {object} opened_callback - the function to call when opened
      * @return {WebSocket} - websocket reference
      */
-    subscribe(endpoint: string, callback: Callback, reconnect?: Function, opened_callback?: Function) {
+    subscribe(endpoint: string, callback: Callback, reconnect?: Callback, opened_callback?: Callback) {
         let httpsproxy = process.env.https_proxy || false;
         let socksproxy = process.env.socks_proxy || false;
         let ws: any = undefined;
@@ -980,7 +982,7 @@ export default class Binance {
      * @param {object} opened_callback - the function to call when opened
      * @return {WebSocket} - websocket reference
      */
-    subscribeCombined(streams: any, callback: Callback, reconnect?: Function, opened_callback?: Function) {
+    subscribeCombined(streams: any, callback: Callback, reconnect?: Callback, opened_callback?: Callback) {
         let httpsproxy = process.env.https_proxy || false;
         let socksproxy = process.env.socks_proxy || false;
         const queryParams = streams.join('/');
@@ -2708,6 +2710,16 @@ export default class Binance {
         return { lastUpdateId: data.lastUpdateId, bids: bids, asks: asks };
     }
 
+    parseOrderBook(data): OrderBook {
+        const { lastUpdateId, bids, asks } = data;
+        const orderBook: OrderBook = {
+            lastUpdateId,
+            bids: bids.map(b => zip(['price', 'quantity'], b)),
+            asks: asks.map(a => zip(['price', 'quantity'], a))
+        }
+        return orderBook;
+    }
+
     /**
      * Used for /depth endpoint
      * @param {object} depth - information
@@ -3146,9 +3158,9 @@ export default class Binance {
     * @param {int} limit - limit the number of returned orders
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async depth(symbol: string, limit = 100) {
+    async depth(symbol: string, limit = 100): Promise<OrderBook> {
         const data = await this.publicRequest(this.getSpotUrl() + 'v3/depth', { symbol: symbol, limit: limit });
-        return this.depthData(data);
+        return this.parseOrderBook(data);
     }
 
     /**
@@ -3232,7 +3244,7 @@ export default class Binance {
     * @param {string} name - the name to save the address as. Set falsy to prevent Binance saving to address book
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async withdraw(asset: string, address: string, amount: number, addressTag?: string, name?: string, params: Dict = {}) {
+    async withdraw(asset: string, address: string, amount: number, addressTag?: string, name?: string, params: Dict = {}): Promise<WithdrawResponse> {
         // const params = { asset, address, amount };
         params.asset = asset;
         params.address = address;
@@ -3248,7 +3260,7 @@ export default class Binance {
     * @param {object} params - supports limit and fromId parameters
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async withdrawHistory(params: Dict = {}) {
+    async withdrawHistory(params: Dict = {}): Promise<WithdrawHistoryResponse> {
         if (typeof params === 'string') params = { asset: params };
         return await this.signedRequest(this.sapi + 'v1/capital/withdraw/history', params);
     }
@@ -3258,7 +3270,7 @@ export default class Binance {
     * @param {object} params - additional params
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async depositHistory(asset?: string, params: Dict = {}) {
+    async depositHistory(asset?: string, params: Dict = {}): Promise<DepositHistoryResponse> {
         if (asset) params = { asset: asset };
         return await this.signedRequest(this.sapi + 'v1/capital/deposit/hisrec', params);
     }
@@ -3269,7 +3281,7 @@ export default class Binance {
     * @param {string} coin - the asset
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async depositAddress(asset: string, params: Dict = {}) {
+    async depositAddress(asset: string, params: Dict = {}): Promise<DepositAddress> {
         return await this.signedRequest(this.sapi + 'v1/capital/deposit/address', this.extend({ coin: asset }, params));
     }
 
@@ -3331,11 +3343,10 @@ export default class Binance {
     /**
     * Get trades for a given symbol
     * @param {string} symbol - the symbol
-   
     * @param {object} options - additional options
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async trades(symbol: string, params: Dict = {}) {
+    async trades(symbol: string, params: Dict = {}): Promise<MyTrade[]> {
         const parameters = this.extend({ symbol: symbol }, params);
         return await this.signedRequest(this.getSpotUrl() + 'v3/myTrades', parameters);
     }
@@ -3373,7 +3384,7 @@ export default class Binance {
     * @param {object} options - additional optoins
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async aggTrades(symbol: string, params: Dict = {}) { //fromId startTime endTime limit
+    async aggTrades(symbol: string, params: Dict = {}): Promise<AggregatedTrade[]> { //fromId startTime endTime limit
         let parameters = Object.assign({ symbol }, params);
         return await this.publicRequest(this.getSpotUrl() + 'v3/aggTrades', parameters);
     }
@@ -3384,19 +3395,18 @@ export default class Binance {
     * @param {int} limit - limit the number of items returned
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async recentTrades(symbol: string, limit = 500, params: Dict = {}) {
+    async recentTrades(symbol: string, limit = 500, params: Dict = {}): Promise<Trade[]> {
         return await this.marketRequest(this.getSpotUrl() + 'v1/trades', this.extend({ symbol: symbol, limit: limit }, params));
     }
 
     /**
     * Get the historical trade info
     * @param {string} symbol - the symbol
-   
     * @param {int} limit - limit the number of items returned
     * @param {int} fromId - from this id
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async historicalTrades(symbol: string, limit = 500, fromId?: number, params: Dict = {}) {
+    async historicalTrades(symbol: string, limit = 500, fromId?: number, params: Dict = {}): Promise<Trade[]> {
         params.symbol = symbol;
         params.limit = limit;
         if (fromId) params.fromId = fromId;
@@ -3452,10 +3462,14 @@ export default class Binance {
     * @param {object} options - additional options
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async candlesticks(symbol: string, interval: Interval = '5m', params: Dict = {}) {
+    async candlesticks(symbol: string, interval: Interval = '5m', params: Dict = {}): Promise<Candle[]> {
         if (!params.limit) params.limit = 500;
         params = Object.assign({ symbol: symbol, interval: interval }, params);
         return await this.publicRequest(this.getSpotUrl() + 'v3/klines', params);
+    }
+
+    async candles(symbol: string, interval: Interval = '5m', params: Dict = {}): Promise<Candle[]> {
+        return await this.candlesticks(symbol, interval, params); // make name consistent with futures
     }
 
     // /**
@@ -3572,7 +3586,7 @@ export default class Binance {
         return await this.futuresRequest('v1/openInterest', { symbol }, { base: this.fapi });
     }
 
-    async futuresCandles(symbol: string, interval: Interval = "30m", params: Dict = {}) {
+    async futuresCandles(symbol: string, interval: Interval = "30m", params: Dict = {}): Promise<Candle[]> {
         params.symbol = symbol;
         params.interval = interval;
         return await this.futuresRequest('v1/klines', params, { base: this.fapi });
@@ -3582,7 +3596,7 @@ export default class Binance {
         return await this.futuresRequest('v1/premiumIndex', symbol ? { symbol } : {}, { base: this.fapi });
     }
 
-    async futuresTrades(symbol: string, params: Dict = {}) {
+    async futuresTrades(symbol: string, params: Dict = {}): Promise<Trade[]> {
         params.symbol = symbol;
         return await this.futuresRequest('v1/trades', params, { base: this.fapi });
     }
@@ -3704,9 +3718,10 @@ export default class Binance {
         return await this.futuresRequest('v3/account', params, { base: this.fapi, type: 'SIGNED' });
     }
 
-    async futuresDepth(symbol: string, params: Dict = {}) {
+    async futuresDepth(symbol: string, params: Dict = {}): Promise<OrderBook> {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/depth', params, { base: this.fapi });
+        const res = await this.futuresRequest('v1/depth', params, { base: this.fapi });
+        return this.parseOrderBook(res);
     }
 
     async futuresQuote(symbol?: string, params: Dict = {}) {
@@ -3745,17 +3760,18 @@ export default class Binance {
 
     // futuresOrder, // side symbol quantity [price] [params]
 
-    async futuresOrderStatus(symbol: string, params: Dict = {}) { // Either orderId or origClientOrderId must be sent
+    async futuresOrderStatus(symbol: string, params: Dict = {}): Promise<FuturesOrder> { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
         return await this.futuresRequest('v1/order', params, { base: this.fapi, type: 'SIGNED' });
     }
 
-    async futuresCancel(symbol: string, params: Dict = {}) { // Either orderId or origClientOrderId must be sent
+    async futuresCancel(symbol: string, orderId?: string, params: Dict = {}): Promise<CancelOrder> { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
+        if (orderId) params.orderId = orderId;
         return await this.futuresRequest('v1/order', params, { base: this.fapi, type: 'SIGNED', method: 'DELETE' });
     }
 
-    async futuresCancelAll(symbol: string, params: Dict = {}) {
+    async futuresCancelAll(symbol: string, params: Dict = {}): Promise<FuturesCancelAllOpenOrder[]> {
         params.symbol = symbol;
         return await this.futuresRequest('v1/allOpenOrders', params, { base: this.fapi, type: 'SIGNED', method: 'DELETE' });
     }
@@ -3766,12 +3782,12 @@ export default class Binance {
         return await this.futuresRequest('v1/countdownCancelAll', params, { base: this.fapi, type: 'SIGNED', method: 'POST' });
     }
 
-    async futuresOpenOrders(symbol?: string, params: Dict = {}) {
+    async futuresOpenOrders(symbol?: string, params: Dict = {}): Promise<FuturesOrder[]> {
         if (symbol) params.symbol = symbol;
         return await this.futuresRequest('v1/openOrders', params, { base: this.fapi, type: 'SIGNED' });
     }
 
-    async futuresAllOrders(symbol?: string, params: Dict = {}) { // Get all account orders; active, canceled, or filled.
+    async futuresAllOrders(symbol?: string, params: Dict = {}): Promise<FuturesOrder[]> { // Get all account orders; active, canceled, or filled.
         if (symbol) params.symbol = symbol;
         return await this.futuresRequest('v1/allOrders', params, { base: this.fapi, type: 'SIGNED' });
     }
@@ -3870,7 +3886,7 @@ export default class Binance {
         return await this.futuresRequest('v1/openInterest', { symbol }, { base: this.dapi }).then(r => r.openInterest);
     }
 
-    async deliveryCandles(symbol: string, interval = "30m", params: Dict = {}) {
+    async deliveryCandles(symbol: string, interval = "30m", params: Dict = {}): Promise<Candle[]> {
         params.symbol = symbol;
         params.interval = interval;
         return await this.futuresRequest('v1/klines', params, { base: this.dapi });
@@ -3996,9 +4012,10 @@ export default class Binance {
         return await this.futuresRequest('v1/account', params, { base: this.dapi, type: 'SIGNED' });
     }
 
-    async deliveryDepth(symbol: string, params: Dict = {}) {
+    async deliveryDepth(symbol: string, params: Dict = {}): Promise<OrderBook> {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/depth', params, { base: this.dapi });
+        const res =  await this.futuresRequest('v1/depth', params, { base: this.dapi });
+        return this.parseOrderBook(res);
     }
 
     async deliveryQuote(symbol?: string, params: Dict = {}) {
@@ -4010,19 +4027,19 @@ export default class Binance {
     }
 
     async deliveryBuy(symbol: string, quantity: number, price: number, params: Dict = {}) {
-        return await this.deliveryOrder('BUY', symbol, quantity, price, params);
+        return await this.deliveryOrder('LIMIT', 'BUY', symbol, quantity, price, params);
     }
 
     async deliverySell(symbol: string, quantity: number, price: number, params: Dict = {}) {
-        return await this.deliveryOrder('SELL', symbol, quantity, price, params);
+        return await this.deliveryOrder('LIMIT', 'SELL', symbol, quantity, price, params);
     }
 
     async deliveryMarketBuy(symbol: string, quantity: number, params: Dict = {}) {
-        return await this.deliveryOrder('BUY', symbol, quantity, undefined, params);
+        return await this.deliveryOrder('MARKET', 'BUY', symbol, quantity, undefined, params);
     }
 
     async deliveryMarketSell(symbol: string, quantity: number, params: Dict = {}) {
-        return await this.deliveryOrder('SELL', symbol, quantity, undefined, params);
+        return await this.deliveryOrder('MARKET', 'SELL', symbol, quantity, undefined, params);
     }
 
     // deliveryOrder, // side symbol quantity [price] [params]
@@ -4141,7 +4158,7 @@ export default class Binance {
      * @param {string} orderid - the orderid to cancel
      * @return {undefined}
      */
-    async mgCancel(symbol: string, orderid: string, isIsolated = 'FALSE') {
+    async mgCancel(symbol: string, orderid: string, isIsolated = 'FALSE'): Promise<CancelOrder> {
         return await this.signedRequest(this.sapi + 'v1/margin/order', { symbol: symbol, orderId: orderid, isIsolated }, 'DELETE');
     }
 
@@ -4151,7 +4168,7 @@ export default class Binance {
     * @param {object} options - additional options
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async mgAllOrders(symbol: string, params: Dict = {}) {
+    async mgAllOrders(symbol: string, params: Dict = {}): Promise<Order[]> {
         let parameters = Object.assign({ symbol: symbol }, params);
         return await this.signedRequest(this.sapi + 'v1/margin/allOrders', parameters);
     }
@@ -4163,7 +4180,7 @@ export default class Binance {
      * @param {object} flags - any additional flags
      * @return {undefined}
      */
-    async mgOrderStatus(symbol: string, orderid: string, flags = {}) {
+    async mgOrderStatus(symbol: string, orderid: string, flags = {}): Promise<Order> {
         let parameters = Object.assign({ symbol: symbol, orderId: orderid }, flags);
         return await this.signedRequest(this.sapi + 'v1/margin/order', parameters);
     }
@@ -4173,7 +4190,7 @@ export default class Binance {
      * @param {string} symbol - the symbol to get
      * @return {undefined}
      */
-    async mgOpenOrders(symbol?: string, params: Dict = {}) {
+    async mgOpenOrders(symbol?: string, params: Dict = {}): Promise<Order[]> {
         if (symbol) params.symbol = symbol;
         return await this.signedRequest(this.sapi + 'v1/margin/openOrders', params);
     }
@@ -4181,7 +4198,6 @@ export default class Binance {
     /**
      * Cancels all order of a given symbol
      * @param {string} symbol - the symbol to cancel all orders for
-    
      * @return {undefined}
      */
     async mgCancelOrders(symbol: string, params: Dict = {}) {
@@ -4239,7 +4255,7 @@ export default class Binance {
     * @param {object} options - additional options
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async mgTrades(symbol: string, params: Dict = {}) {
+    async mgTrades(symbol: string, params: Dict = {}): Promise<MyTrade[]>{
         let parameters = Object.assign({ symbol: symbol }, params);
         return await this.signedRequest(this.sapi + 'v1/margin/myTrades', parameters);
     }
@@ -4836,7 +4852,7 @@ export default class Binance {
      * @param {function} list_status_callback - status callback
      * @return {undefined}
      */
-    async userData(callback: Callback, execution_callback?: Function, subscribed_callback?: Function, list_status_callback?: Function) {
+    async userData(callback: Callback, execution_callback?: Callback, subscribed_callback?: Callback, list_status_callback?: Callback) {
         let reconnect = () => {
             if (this.Options.reconnect) this.userData(callback, execution_callback, subscribed_callback);
         };
@@ -4867,7 +4883,7 @@ export default class Binance {
      * @param {function} list_status_callback - status callback
      * @return {undefined}
      */
-    async userMarginData(callback: Callback, execution_callback?: Function, subscribed_callback?: Function, list_status_callback?: Function) {
+    async userMarginData(callback: Callback, execution_callback?: Callback, subscribed_callback?: Callback, list_status_callback?: Callback) {
         let reconnect = () => {
             if (this.Options.reconnect) this.userMarginData(callback, execution_callback, subscribed_callback);
         };
@@ -4898,7 +4914,7 @@ export default class Binance {
      * @param {function} order_update_callback
      * @param {Function} subscribed_callback - subscription callback
      */
-    async userFutureData(margin_call_callback, account_update_callback?: Function, order_update_callback?: Function, subscribed_callback?: Function, account_config_update_callback?: Function) {
+    async userFutureData(margin_call_callback, account_update_callback?: Callback, order_update_callback?: Callback, subscribed_callback?: Callback, account_config_update_callback?: Callback) {
         const url = (this.Options.test) ? this.fapiTest : this.fapi;
 
         let reconnect = () => {
@@ -4932,9 +4948,9 @@ export default class Binance {
    */
     async userDeliveryData(
         margin_call_callback: Callback,
-        account_update_callback?: Function,
-        order_update_callback?: Function,
-        subscribed_callback?: Function
+        account_update_callback?: Callback,
+        order_update_callback?: Callback,
+        subscribed_callback?: Callback
     ) {
         const url = this.Options.test ? this.dapiTest : this.dapi;
 

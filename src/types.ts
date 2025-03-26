@@ -43,6 +43,20 @@ export type OrderStatus =
 export type TimeInForce = 'GTC' | 'IOC' | 'FOK' | 'GTE_GTC' | 'GTD'
 
 
+export interface Candle {
+    openTime: number
+    open: string
+    high: string
+    low: string
+    close: string
+    volume: string
+    closeTime: number
+    quoteVolume: string
+    trades: number
+    baseAssetVolume: string
+    quoteAssetVolume: string
+  }
+
 export interface OrderFill {
     tradeId: number
     price: string
@@ -164,7 +178,149 @@ export interface PositionRisk {
     notional: string
     isolatedWallet: string
     updateTime: number
+}
+
+
+export interface CancelOrder{
+    symbol: string
+    origClientOrderId: string
+    orderId: number
+    orderListId: number
+    clientOrderId: string
+    price: string
+    origQty: string
+    executedQty: string
+    cummulativeQuoteQty: string
+    status: string
+    timeInForce: string
+    type: OrderType
+    side: OrderSide
+}
+
+
+export interface AggregatedTrade {
+    aggId: number
+    symbol: string
+    price: string
+    quantity: string
+    firstId: number
+    lastId: number
+    timestamp: number
+    isBuyerMaker: boolean
+    wasBestPrice: boolean
+}
+
+
+export interface Trade {
+    id: number
+    price: string
+    qty: string
+    quoteQty: string
+    time: number
+    isBuyerMaker: boolean
+    isBestMatch: boolean
   }
+
+  export interface MyTrade {
+    id: number
+    symbol: string
+    orderId: number
+    orderListId: number
+    price: string
+    qty: string
+    quoteQty: string
+    commission: string
+    commissionAsset: string
+    time: number
+    isBuyer: boolean
+    isMaker: boolean
+    isBestMatch: boolean
+}
+
+export type WithdrawStatus = 0 | 1 | 2 | 3 | 4 | 5 | 6
+
+
+export interface WithdrawHistoryResponse {
+    [index: number]: {
+      id: string
+      amount: string
+      transactionFee: string
+      address: string
+      coin: string
+      txId: string
+      applyTime: number
+      status: WithdrawStatus
+      network: string
+      transferType?: number
+      withdrawOrderId?: string
+    }
+}
+
+
+export interface DepositHistoryResponse {
+    [index: number]: {
+      insertTime: number
+      amount: string
+      coin: string
+      network: string
+      address: string
+      txId: string
+      status: DepositStatus
+      addressTag?: string
+      transferType?: number
+      confirmTimes?: string
+    }
+}
+
+export interface CancelOrder {
+    symbol: string
+    origClientOrderId: string
+    orderId: number
+    orderListId: number
+    clientOrderId: string
+    price: string
+    origQty: string
+    executedQty: string
+    cummulativeQuoteQty: string
+    status: string
+    timeInForce: string
+    type: OrderType
+    side: OrderSide
+}
+
+
+export interface DepositAddress {
+    address: string
+    tag: string
+    coin: string
+    url: string
+  }
+
+  export interface WithdrawResponse {
+    id: string
+  }
+
+
+export type DepositStatus = 0 | 1
+
+
+export interface FuturesCancelAllOpenOrder {
+    code: number
+    msg: string
+}
+
+
+export interface OrderBook {
+    lastUpdateId: number
+    asks: Bid[]
+    bids: Bid[]
+}
+
+export interface Bid {
+    price: string
+    quantity: string
+  }
+
 
 // export {
 //     _interval as interval,
