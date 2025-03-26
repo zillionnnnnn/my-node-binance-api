@@ -15,7 +15,7 @@ import zip from 'lodash.zipobject'
 import stringHash from 'string-hash';
 import async from 'async';
 
-import {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker} from './types'
+import {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade} from './types'
 export {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs} from './types'
 
 export interface Dictionary<T> {
@@ -180,6 +180,11 @@ export default class Binance {
     getFapiUrl() {
         if (this.Options.test) return this.fapiTest;
         return this.fapi;
+    }
+
+    getDapiUrl() {
+        if (this.Options.test) return this.dapiTest;
+        return this.dapi;
     }
 
     uuid22(a?: any) {
@@ -530,13 +535,13 @@ export default class Binance {
      */
     async order(type: OrderType, side: OrderSide, symbol: string, quantity: number, price?: number, params: Dict = {}): Promise<Order> {
         let endpoint = params.type === 'OCO' ? 'v3/orderList/oco' : 'v3/order';
-        if (typeof params.test && params.test) endpoint += '/test';
+        if (params.test) endpoint += '/test';
         let opt = {
             symbol: symbol,
             side: side,
             type: type
         } as Dict;
-        if (typeof params.quoteOrderQty !== undefined && params.quoteOrderQty > 0)
+        if (params.quoteOrderQty && params.quoteOrderQty > 0)
             opt.quoteOrderQty = params.quoteOrderQty
         else
             opt.quantity = quantity
@@ -791,6 +796,16 @@ export default class Binance {
 
 
     // Futures internal functions
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
+     * @param type 
+     * @param side 
+     * @param symbol 
+     * @param quantity 
+     * @param price 
+     * @param params 
+     * @returns 
+     */
     async futuresOrder(type: OrderType, side: string, symbol: string, quantity: number, price?: number, params: Dict = {}): Promise<FuturesOrder> {
         params.symbol = symbol;
         params.side = side;
@@ -840,7 +855,7 @@ export default class Binance {
         if (!params.newClientOrderId) {
             params.newClientOrderId = this.CONTRACT_PREFIX + this.uuid22();
         }
-        return await this.futuresRequest('v1/order', params, { base: this.dapi, type: 'TRADE', method: 'POST' });
+        return await this.futuresRequest('v1/order', params, { base: this.getDapiUrl(), type: 'TRADE', method: 'POST' });
     };
 
     // ------ WS RELATED FUNCTIONS ------ //
@@ -3486,6 +3501,7 @@ export default class Binance {
 
     /**
     * Gets the candles information for a given symbol
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#klinecandlestick-data
     * intervals: 1m,3m,5m,15m,30m,1h,2h,4h,6h,8h,12h,1d,3d,1w,1M
     * @param {string} symbol - the symbol
     * @param {function} interval - the callback function
@@ -3498,6 +3514,15 @@ export default class Binance {
         return await this.publicRequest(this.getSpotUrl() + 'v3/klines', params);
     }
 
+    /**
+    * Gets the candles information for a given symbol
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#klinecandlestick-data
+    * intervals: 1m,3m,5m,15m,30m,1h,2h,4h,6h,8h,12h,1d,3d,1w,1M
+    * @param {string} symbol - the symbol
+    * @param {function} interval - the callback function
+    * @param {object} options - additional options
+    * @return {promise or undefined} - omitting the callback returns a promise
+    */
     async candles(symbol: string, interval: Interval = '5m', params: Dict = {}): Promise<Candle[]> {
         return await this.candlesticks(symbol, interval, params); // make name consistent with futures
     }
@@ -3581,7 +3606,6 @@ export default class Binance {
 
     /**
     * Get the account binance lending information
-   
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async lending(params: Dict = {}) {
@@ -3596,16 +3620,26 @@ export default class Binance {
     async futuresTime(params: Dict = {}) {
         return await this.futuresRequest('v1/time', params, { base: this.getFapiUrl() }).then(r => r.serverTime);
     }
-
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Exchange-Information
+     * @returns
+     */
     async futuresExchangeInfo() {
         return await this.futuresRequest('v1/exchangeInfo', {}, { base: this.getFapiUrl() });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Symbol-Price-Ticker-v2
+     *
+     */
     async futuresPrices(params: Dict = {}) {
         let data = await this.futuresRequest('v2/ticker/price', params, { base: this.getFapiUrl() });
         return Array.isArray(data) ? data.reduce((out, i) => ((out[i.symbol] = i.price), out), {}) : data;
     }
 
+    /**
+    * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/24hr-Ticker-Price-Change-Statistics
+    */
     async futuresDaily(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
         let data = await this.futuresRequest('v1/ticker/24hr', params, { base: this.getFapiUrl() });
@@ -3616,40 +3650,75 @@ export default class Binance {
         return await this.futuresRequest('v1/openInterest', { symbol }, { base: this.getFapiUrl() });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data
+    */
     async futuresCandles(symbol: string, interval: Interval = "30m", params: Dict = {}): Promise<Candle[]> {
         params.symbol = symbol;
         params.interval = interval;
         return await this.futuresRequest('v1/klines', params, { base: this.getFapiUrl() });
     }
 
-    async futuresMarkPrice(symbol = false) {
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Mark-Price
+     */
+    async futuresMarkPrice(symbol?: string) {
         return await this.futuresRequest('v1/premiumIndex', symbol ? { symbol } : {}, { base: this.getFapiUrl() });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Recent-Trades-List
+     * @param symbol
+     * @param params
+     * @returns
+     */
     async futuresTrades(symbol: string, params: Dict = {}): Promise<Trade[]> {
         params.symbol = symbol;
         return await this.futuresRequest('v1/trades', params, { base: this.getFapiUrl() });
     }
 
-    async futuresHistoricalTrades(symbol: string, params: Dict = {}) {
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Old-Trades-Lookup
+     * @param symbol
+     * @param param
+     * @returns
+     */
+    async futuresHistoricalTrades(symbol: string, params: Dict = {}): Promise<Trade[]> {
         params.symbol = symbol;
         return await this.futuresRequest('v1/historicalTrades', params, { base: this.getFapiUrl(), type: 'MARKET_DATA' });
     }
 
-    async futuresAggTrades(symbol: string, params: Dict = {}) {
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Compressed-Aggregate-Trades-List
+    */
+    async futuresAggTrades(symbol: string, params: Dict = {}): Promise<AggregatedTrade[]> {
         params.symbol = symbol;
         return await this.futuresRequest('v1/aggTrades', params, { base: this.getFapiUrl() });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Users-Force-Orders
+     * @param params
+     * @returns
+     */
     async futuresForceOrders(params: Dict = {}) {
         return await this.futuresRequest('v1/forceOrders', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
-
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-ADL-Quantile-Estimation
+     * @param params
+     * @returns
+     */
     async futuresDeleverageQuantile(params: Dict = {}) {
         return await this.futuresRequest('v1/adlQuantile', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
-    async futuresUserTrades(symbol: string, params: Dict = {}) {
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Account-Trade-List
+     * @param params
+     * @returns
+     */
+    async futuresUserTrades(symbol: string, params: Dict = {}): Promise<FuturesUserTrade[]> {
         params.symbol = symbol;
         return await this.futuresRequest('v1/userTrades', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
@@ -3689,6 +3758,11 @@ export default class Binance {
         return this.futuresPositionRisk(params, true)
     }
 
+    /**
+     * @param symbol 
+     * @param params 
+     * @returns 
+     */
     async futuresFundingRate(symbol: string, params: Dict = {}): Promise<FundingRate[]> {
         params.symbol = symbol;
         return await this.futuresRequest('v1/fundingRate', params, { base: this.getFapiUrl() });
@@ -3748,13 +3822,22 @@ export default class Binance {
         return await this.futuresRequest('v3/account', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Order-Book
+     * @param symbol
+     * @param params
+     * @returns
+     */
     async futuresDepth(symbol: string, params: Dict = {}): Promise<OrderBook> {
         params.symbol = symbol;
         const res = await this.futuresRequest('v1/depth', params, { base: this.getFapiUrl() });
         return this.parseOrderBook(res);
     }
 
-    async futuresQuote(symbol?: string, params: Dict = {}): Promise<{ [key: string]: Ticker }> {
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Symbol-Order-Book-Ticker
+     */
+    async futuresQuote(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
         //let data = await this.promiseRequest( 'v1/ticker/bookTicker', params, {base:fapi} );
         //return data.reduce((out, i) => ((out[i.symbol] = i), out), {}),
@@ -3762,26 +3845,61 @@ export default class Binance {
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
-    async futuresBookTicker(symbol?: string, params: Dict = {}): Promise<{ [key: string]: Ticker }> {
+    async futuresBookTicker(symbol?: string, params: Dict = {}){
         return await this.futuresQuote(symbol, params);
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
+     * @param symbol 
+     * @param quantity 
+     * @param price 
+     * @param params 
+     * @returns 
+     */
     async futuresBuy(symbol: string, quantity: number, price: number, params: Dict = {}) {
         return await this.futuresOrder('LIMIT', 'BUY', symbol, quantity, price, params);
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
+     * @param symbol 
+     * @param quantity 
+     * @param price 
+     * @param params 
+     * @returns 
+     */
     async futuresSell(symbol: string, quantity: number, price: number, params: Dict = {}) {
         return await this.futuresOrder('LIMIT', 'SELL', symbol, quantity, price, params);
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
+     * @param symbol 
+     * @param quantity 
+     * @param price 
+     * @param params 
+     * @returns 
+     */
     async futuresMarketBuy(symbol: string, quantity: number, params: Dict = {}) {
         return await this.futuresOrder('MARKET', 'BUY', symbol, quantity, undefined, params);
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
+     * @param symbol 
+     * @param quantity 
+     * @param price 
+     * @param params 
+     * @returns 
+     */
     async futuresMarketSell(symbol: string, quantity: number, params: Dict = {}) {
         return await this.futuresOrder('MARKET', 'SELL', symbol, quantity, undefined, params);
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Place-Multiple-Orders
+     */
     async futuresMultipleOrders(orders: Dict[] = []): Promise<FuturesOrder[]> {
         for (let i = 0; i < orders.length; i++) {
             if (!orders[i].newClientOrderId) {
@@ -3894,131 +4012,131 @@ export default class Binance {
     //** Delivery methods */
 
     async deliveryPing(params: Dict = {}) {
-        return await this.futuresRequest('v1/ping', params, { base: this.dapi });
+        return await this.futuresRequest('v1/ping', params, { base: this.getDapiUrl() });
     }
 
     async deliveryTime(params: Dict = {}) {
-        return await this.futuresRequest('v1/time', params, { base: this.dapi });
+        return await this.futuresRequest('v1/time', params, { base: this.getDapiUrl() });
     }
 
     async deliveryExchangeInfo(params: Dict = {}) {
-        return await this.futuresRequest('v1/exchangeInfo', params, { base: this.dapi })
+        return await this.futuresRequest('v1/exchangeInfo', params, { base: this.getDapiUrl() })
     };
 
     async deliveryPrices(params: Dict = {}) {
-        let data = await this.futuresRequest('v1/ticker/price', params, { base: this.dapi });
+        let data = await this.futuresRequest('v1/ticker/price', params, { base: this.getDapiUrl() });
         return data.reduce((out, i) => ((out[i.symbol] = i.price), out), {});
     }
 
     async deliveryDaily(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        let data = await this.futuresRequest('v1/ticker/24hr', params, { base: this.dapi });
+        let data = await this.futuresRequest('v1/ticker/24hr', params, { base: this.getDapiUrl() });
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
     async deliveryOpenInterest(symbol: string) {
-        return await this.futuresRequest('v1/openInterest', { symbol }, { base: this.dapi }).then(r => r.openInterest);
+        return await this.futuresRequest('v1/openInterest', { symbol }, { base: this.getDapiUrl() }).then(r => r.openInterest);
     }
 
     async deliveryCandles(symbol: string, interval = "30m", params: Dict = {}): Promise<Candle[]> {
         params.symbol = symbol;
         params.interval = interval;
-        return await this.futuresRequest('v1/klines', params, { base: this.dapi });
+        return await this.futuresRequest('v1/klines', params, { base: this.getDapiUrl() });
     }
 
     async deliveryContinuousKlines(pair: string, contractType = "CURRENT_QUARTER", interval = "30m", params: Dict = {}) {
         params.pair = pair;
         params.interval = interval;
         params.contractType = contractType;
-        return await this.futuresRequest('v1/continuousKlines', params, { base: this.dapi });
+        return await this.futuresRequest('v1/continuousKlines', params, { base: this.getDapiUrl() });
     }
 
     async deliveryIndexKlines(pair: string, interval = "30m", params: Dict = {}) {
         params.pair = pair;
         params.interval = interval;
-        return await this.futuresRequest('v1/indexPriceKlines', params, { base: this.dapi });
+        return await this.futuresRequest('v1/indexPriceKlines', params, { base: this.getDapiUrl() });
     }
 
     async deliveryMarkPriceKlines(symbol: string, interval = "30m", params: Dict = {}) {
         params.symbol = symbol;
         params.interval = interval;
-        return await this.futuresRequest('v1/markPriceKlines', params, { base: this.dapi });
+        return await this.futuresRequest('v1/markPriceKlines', params, { base: this.getDapiUrl() });
     }
 
     async deliveryMarkPrice(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/premiumIndex', params, { base: this.dapi });
+        return await this.futuresRequest('v1/premiumIndex', params, { base: this.getDapiUrl() });
     }
 
     async deliveryTrades(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/trades', params, { base: this.dapi });
+        return await this.futuresRequest('v1/trades', params, { base: this.getDapiUrl() });
     }
 
     async deliveryHistoricalTrades(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/historicalTrades', params, { base: this.dapi, type: 'MARKET_DATA' });
+        return await this.futuresRequest('v1/historicalTrades', params, { base: this.getDapiUrl(), type: 'MARKET_DATA' });
     }
 
     async deliveryAggTrades(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/aggTrades', params, { base: this.dapi });
+        return await this.futuresRequest('v1/aggTrades', params, { base: this.getDapiUrl() });
     }
 
     async deliveryUserTrades(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/userTrades', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/userTrades', params, { base: this.getDapiUrl(), type: 'SIGNED' });
     }
 
     async deliveryCommissionRate(symbol: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/commissionRate', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/commissionRate', params, { base: this.getDapiUrl(), type: 'SIGNED' });
     }
 
     async deliveryGetDataStream(params: Dict = {}) {
         //A User Data Stream listenKey is valid for 60 minutes after creation. setInterval
-        return await this.futuresRequest('v1/listenKey', params, { base: this.dapi, type: 'SIGNED', method: 'POST' });
+        return await this.futuresRequest('v1/listenKey', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'POST' });
     }
 
     async deliveryKeepDataStream(params: Dict = {}) {
-        return await this.futuresRequest('v1/listenKey', params, { base: this.dapi, type: 'SIGNED', method: 'PUT' });
+        return await this.futuresRequest('v1/listenKey', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'PUT' });
     }
 
     async deliveryCloseDataStream(params: Dict = {}) {
-        return await this.futuresRequest('v1/listenKey', params, { base: this.dapi, type: 'SIGNED', method: 'DELETE' });
+        return await this.futuresRequest('v1/listenKey', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'DELETE' });
     }
 
     async deliveryLiquidationOrders(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/allForceOrders', params, { base: this.dapi });
+        return await this.futuresRequest('v1/allForceOrders', params, { base: this.getDapiUrl() });
     }
 
     async deliveryPositionRisk(params: Dict = {}) {
-        return await this.futuresRequest('v1/positionRisk', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionRisk', params, { base: this.getDapiUrl(), type: 'SIGNED' });
     }
 
     async deliveryLeverageBracket(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/leverageBracket', params, { base: this.dapi, type: 'USER_DATA' });
+        return await this.futuresRequest('v1/leverageBracket', params, { base: this.getDapiUrl(), type: 'USER_DATA' });
     }
 
     async deliveryLeverageBracketSymbols(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v2/leverageBracket', params, { base: this.dapi, type: 'USER_DATA' });
+        return await this.futuresRequest('v2/leverageBracket', params, { base: this.getDapiUrl(), type: 'USER_DATA' });
     }
 
     // leverage 1 to 125
     async deliveryLeverage(symbol: string, leverage: number, params: Dict = {}) {
         params.symbol = symbol;
         params.leverage = leverage;
-        return await this.futuresRequest('v1/leverage', params, { base: this.dapi, method: 'POST', type: 'SIGNED' });
+        return await this.futuresRequest('v1/leverage', params, { base: this.getDapiUrl(), method: 'POST', type: 'SIGNED' });
     }
 
     // ISOLATED, CROSSED
     async deliveryMarginType(symbol: string, marginType: string, params: Dict = {}) {
         params.symbol = symbol;
         params.marginType = marginType;
-        return await this.futuresRequest('v1/marginType', params, { base: this.dapi, method: 'POST', type: 'SIGNED' });
+        return await this.futuresRequest('v1/marginType', params, { base: this.getDapiUrl(), method: 'POST', type: 'SIGNED' });
     }
 
     // type: 1: Add postion margin，2: Reduce postion margin
@@ -4026,29 +4144,29 @@ export default class Binance {
         params.symbol = symbol;
         params.amount = amount;
         params.type = type;
-        return await this.futuresRequest('v1/positionMargin', params, { base: this.dapi, method: 'POST', type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionMargin', params, { base: this.getDapiUrl(), method: 'POST', type: 'SIGNED' });
     }
 
     async deliveryPositionMarginHistory(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/positionMargin/history', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionMargin/history', params, { base: this.getDapiUrl(), type: 'SIGNED' });
     }
 
     async deliveryIncome(params: Dict = {}) {
-        return await this.futuresRequest('v1/income', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/income', params, { base: this.getDapiUrl(), type: 'SIGNED' });
     }
 
     async deliveryBalance(params: Dict = {}) {
-        return await this.futuresRequest('v1/balance', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/balance', params, { base: this.getDapiUrl(), type: 'SIGNED' });
     }
 
     async deliveryAccount(params: Dict = {}) {
-        return await this.futuresRequest('v1/account', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/account', params, { base: this.getDapiUrl(), type: 'SIGNED' });
     }
 
     async deliveryDepth(symbol: string, params: Dict = {}): Promise<OrderBook> {
         params.symbol = symbol;
-        const res =  await this.futuresRequest('v1/depth', params, { base: this.dapi });
+        const res =  await this.futuresRequest('v1/depth', params, { base: this.getDapiUrl() });
         return this.parseOrderBook(res);
     }
 
@@ -4056,7 +4174,7 @@ export default class Binance {
         if (symbol) params.symbol = symbol;
         //let data = await this.promiseRequest( 'v1/ticker/bookTicker', params, {base:dapi} );
         //return data.reduce((out, i) => ((out[i.symbol] = i), out), {}),
-        let data = await this.futuresRequest('v1/ticker/bookTicker', params, { base: this.dapi });
+        let data = await this.futuresRequest('v1/ticker/bookTicker', params, { base: this.getDapiUrl() });
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
@@ -4080,42 +4198,42 @@ export default class Binance {
 
     async deliveryOrderStatus(symbol: string, params: Dict = {}) { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
-        return await this.futuresRequest('v1/order', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/order', params, { base: this.getDapiUrl(), type: 'SIGNED' });
     }
 
     async deliveryCancel(symbol: string, params: Dict = {}) { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
-        return await this.futuresRequest('v1/order', params, { base: this.dapi, type: 'SIGNED', method: 'DELETE' });
+        return await this.futuresRequest('v1/order', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'DELETE' });
     }
 
     async deliveryCancelAll(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/allOpenOrders', params, { base: this.dapi, type: 'SIGNED', method: 'DELETE' });
+        return await this.futuresRequest('v1/allOpenOrders', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'DELETE' });
     }
 
     async deliveryCountdownCancelAll(symbol: string, countdownTime = 0, params: Dict = {}) {
         params.symbol = symbol;
         params.countdownTime = countdownTime;
-        return await this.futuresRequest('v1/countdownCancelAll', params, { base: this.dapi, type: 'SIGNED', method: 'POST' });
+        return await this.futuresRequest('v1/countdownCancelAll', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'POST' });
     }
 
     async deliveryOpenOrders(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/openOrders', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/openOrders', params, { base: this.getDapiUrl(), type: 'SIGNED' });
     }
 
     async deliveryAllOrders(symbol?: string, params: Dict = {}) { // Get all account orders; active, canceled, or filled.
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/allOrders', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/allOrders', params, { base: this.getDapiUrl(), type: 'SIGNED' });
     }
 
     async deliveryPositionSideDual(params: Dict = {}) {
-        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.dapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.getDapiUrl(), type: 'SIGNED' });
     }
 
     async deliveryChangePositionSideDual(dualSidePosition, params: Dict = {}) {
         params.dualSidePosition = dualSidePosition;
-        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.dapi, type: 'SIGNED', method: 'POST' });
+        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'POST' });
     }
 
     //** Margin methods */
