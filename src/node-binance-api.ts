@@ -15,8 +15,8 @@ import zip from 'lodash.zipobject'
 import stringHash from 'string-hash';
 import async from 'async';
 
-import {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance} from './types'
-export {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs} from './types'
+import {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder} from './types'
+// export {Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs} from './types'
 
 export interface Dictionary<T> {
     [key: string]: T;
@@ -111,8 +111,9 @@ export default class Binance {
     }
 
     options(opt = {}, callback: any = false): Binance {
-        // return await this.setOptions(opt, callback); // keep this method for backwards compatibility
-        this.assignOptions(opt, callback);
+        // // return await this.setOptions(opt, callback); // keep this method for backwards compatibility
+        // this.assignOptions(opt, callback);
+        this.setOptions(opt, callback);
         return this;
     }
 
@@ -160,6 +161,7 @@ export default class Binance {
         if (this.Options.useServerTime) {
 
             const res = await this.publicRequest(this.getSpotUrl() + 'v3/time');
+            console.log(res)
             this.info.timeOffset = res.serverTime - new Date().getTime();
 
         }
@@ -268,7 +270,7 @@ export default class Binance {
             reqOptions.body = urlBody;
         } else {
             if (opt.qs) {
-                opt.url += '?' + this.makeQueryString(opt.qs);
+                // opt.url += '?' + this.makeQueryString(opt.qs);
             }
         }
         const response = await fetch(opt.url, reqOptions)
@@ -315,7 +317,8 @@ export default class Binance {
     }
 
     async publicRequest(url: string, data: Dict = {}, method = 'GET') {
-        let opt = this.reqObj(url, data, method);
+        const query = this.makeQueryString(data);
+        const opt = this.reqObj(url + (query ? '?' + query : ''), data, method);
         const res = await this.proxyRequest(opt);
         return res;
     };
@@ -344,6 +347,10 @@ export default class Binance {
             timeout: this.Options.recvWindow,
             followAllRedirects: true
         };
+        query = this.makeQueryString(data);
+        if (flags.method === 'GET') {
+            opt.url = `${baseURL}${url}?${query}`;
+        }
         if (flags.type === 'SIGNED' || flags.type === 'TRADE' || flags.type === 'USER_DATA') {
             data.timestamp = new Date().getTime();
             if (this.info.timeOffset) {
@@ -690,7 +697,7 @@ export default class Binance {
 * @param {string} symbol - the symbol to get
 * @return {promise or undefined} - omitting the callback returns a promise
 */
-    async openOrders(symbol?: string, params: Dict = {}) {
+    async openOrders(symbol?: string, params: Dict = {}): Promise<QueryOrder[]> {
         const parameters = symbol ? { symbol: symbol } : {};
         return await this.signedRequest(this.getSpotUrl() + 'v3/openOrders', this.extend(parameters, params));
     }
@@ -736,7 +743,7 @@ export default class Binance {
     * @param {object} options - additional options
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async allOrders(symbol: string, params: Dict = {}) {
+    async allOrders(symbol: string, params: Dict = {}): Promise<QueryOrder[]> {
         let parameters = this.extend({ symbol }, params);
         return await this.signedRequest(this.getSpotUrl() + 'v3/allOrders', parameters);
     }
@@ -2746,6 +2753,9 @@ export default class Binance {
 
     parseOrderBook(data): OrderBook {
         const { lastUpdateId, bids, asks } = data;
+        if (!bids || !asks) {
+            return data;
+        }
         const orderBook: OrderBook = {
             lastUpdateId,
             bids: bids.map(b => zip(['price', 'quantity'], b)),
@@ -3394,7 +3404,7 @@ export default class Binance {
     }
 
     /**
-    * Get trades for a given symbol
+    * Get private trades for a given symbol
     * @see https://developers.binance.com/docs/binance-spot-api-docs/testnet/rest-api/account-endpoints#account-trade-list-user_data
     * @param {string} symbol - the symbol
     * @param {object} options - additional options
@@ -3404,6 +3414,19 @@ export default class Binance {
         const parameters = this.extend({ symbol: symbol }, params);
         return await this.signedRequest(this.getSpotUrl() + 'v3/myTrades', parameters);
     }
+
+    /**
+    * Get private trades for a given symbol
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/testnet/rest-api/account-endpoints#account-trade-list-user_data
+    * @param {string} symbol - the symbol
+    * @param {object} options - additional options
+    * @return {promise or undefined} - omitting the callback returns a promise
+    */
+    async myTrades(symbol: string, params: Dict = {}): Promise<MyTrade[]> {
+        const parameters = this.extend({ symbol: symbol }, params);
+        return await this.signedRequest(this.getSpotUrl() + 'v3/myTrades', parameters);
+    }
+
 
     /**
     * Tell api to use the server time to offset time indexes
@@ -4076,26 +4099,26 @@ export default class Binance {
         return await this.futuresRequest('v1/openInterest', { symbol }, { base: this.getDapiUrl() }).then(r => r.openInterest);
     }
 
-    async deliveryCandles(symbol: string, interval = "30m", params: Dict = {}): Promise<Candle[]> {
+    async deliveryCandles(symbol: string, interval: Interval = "30m", params: Dict = {}): Promise<Candle[]> {
         params.symbol = symbol;
         params.interval = interval;
         return await this.futuresRequest('v1/klines', params, { base: this.getDapiUrl() });
     }
 
-    async deliveryContinuousKlines(pair: string, contractType = "CURRENT_QUARTER", interval = "30m", params: Dict = {}) {
+    async deliveryContinuousKlines(pair: string, contractType = "CURRENT_QUARTER", interval: Interval = "30m", params: Dict = {}) {
         params.pair = pair;
         params.interval = interval;
         params.contractType = contractType;
         return await this.futuresRequest('v1/continuousKlines', params, { base: this.getDapiUrl() });
     }
 
-    async deliveryIndexKlines(pair: string, interval = "30m", params: Dict = {}) {
+    async deliveryIndexKlines(pair: string, interval: Interval = "30m", params: Dict = {}) {
         params.pair = pair;
         params.interval = interval;
         return await this.futuresRequest('v1/indexPriceKlines', params, { base: this.getDapiUrl() });
     }
 
-    async deliveryMarkPriceKlines(symbol: string, interval = "30m", params: Dict = {}) {
+    async deliveryMarkPriceKlines(symbol: string, interval: Interval = "30m", params: Dict = {}) {
         params.symbol = symbol;
         params.interval = interval;
         return await this.futuresRequest('v1/markPriceKlines', params, { base: this.getDapiUrl() });
@@ -4278,6 +4301,7 @@ export default class Binance {
 
     /**
      * Creates an order
+     * @see https://developers.binance.com/docs/margin_trading/trade/Margin-Account-New-Order
      * @param {string} side - BUY or SELL
      * @param {string} symbol - the symbol to buy
      * @param {numeric} quantity - the quantity required
@@ -4747,7 +4771,7 @@ export default class Binance {
         }
 
         let handleFuturesKlineStream = kline => {
-            let symbol = kline.s, interval = kline.k.i;
+            let symbol = kline.s, interval: Interval = kline.k.i;
             if (!this.futuresMeta[symbol][interval].timestamp) {
                 if (typeof (this.futuresKlineQueue[symbol][interval]) !== 'undefined' && kline !== null) {
                     this.futuresKlineQueue[symbol][interval].push(kline);
@@ -4974,7 +4998,7 @@ export default class Binance {
         }
 
         let handleDeliveryKlineStream = kline => {
-            let symbol = kline.s, interval = kline.k.i;
+            let symbol = kline.s, interval: Interval = kline.k.i;
             if (!this.deliveryMeta[symbol][interval].timestamp) {
                 if (typeof (this.deliveryKlineQueue[symbol][interval]) !== 'undefined' && kline !== null) {
                     this.deliveryKlineQueue[symbol][interval].push(kline);
@@ -5467,7 +5491,7 @@ export default class Binance {
         }
 
         let handleKlineStreamData = kline => {
-            let symbol = kline.s, interval = kline.k.i;
+            let symbol = kline.s, interval: Interval = kline.k.i;
             if (!this.info[symbol][interval].timestamp) {
                 if (typeof (this.klineQueue[symbol][interval]) !== 'undefined' && kline !== null) {
                     this.klineQueue[symbol][interval].push(kline);

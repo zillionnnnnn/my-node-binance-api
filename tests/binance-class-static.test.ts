@@ -109,7 +109,7 @@ describe( 'Static tests', async function () {
     })
 
     it( 'Futures CancelOrder', async function ( ) {
-        await binance.futuresCancel( 'LTCUSDT', {'orderId': '34234234' })
+        await binance.futuresCancel( 'LTCUSDT', '34234234')
         assert( interceptedUrl.startsWith('https://fapi.binance.com/fapi/v1/order'))
         const obj = urlToObject( interceptedUrl.replace('https://fapi.binance.com/fapi/v1/order', '') )
         assert.equal( obj.symbol, 'LTCUSDT' )
@@ -141,7 +141,7 @@ describe( 'Static tests', async function () {
     })
 
     it( 'LimitBuy', async function ( ) {
-        await binance.order( 'BUY', 'LTCUSDT', 0.5 )
+        await binance.order('LIMIT', 'BUY', 'LTCUSDT', 0.5 )
         assert.equal( interceptedUrl, 'https://api.binance.com/api/v3/order' )
         const obj = urlToObject( interceptedBody )
         assert.equal( obj.symbol, 'LTCUSDT' )
@@ -152,7 +152,7 @@ describe( 'Static tests', async function () {
     })
 
     it( 'LimitSell', async function ( ) {
-        await binance.order( 'SELL', 'LTCUSDT', 0.5 )
+        await binance.order('LIMIT', 'SELL', 'LTCUSDT', 0.5 )
         assert.equal( interceptedUrl, 'https://api.binance.com/api/v3/order' )
         const obj = urlToObject( interceptedBody )
         assert.equal( obj.symbol, 'LTCUSDT' )
@@ -187,7 +187,7 @@ describe( 'Static tests', async function () {
     })
 
     it( 'Futures LimitBuy', async function ( ) {
-        await binance.futuresOrder( 'BUY', 'LTCUSDT', 0.5, 100 )
+        await binance.futuresOrder('LIMIT', 'BUY', 'LTCUSDT', 0.5, 100 )
         assert.isTrue( interceptedUrl.startsWith('https://fapi.binance.com/fapi/v1/order' ))
         const obj = urlToObject( interceptedUrl.replace('https://fapi.binance.com/fapi/v1/order?', '')  )
         assert.equal( obj.symbol, 'LTCUSDT' )
@@ -198,7 +198,7 @@ describe( 'Static tests', async function () {
     })
 
     it( 'Futures LimitSell', async function ( ) {
-        await binance.futuresOrder( 'SELL', 'LTCUSDT', 0.5, 100 )
+        await binance.futuresOrder('LIMIT', 'SELL', 'LTCUSDT', 0.5, 100 )
         assert.isTrue( interceptedUrl.startsWith('https://fapi.binance.com/fapi/v1/order' ))
         const obj = urlToObject( interceptedUrl.replace('https://fapi.binance.com/fapi/v1/order?', '')  )
         assert.equal( obj.symbol, 'LTCUSDT' )

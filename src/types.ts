@@ -124,6 +124,8 @@ export type Callback = (...args: any) => any;
 
 
 export interface IConstructorArgs {
+    APIKEY: string;
+    APISECRET: string;
     recvWindow: number;
     useServerTime: boolean;
     reconnect: boolean;
@@ -371,3 +373,129 @@ export interface Ticker {
 //     _callback as callback,
 //     IConstructorArgs
 // }
+
+  export type TradingType = 'MARGIN' | 'SPOT'
+
+export interface Account {
+    accountType: TradingType
+    balances: AssetBalance[]
+    buyerCommission: number
+    canDeposit: boolean
+    canTrade: boolean
+    canWithdraw: boolean
+    makerCommission: number
+    permissions: TradingType[]
+    sellerCommission: number
+    takerCommission: number
+    updateTime: number
+}
+
+export interface AssetBalance {
+    asset: string
+    free: string
+    locked: string
+}
+
+
+export interface FuturesAccountInfo {
+    feeTier: number
+    canTrade: boolean
+    canDeposit: boolean
+    canWithdraw: boolean
+    updateTime: number
+    totalInitialMargin: string
+    totalMaintMargin: string
+    totalWalletBalance: string
+    totalUnrealizedProfit: string
+    totalMarginBalance: string
+    totalPositionInitialMargin: string
+    totalOpenOrderInitialMargin: string
+    totalCrossWalletBalance: string
+    totalCrossUnPnl: string
+    availableBalance: string
+    maxWithdrawAmount: string
+    assets: FuturesAsset[]
+    positions: FuturesAccountPosition[]
+  }
+
+  export interface FuturesAccountPosition {
+    symbol: string
+    initialMargin: string
+    maintMargin: string
+    unrealizedProfit: string
+    positionInitialMargin: string
+    openOrderInitialMargin: string
+    leverage: string
+    isolated: boolean
+    entryPrice: string
+    maxNotional: string
+    positionSide: PositionSide
+    positionAmt: string
+    notional: string
+    isolatedWallet: string
+    updateTime: number
+    bidNotional: string
+    askNotional: string
+  }
+
+
+  export type FuturesAssetType =
+  | 'DOT'
+  | 'BTC'
+  | 'SOL'
+  | 'BNB'
+  | 'ETH'
+  | 'ADA'
+  | 'USDT'
+  | 'XRP'
+  | 'BUSD'
+
+export type FuturesAsset = {
+  asset: FuturesAssetType
+  walletBalance: string
+  unrealizedProfit: string
+  marginBalance: string
+  maintMargin: string
+  initialMargin: string
+  positionInitialMargin: string
+  openOrderInitialMargin: string
+  maxWithdrawAmount: string
+  crossWalletBalance: string
+  crossUnPnl: string
+  availableBalance: string
+  marginAvailable: boolean
+  updateTime: number
+}
+
+
+export interface FuturesBalance {
+    accountAlias: string
+    asset: string
+    balance: string
+    crossWalletBalance: string
+    crossUnPnl: string
+    availableBalance: string
+    maxWithdrawAmount: string
+  }
+
+
+export interface QueryOrder {
+    clientOrderId: string
+    cummulativeQuoteQty: string
+    executedQty: string
+    icebergQty: string
+    isWorking: boolean
+    orderId: number
+    orderListId: number
+    origQty: string
+    origQuoteOrderQty: string
+    price: string
+    side: OrderSide
+    status: OrderStatus
+    stopPrice: string
+    symbol: string
+    time: number
+    timeInForce: TimeInForce
+    type: OrderType
+    updateTime: number
+  }
