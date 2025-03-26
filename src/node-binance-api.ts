@@ -177,6 +177,11 @@ export default class Binance {
         return this.base;
     }
 
+    getFapiUrl() {
+        if (this.Options.test) return this.fapiTest;
+        return this.fapi;
+    }
+
     uuid22(a?: any) {
         return a ? (a ^ Math.random() * 16 >> a / 4).toString(16) : (([1e7] as any) + 1e3 + 4e3 + 8e5).replace(/[018]/g, this.uuid22);
     };
@@ -734,21 +739,21 @@ export default class Binance {
 
     /**
      * Create a signed margin order
+     * @see https://developers.binance.com/docs/margin_trading/trade/Margin-Account-New-Order
      * @param {string} side - BUY or SELL
      * @param {string} symbol - The symbol to buy or sell
      * @param {string} quantity - The quantity to buy or sell
      * @param {string} price - The price per unit to transact each unit at
      * @param {object} params - additional order settings
-    
      * @return {undefined}
      */
-    async marginOrder(side: string, symbol: string, quantity: number, price?: number, params: Dict = {}) {
+    async marginOrder(type: OrderType, side: string, symbol: string, quantity: number, price?: number, params: Dict = {}) {
         let endpoint = 'v1/margin/order';
         if (this.Options.test) endpoint += '/test';
         let request = {
             symbol: symbol,
             side: side,
-            type: 'LIMIT',
+            type: type,
             quantity: quantity
         } as Dict;
         if (typeof params.type !== 'undefined') request.type = params.type;
@@ -807,7 +812,7 @@ export default class Binance {
         if (!params.newClientOrderId) {
             params.newClientOrderId = this.CONTRACT_PREFIX + this.uuid22();
         }
-        return await this.futuresRequest('v1/order', params, { base: this.fapi, type: 'TRADE', method: 'POST' });
+        return await this.futuresRequest('v1/order', params, { base: this.getFapiUrl(), type: 'TRADE', method: 'POST' });
     };
 
 
@@ -3585,86 +3590,86 @@ export default class Binance {
 
     //** Futures methods */
     async futuresPing(params: Dict = {}) {
-        return await this.futuresRequest('v1/ping', params, { base: this.fapi });
+        return await this.futuresRequest('v1/ping', params, { base: this.getFapiUrl() });
     }
 
     async futuresTime(params: Dict = {}) {
-        return await this.futuresRequest('v1/time', params, { base: this.fapi }).then(r => r.serverTime);
+        return await this.futuresRequest('v1/time', params, { base: this.getFapiUrl() }).then(r => r.serverTime);
     }
 
     async futuresExchangeInfo() {
-        return await this.futuresRequest('v1/exchangeInfo', {}, { base: this.fapi });
+        return await this.futuresRequest('v1/exchangeInfo', {}, { base: this.getFapiUrl() });
     }
 
     async futuresPrices(params: Dict = {}) {
-        let data = await this.futuresRequest('v2/ticker/price', params, { base: this.fapi });
+        let data = await this.futuresRequest('v2/ticker/price', params, { base: this.getFapiUrl() });
         return Array.isArray(data) ? data.reduce((out, i) => ((out[i.symbol] = i.price), out), {}) : data;
     }
 
     async futuresDaily(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        let data = await this.futuresRequest('v1/ticker/24hr', params, { base: this.fapi });
+        let data = await this.futuresRequest('v1/ticker/24hr', params, { base: this.getFapiUrl() });
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
     async futuresOpenInterest(symbol: string) {
-        return await this.futuresRequest('v1/openInterest', { symbol }, { base: this.fapi });
+        return await this.futuresRequest('v1/openInterest', { symbol }, { base: this.getFapiUrl() });
     }
 
     async futuresCandles(symbol: string, interval: Interval = "30m", params: Dict = {}): Promise<Candle[]> {
         params.symbol = symbol;
         params.interval = interval;
-        return await this.futuresRequest('v1/klines', params, { base: this.fapi });
+        return await this.futuresRequest('v1/klines', params, { base: this.getFapiUrl() });
     }
 
     async futuresMarkPrice(symbol = false) {
-        return await this.futuresRequest('v1/premiumIndex', symbol ? { symbol } : {}, { base: this.fapi });
+        return await this.futuresRequest('v1/premiumIndex', symbol ? { symbol } : {}, { base: this.getFapiUrl() });
     }
 
     async futuresTrades(symbol: string, params: Dict = {}): Promise<Trade[]> {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/trades', params, { base: this.fapi });
+        return await this.futuresRequest('v1/trades', params, { base: this.getFapiUrl() });
     }
 
     async futuresHistoricalTrades(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/historicalTrades', params, { base: this.fapi, type: 'MARKET_DATA' });
+        return await this.futuresRequest('v1/historicalTrades', params, { base: this.getFapiUrl(), type: 'MARKET_DATA' });
     }
 
     async futuresAggTrades(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/aggTrades', params, { base: this.fapi });
+        return await this.futuresRequest('v1/aggTrades', params, { base: this.getFapiUrl() });
     }
 
     async futuresForceOrders(params: Dict = {}) {
-        return await this.futuresRequest('v1/forceOrders', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/forceOrders', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
     async futuresDeleverageQuantile(params: Dict = {}) {
-        return await this.futuresRequest('v1/adlQuantile', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/adlQuantile', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
     async futuresUserTrades(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/userTrades', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/userTrades', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
     async futuresGetDataStream(params: Dict = {}) {
         //A User Data Stream listenKey is valid for 60 minutes after creation. setInterval
-        return await this.futuresRequest('v1/listenKey', params, { base: this.fapi, type: 'SIGNED', method: 'POST' });
+        return await this.futuresRequest('v1/listenKey', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'POST' });
     }
 
     async futuresKeepDataStream(params: Dict = {}) {
-        return await this.futuresRequest('v1/listenKey', params, { base: this.fapi, type: 'SIGNED', method: 'PUT' });
+        return await this.futuresRequest('v1/listenKey', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'PUT' });
     }
 
     async futuresCloseDataStream(params: Dict = {}) {
-        return await this.futuresRequest('v1/listenKey', params, { base: this.fapi, type: 'SIGNED', method: 'DELETE' });
+        return await this.futuresRequest('v1/listenKey', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'DELETE' });
     }
 
     async futuresLiquidationOrders(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/allForceOrders', params, { base: this.fapi });
+        return await this.futuresRequest('v1/allForceOrders', params, { base: this.getFapiUrl() });
     }
 
     /**
@@ -3677,7 +3682,7 @@ export default class Binance {
     */
     async futuresPositionRisk(params: Dict = {}, useV2 = false): Promise<PositionRisk[]> {
         const endpoint = useV2 ? 'v2/positionRisk' : 'v3/positionRisk'
-        return await this.futuresRequest(endpoint, params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest(endpoint, params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
     async futuresPositionRiskV2(params: Dict = {}): Promise<PositionRisk[]> {
@@ -3686,36 +3691,36 @@ export default class Binance {
 
     async futuresFundingRate(symbol: string, params: Dict = {}): Promise<FundingRate[]> {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/fundingRate', params, { base: this.fapi });
+        return await this.futuresRequest('v1/fundingRate', params, { base: this.getFapiUrl() });
     }
 
     async futuresLeverageBracket(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/leverageBracket', params, { base: this.fapi, type: 'USER_DATA' });
+        return await this.futuresRequest('v1/leverageBracket', params, { base: this.getFapiUrl(), type: 'USER_DATA' });
     }
 
     async futuresTradingStatus(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/apiTradingStatus', params, { base: this.fapi, type: 'USER_DATA' });
+        return await this.futuresRequest('v1/apiTradingStatus', params, { base: this.getFapiUrl(), type: 'USER_DATA' });
     }
 
     async futuresCommissionRate(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/commissionRate', params, { base: this.fapi, type: 'USER_DATA' });
+        return await this.futuresRequest('v1/commissionRate', params, { base: this.getFapiUrl(), type: 'USER_DATA' });
     }
 
     // leverage 1 to 125
     async futuresLeverage(symbol: string, leverage: number, params: Dict = {}) {
         params.symbol = symbol;
         params.leverage = leverage;
-        return await this.futuresRequest('v1/leverage', params, { base: this.fapi, method: 'POST', type: 'SIGNED' });
+        return await this.futuresRequest('v1/leverage', params, { base: this.getFapiUrl(), method: 'POST', type: 'SIGNED' });
     }
 
     // ISOLATED, CROSSED
     async futuresMarginType(symbol: string, marginType: string, params: Dict = {}) {
         params.symbol = symbol;
         params.marginType = marginType;
-        return await this.futuresRequest('v1/marginType', params, { base: this.fapi, method: 'POST', type: 'SIGNED' });
+        return await this.futuresRequest('v1/marginType', params, { base: this.getFapiUrl(), method: 'POST', type: 'SIGNED' });
     }
 
     // type: 1: Add postion margin，2: Reduce postion margin
@@ -3723,29 +3728,29 @@ export default class Binance {
         params.symbol = symbol;
         params.amount = amount;
         params.type = type;
-        return await this.futuresRequest('v1/positionMargin', params, { base: this.fapi, method: 'POST', type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionMargin', params, { base: this.getFapiUrl(), method: 'POST', type: 'SIGNED' });
     }
 
     async futuresPositionMarginHistory(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/positionMargin/history', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionMargin/history', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
     async futuresIncome(params: Dict = {}) {
-        return await this.futuresRequest('v1/income', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/income', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
     async futuresBalance(params: Dict = {}) {
-        return await this.futuresRequest('v2/balance', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v2/balance', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
     async futuresAccount(params: Dict = {}) {
-        return await this.futuresRequest('v3/account', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v3/account', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
     async futuresDepth(symbol: string, params: Dict = {}): Promise<OrderBook> {
         params.symbol = symbol;
-        const res = await this.futuresRequest('v1/depth', params, { base: this.fapi });
+        const res = await this.futuresRequest('v1/depth', params, { base: this.getFapiUrl() });
         return this.parseOrderBook(res);
     }
 
@@ -3753,7 +3758,7 @@ export default class Binance {
         if (symbol) params.symbol = symbol;
         //let data = await this.promiseRequest( 'v1/ticker/bookTicker', params, {base:fapi} );
         //return data.reduce((out, i) => ((out[i.symbol] = i), out), {}),
-        let data = await this.futuresRequest('v1/ticker/bookTicker', params, { base: this.fapi });
+        let data = await this.futuresRequest('v1/ticker/bookTicker', params, { base: this.getFapiUrl() });
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
@@ -3784,50 +3789,50 @@ export default class Binance {
             }
         }
         let params = { batchOrders: JSON.stringify(orders) };
-        return await this.futuresRequest('v1/batchOrders', params, { base: this.fapi, type: 'TRADE', method: 'POST' });
+        return await this.futuresRequest('v1/batchOrders', params, { base: this.getFapiUrl(), type: 'TRADE', method: 'POST' });
     }
 
     // futuresOrder, // side symbol quantity [price] [params]
 
     async futuresOrderStatus(symbol: string, params: Dict = {}): Promise<FuturesOrder> { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
-        return await this.futuresRequest('v1/order', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/order', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
     async futuresCancel(symbol: string, orderId?: string, params: Dict = {}): Promise<CancelOrder> { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
         if (orderId) params.orderId = orderId;
-        return await this.futuresRequest('v1/order', params, { base: this.fapi, type: 'SIGNED', method: 'DELETE' });
+        return await this.futuresRequest('v1/order', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'DELETE' });
     }
 
     async futuresCancelAll(symbol: string, params: Dict = {}): Promise<FuturesCancelAllOpenOrder[]> {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/allOpenOrders', params, { base: this.fapi, type: 'SIGNED', method: 'DELETE' });
+        return await this.futuresRequest('v1/allOpenOrders', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'DELETE' });
     }
 
     async futuresCountdownCancelAll(symbol, countdownTime = 0, params: Dict = {}) {
         params.symbol = symbol;
         params.countdownTime = countdownTime;
-        return await this.futuresRequest('v1/countdownCancelAll', params, { base: this.fapi, type: 'SIGNED', method: 'POST' });
+        return await this.futuresRequest('v1/countdownCancelAll', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'POST' });
     }
 
     async futuresOpenOrders(symbol?: string, params: Dict = {}): Promise<FuturesOrder[]> {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/openOrders', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/openOrders', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
     async futuresAllOrders(symbol?: string, params: Dict = {}): Promise<FuturesOrder[]> { // Get all account orders; active, canceled, or filled.
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/allOrders', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/allOrders', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
     async futuresPositionSideDual(params: Dict = {}) {
-        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.fapi, type: 'SIGNED' });
+        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
     async futuresChangePositionSideDual(dualSidePosition, params: Dict = {}) {
         params.dualSidePosition = dualSidePosition;
-        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.fapi, type: 'SIGNED', method: 'POST' });
+        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'POST' });
     }
     async futuresTransferAsset(asset: string, amount: number, type: string, params: Dict = {}) {
         params = Object.assign({ asset, amount, type });
@@ -4125,12 +4130,13 @@ export default class Binance {
      * @param {string} isIsolated - the isolate margin option
      * @return {undefined}
      */
-    async mgOrder(side: string, symbol: string, quantity: number, price: number, params: Dict = {}, isIsolated = 'FALSE') {
-        return await this.marginOrder(side, symbol, quantity, price, { ...params, isIsolated });
+    async mgOrder(type: OrderType, side: string, symbol: string, quantity: number, price: number, params: Dict = {}, isIsolated = 'FALSE') {
+        return await this.marginOrder(type, side, symbol, quantity, price, { ...params, isIsolated });
     }
 
     /**
      * Creates a buy order
+     * @see https://developers.binance.com/docs/margin_trading/trade/Margin-Account-New-Order
      * @param {string} symbol - the symbol to buy
      * @param {numeric} quantity - the quantity required
      * @param {numeric} price - the price to pay for each unit
@@ -4139,11 +4145,12 @@ export default class Binance {
      * @return {undefined}
      */
     async mgBuy(symbol: string, quantity: number, price: number, params: Dict = {}, isIsolated = 'FALSE') {
-        return await this.marginOrder('BUY', symbol, quantity, price, { ...params, isIsolated });
+        return await this.marginOrder('LIMIT', 'BUY', symbol, quantity, price, { ...params, isIsolated });
     }
 
     /**
      * Creates a sell order
+     * @see https://developers.binance.com/docs/margin_trading/trade/Margin-Account-New-Order
      * @param {string} symbol - the symbol to sell
      * @param {numeric} quantity - the quantity required
      * @param {numeric} price - the price to sell each unit for
@@ -4152,11 +4159,12 @@ export default class Binance {
      * @return {undefined}
      */
     async mgSell(symbol: string, quantity: number, price: number, flags: Dict = {}, isIsolated = 'FALSE') {
-        return await this.marginOrder('SELL', symbol, quantity, price, { ...flags, isIsolated });
+        return await this.marginOrder('LIMIT', 'SELL', symbol, quantity, price, { ...flags, isIsolated });
     }
 
     /**
      * Creates a market buy order
+     * @see https://developers.binance.com/docs/margin_trading/trade/Margin-Account-New-Order
      * @param {string} symbol - the symbol to buy
      * @param {numeric} quantity - the quantity required
      * @param {object} flags - additional buy order flags
@@ -4164,12 +4172,12 @@ export default class Binance {
      * @return {undefined}
      */
     async mgMarketBuy(symbol: string, quantity: number, params: Dict = {}, isIsolated = 'FALSE') {
-        params.type = 'MARKET';
-        return await this.marginOrder('BUY', symbol, quantity, 0, { ...params, isIsolated });
+        return await this.marginOrder('MARKET', 'BUY', symbol, quantity, 0, { ...params, isIsolated });
     }
 
     /**
      * Creates a market sell order
+     * @see https://developers.binance.com/docs/margin_trading/trade/Margin-Account-New-Order
      * @param {string} symbol - the symbol to sell
      * @param {numeric} quantity - the quantity required
      * @param {object} flags - additional sell order flags
@@ -4177,8 +4185,7 @@ export default class Binance {
      * @return {undefined}
      */
     async mgMarketSell(symbol: string, quantity: number, params: Dict = {}, isIsolated = 'FALSE') {
-        params.type = 'MARKET';
-        return await this.marginOrder('SELL', symbol, quantity, 0, { ...params, isIsolated });
+        return await this.marginOrder('MARKET', 'SELL', symbol, quantity, 0, { ...params, isIsolated });
     }
 
     /**
@@ -4597,7 +4604,7 @@ export default class Binance {
         };
 
         let getFuturesKlineSnapshot = async (symbol: string, limit = 500) => {
-            let data = await this.futuresRequest('v1/klines', { symbol, interval, limit }, { base: this.fapi });
+            let data = await this.futuresRequest('v1/klines', { symbol, interval, limit }, { base: this.getFapiUrl() });
             this.futuresKlineData(symbol, interval, data);
             //this.options.log('/futures klines at ' + this.futuresMeta[symbol][interval].timestamp);
             if (typeof this.futuresKlineQueue[symbol][interval] !== 'undefined') {
@@ -4824,7 +4831,7 @@ export default class Binance {
         };
 
         let getDeliveryKlineSnapshot = async (symbol: string, limit = 500) => {
-            let data = await this.futuresRequest('v1/klines', { symbol, interval, limit }, { base: this.fapi });
+            let data = await this.futuresRequest('v1/klines', { symbol, interval, limit }, { base: this.getFapiUrl() });
             this.deliveryKlineData(symbol, interval, data);
             //this.options.log('/delivery klines at ' + this.deliveryMeta[symbol][interval].timestamp);
             if (typeof this.deliveryKlineQueue[symbol][interval] !== 'undefined') {
