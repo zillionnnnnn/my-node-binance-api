@@ -45,6 +45,10 @@ export default class Binance {
     stream = 'wss://stream.binance.com:9443/ws/';
     combineStream = 'wss://stream.binance.com:9443/stream?streams=';
 
+    // proxy variables
+    httpsProxy: string = undefined;
+    socksProxy: string = undefined;
+
     APIKEY: string = undefined;
     APISECRET: string = undefined;
     test = false;
@@ -159,11 +163,8 @@ export default class Binance {
 
         this.assignOptions(opt, callback);
         if (this.Options.useServerTime) {
-
             const res = await this.publicRequest(this.getSpotUrl() + 'v3/time');
-            console.log(res)
             this.info.timeOffset = res.serverTime - new Date().getTime();
-
         }
         return this;
     }
@@ -192,6 +193,26 @@ export default class Binance {
     uuid22(a?: any) {
         return a ? (a ^ Math.random() * 16 >> a / 4).toString(16) : (([1e7] as any) + 1e3 + 4e3 + 8e5).replace(/[018]/g, this.uuid22);
     };
+
+    getHttpsProxy(){
+        if (this.httpsProxy) {
+            return this.httpsProxy
+        }
+        if (process.env.https_proxy) {
+            return process.env.https_proxy
+        }
+        return undefined
+    }
+
+    getSocksProxy(){
+        if (this.socksProxy) {
+            return this.socksProxy
+        }
+        if (process.env.socks_proxy) {
+            return process.env.socks_proxy
+        }
+        return undefined
+    }
 
     // ------ Request Related Functions ------ //
 
@@ -975,11 +996,11 @@ export default class Binance {
      * @return {WebSocket} - websocket reference
      */
     subscribe(endpoint: string, callback: Callback, reconnect?: Callback, opened_callback?: Callback) {
-        let httpsproxy = process.env.https_proxy || false;
-        let socksproxy = process.env.socks_proxy || false;
+        let httpsproxy = this.getHttpsProxy();
+        let socksproxy = this.getSocksProxy();
         let ws: any = undefined;
 
-        if (socksproxy !== false) {
+        if (socksproxy) {
             socksproxy = this.proxyReplacewithIp(socksproxy);
             if (this.Options.verbose) this.Options.log('using socks proxy server ' + socksproxy);
             let agent = new SocksProxyAgent({
@@ -988,7 +1009,7 @@ export default class Binance {
                 port: this.parseProxy(socksproxy)[2]
             });
             ws = new WebSocket(this.stream + endpoint, { agent: agent });
-        } else if (httpsproxy !== false) {
+        } else if (httpsproxy) {
             let config = url.parse(httpsproxy);
             let agent = new HttpsProxyAgent(config);
             if (this.Options.verbose) this.Options.log('using proxy server ' + agent);
@@ -1024,11 +1045,11 @@ export default class Binance {
      * @return {WebSocket} - websocket reference
      */
     subscribeCombined(streams: any, callback: Callback, reconnect?: Callback, opened_callback?: Callback) {
-        let httpsproxy = process.env.https_proxy || false;
-        let socksproxy = process.env.socks_proxy || false;
+        let httpsproxy = this.getHttpsProxy();
+        let socksproxy = this.getSocksProxy();
         const queryParams = streams.join('/');
         let ws: any = undefined;
-        if (socksproxy !== false) {
+        if (socksproxy) {
             socksproxy = this.proxyReplacewithIp(socksproxy);
             if (this.Options.verbose) this.Options.log('using socks proxy server ' + socksproxy);
             let agent = new SocksProxyAgent({
@@ -1037,7 +1058,7 @@ export default class Binance {
                 port: this.parseProxy(socksproxy)[2]
             });
             ws = new WebSocket(this.combineStream + queryParams, { agent: agent });
-        } else if (httpsproxy !== false) {
+        } else if (httpsproxy) {
             if (this.Options.verbose) this.Options.log('using proxy server ' + httpsproxy);
             let config = url.parse(httpsproxy);
             let agent = new HttpsProxyAgent(config);
@@ -1172,11 +1193,11 @@ export default class Binance {
         if (!params.reconnect) params.reconnect = false;
         if (!params.openCallback) params.openCallback = false;
         if (!params.id) params.id = false;
-        let httpsproxy = process.env.https_proxy || false;
-        let socksproxy = process.env.socks_proxy || false;
+        let httpsproxy = this.getHttpsProxy();
+        let socksproxy = this.getSocksProxy();
         let ws: any = undefined;
 
-        if (socksproxy !== false) {
+        if (socksproxy) {
             socksproxy = this.proxyReplacewithIp(socksproxy);
             if (this.Options.verbose) this.Options.log(`futuresSubscribeSingle: using socks proxy server: ${socksproxy}`);
             let agent = new SocksProxyAgent({
@@ -1185,7 +1206,7 @@ export default class Binance {
                 port: this.parseProxy(socksproxy)[2]
             });
             ws = new WebSocket((this.Options.test ? this.fstreamSingleTest : this.fstreamSingle) + endpoint, { agent });
-        } else if (httpsproxy !== false) {
+        } else if (httpsproxy) {
             let config = url.parse(httpsproxy);
             let agent = new HttpsProxyAgent(config);
             if (this.Options.verbose) this.Options.log(`futuresSubscribeSingle: using proxy server: ${agent}`);
@@ -1198,10 +1219,10 @@ export default class Binance {
         ws.reconnect = this.Options.reconnect;
         ws.endpoint = endpoint;
         ws.isAlive = false;
-        ws.on('open', this.handleFuturesSocketOpen.bind(ws, params.openCallback));
+        ws.on('open', this.handleFuturesSocketOpen.bind(this, params.openCallback));
         ws.on('pong', this.handleFuturesSocketHeartbeat);
         ws.on('error', this.handleFuturesSocketError);
-        ws.on('close', this.handleFuturesSocketClose.bind(ws, params.reconnect));
+        ws.on('close', this.handleFuturesSocketClose.bind(this, params.reconnect));
         ws.on('message', data => {
             try {
                 callback(JSONbig.parse(data));
@@ -1225,11 +1246,11 @@ export default class Binance {
         if (!params.reconnect) params.reconnect = false;
         if (!params.openCallback) params.openCallback = false;
         if (!params.id) params.id = false;
-        let httpsproxy = process.env.https_proxy || false;
-        let socksproxy = process.env.socks_proxy || false;
+        let httpsproxy = this.getHttpsProxy();
+        let socksproxy = this.getSocksProxy();
         const queryParams = streams.join('/');
         let ws: any = undefined;
-        if (socksproxy !== false) {
+        if (socksproxy) {
             socksproxy = this.proxyReplacewithIp(socksproxy);
             if (this.Options.verbose) this.Options.log(`futuresSubscribe: using socks proxy server ${socksproxy}`);
             let agent = new SocksProxyAgent({
@@ -1238,7 +1259,7 @@ export default class Binance {
                 port: this.parseProxy(socksproxy)[2]
             });
             ws = new WebSocket((this.Options.test ? this.fstreamTest : this.fstream) + queryParams, { agent });
-        } else if (httpsproxy !== false) {
+        } else if (httpsproxy) {
             if (this.Options.verbose) this.Options.log(`futuresSubscribe: using proxy server ${httpsproxy}`);
             let config = url.parse(httpsproxy);
             let agent = new HttpsProxyAgent(config);
@@ -1253,10 +1274,10 @@ export default class Binance {
         if (this.Options.verbose) {
             this.Options.log(`futuresSubscribe: Subscribed to [${ws.endpoint}] ${queryParams}`);
         }
-        ws.on('open', this.handleFuturesSocketOpen.bind(ws, params.openCallback));
+        ws.on('open', this.handleFuturesSocketOpen.bind(this, params.openCallback));
         ws.on('pong', this.handleFuturesSocketHeartbeat);
         ws.on('error', this.handleFuturesSocketError);
-        ws.on('close', this.handleFuturesSocketClose.bind(ws, params.reconnect));
+        ws.on('close', this.handleFuturesSocketClose.bind(this, params.reconnect));
         ws.on('message', data => {
             try {
                 callback(JSON.parse(data).data);
@@ -1878,10 +1899,10 @@ export default class Binance {
         if (!params.reconnect) params.reconnect = false;
         if (!params.openCallback) params.openCallback = false;
         if (!params.id) params.id = false;
-        let httpsproxy = process.env.https_proxy || false;
-        let socksproxy = process.env.socks_proxy || false;
+        let httpsproxy = this.getHttpsProxy();
+        let socksproxy = this.getSocksProxy();
         let ws: any = undefined;
-        if (socksproxy !== false) {
+        if (socksproxy) {
             socksproxy = this.proxyReplacewithIp(socksproxy);
             if (this.Options.verbose) this.Options.log(`deliverySubscribeSingle: using socks proxy server: ${socksproxy}`);
             let agent = new SocksProxyAgent({
@@ -1890,7 +1911,7 @@ export default class Binance {
                 port: this.parseProxy(socksproxy)[2]
             });
             ws = new WebSocket((this.Options.test ? this.dstreamSingleTest : this.dstreamSingle) + endpoint, { agent });
-        } else if (httpsproxy !== false) {
+        } else if (httpsproxy) {
             let config = url.parse(httpsproxy);
             let agent = new HttpsProxyAgent(config);
             if (this.Options.verbose) this.Options.log(`deliverySubscribeSingle: using proxy server: ${agent}`);
@@ -1930,11 +1951,11 @@ export default class Binance {
         if (!params.reconnect) params.reconnect = false;
         if (!params.openCallback) params.openCallback = false;
         if (!params.id) params.id = false;
-        let httpsproxy = process.env.https_proxy || false;
-        let socksproxy = process.env.socks_proxy || false;
+        let httpsproxy = this.getHttpsProxy();
+        let socksproxy = this.getSocksProxy();
         const queryParams = streams.join('/');
         let ws: any = undefined;
-        if (socksproxy !== false) {
+        if (socksproxy) {
             socksproxy = this.proxyReplacewithIp(socksproxy);
             if (this.Options.verbose) this.Options.log(`deliverySubscribe: using socks proxy server ${socksproxy}`);
             let agent = new SocksProxyAgent({
@@ -1943,7 +1964,7 @@ export default class Binance {
                 port: this.parseProxy(socksproxy)[2]
             });
             ws = new WebSocket((this.Options.test ? this.dstreamTest : this.dstream) + queryParams, { agent });
-        } else if (httpsproxy !== false) {
+        } else if (httpsproxy) {
             if (this.Options.verbose) this.Options.log(`deliverySubscribe: using proxy server ${httpsproxy}`);
             let config = url.parse(httpsproxy);
             let agent = new HttpsProxyAgent(config);

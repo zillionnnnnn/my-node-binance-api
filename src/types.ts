@@ -131,6 +131,8 @@ export interface IConstructorArgs {
     reconnect: boolean;
     test: boolean;
     hedgeMode: boolean;
+    httpsProxy: string;
+    socksProxy: string;
     log: (...args: any[]) => void;
     verbose: boolean;
     keepAlive: boolean;
