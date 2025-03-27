@@ -332,6 +332,7 @@ export interface FuturesCancelAllOpenOrder {
 
 
 export interface OrderBook {
+    symbol: string
     lastUpdateId: number
     asks: Bid[]
     bids: Bid[]

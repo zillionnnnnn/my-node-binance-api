@@ -45,6 +45,8 @@ export default class Binance {
     stream = 'wss://stream.binance.com:9443/ws/';
     combineStream = 'wss://stream.binance.com:9443/stream?streams=';
 
+    verbose = false;
+
     // proxy variables
     httpsProxy: string = undefined;
     socksProxy: string = undefined;
@@ -125,17 +127,17 @@ export default class Binance {
         if (typeof opt === 'string') { // Pass json config filename
             this.Options = JSON.parse(file.readFileSync(opt) as any);
         } else this.Options = opt;
-        if (typeof this.Options.recvWindow === 'undefined') this.Options.recvWindow = this.default_options.recvWindow;
-        if (typeof this.Options.useServerTime === 'undefined') this.Options.useServerTime = this.default_options.useServerTime;
-        if (typeof this.Options.reconnect === 'undefined') this.Options.reconnect = this.default_options.reconnect;
-        if (typeof this.Options.test === 'undefined') this.Options.test = this.default_options.test;
-        if (typeof this.Options.hedgeMode === 'undefined') this.Options.hedgeMode = this.default_options.hedgeMode;
-        if (typeof this.Options.log === 'undefined') this.Options.log = this.default_options.log;
-        if (typeof this.Options.verbose === 'undefined') this.Options.verbose = this.default_options.verbose;
-        if (typeof this.Options.keepAlive === 'undefined') this.Options.keepAlive = this.default_options.keepAlive;
-        if (typeof this.Options.localAddress === 'undefined') this.Options.localAddress = this.default_options.localAddress;
-        if (typeof this.Options.family === 'undefined') this.Options.family = this.default_options.family;
-        if (typeof this.Options.urls !== 'undefined') {
+        if (!this.Options.recvWindow) this.Options.recvWindow = this.default_options.recvWindow;
+        if (!this.Options.useServerTime) this.Options.useServerTime = this.default_options.useServerTime;
+        if (!this.Options.reconnect) this.Options.reconnect = this.default_options.reconnect;
+        if (!this.Options.test) this.Options.test = this.default_options.test;
+        if (!this.Options.hedgeMode) this.Options.hedgeMode = this.default_options.hedgeMode;
+        if (!this.Options.log) this.Options.log = this.default_options.log;
+        if (!this.Options.verbose) this.Options.verbose = this.default_options.verbose;
+        if (!this.Options.keepAlive) this.Options.keepAlive = this.default_options.keepAlive;
+        if (!this.Options.localAddress) this.Options.localAddress = this.default_options.localAddress;
+        if (!this.Options.family) this.Options.family = this.default_options.family;
+        if (this.Options.urls !== undefined) {
             const { urls } = this.Options;
             if (typeof urls.base === 'string') this.base = urls.base;
             if (typeof urls.wapi === 'string') this.wapi = urls.wapi;
@@ -271,7 +273,10 @@ export default class Binance {
         }
 
         if (response && response.status !== 200) {
-            throw Error(await response.text());
+            const error = new Error(await response.text());
+            // error.code = response.status;
+            // error.url = response.url;
+            throw error;
         }
     }
 
@@ -294,9 +299,18 @@ export default class Binance {
                 // opt.url += '?' + this.makeQueryString(opt.qs);
             }
         }
+        if (this.Options.verbose) {
+            this.Options.log('HTTP Request:', opt.method, opt.url, reqOptions);
+        }
         const response = await fetch(opt.url, reqOptions)
+
+
         await this.reqHandler(response);
         const json = await response.json();
+
+        if (this.Options.verbose) {
+            this.Options.log('HTTP Response:', json);
+        }
         return json;
     }
 
@@ -782,7 +796,7 @@ export default class Binance {
      */
     async marginOrder(type: OrderType, side: string, symbol: string, quantity: number, price?: number, params: Dict = {}) {
         let endpoint = 'v1/margin/order';
-        if (this.Options.test) endpoint += '/test';
+        if (this.Options.test || params.test) endpoint += '/test';
         let request = {
             symbol: symbol,
             side: side,
@@ -826,13 +840,13 @@ export default class Binance {
     // Futures internal functions
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
-     * @param type 
-     * @param side 
-     * @param symbol 
-     * @param quantity 
-     * @param price 
-     * @param params 
-     * @returns 
+     * @param type
+     * @param side
+     * @param symbol
+     * @param quantity
+     * @param price
+     * @param params
+     * @returns
      */
     async futuresOrder(type: OrderType, side: string, symbol: string, quantity: number, price?: number, params: Dict = {}): Promise<FuturesOrder> {
         params.symbol = symbol;
@@ -1028,6 +1042,7 @@ export default class Binance {
         ws.on('close', this.handleSocketClose.bind(this, reconnect));
         ws.on('message', data => {
             try {
+                if (this.Options.verbose) this.Options.log('WebSocket data:', data);
                 callback(JSON.parse(data));
             } catch (error) {
                 this.Options.log('Parse error: ' + error.message);
@@ -1079,6 +1094,8 @@ export default class Binance {
         ws.on('close', this.handleSocketClose.bind(this, reconnect));
         ws.on('message', data => {
             try {
+                if (this.Options.verbose) this.Options.log('CombinedStream: WebSocket data:', data
+                );
                 callback(JSON.parse(data).data);
             } catch (error) {
                 this.Options.log('CombinedStream: Parse error: ' + error.message);
@@ -1216,6 +1233,7 @@ export default class Binance {
         }
 
         if (this.Options.verbose) this.Options.log('futuresSubscribeSingle: Subscribed to ' + endpoint);
+        callback = callback.bind(this);
         ws.reconnect = this.Options.reconnect;
         ws.endpoint = endpoint;
         ws.isAlive = false;
@@ -1225,6 +1243,7 @@ export default class Binance {
         ws.on('close', this.handleFuturesSocketClose.bind(this, params.reconnect));
         ws.on('message', data => {
             try {
+                if (this.Options.verbose) this.Options.log('futuresSubscribeSingle: Received data:', data);
                 callback(JSONbig.parse(data));
             } catch (error) {
                 this.Options.log('Parse error: ' + error.message);
@@ -1280,6 +1299,7 @@ export default class Binance {
         ws.on('close', this.handleFuturesSocketClose.bind(this, params.reconnect));
         ws.on('message', data => {
             try {
+                if (this.Options.verbose) this.Options.log('futuresSubscribe: Received data:', data);
                 callback(JSON.parse(data).data);
             } catch (error) {
                 this.Options.log(`futuresSubscribe: Parse error: ${error.message}`);
@@ -1311,7 +1331,7 @@ export default class Binance {
      */
     futuresKlineConcat(symbol: string, interval: Interval) {
         let output = this.futuresTicks[symbol][interval];
-        if (typeof this.futuresRealtime[symbol][interval].time === 'undefined') return output;
+        if (!this.futuresRealtime[symbol][interval].time) return output;
         const time = this.futuresRealtime[symbol][interval].time;
         const last_updated = Object.keys(this.futuresTicks[symbol][interval]).pop();
         if (time >= last_updated) {
@@ -1930,6 +1950,7 @@ export default class Binance {
         ws.on('close', this.handleDeliverySocketClose.bind(ws, params.reconnect));
         ws.on('message', data => {
             try {
+                if (this.Options.verbose) this.Options.log('deliverySubscribeSingle: Received data:', data);
                 callback(JSON.parse(data));
             } catch (error) {
                 this.Options.log('Parse error: ' + error.message);
@@ -1985,6 +2006,7 @@ export default class Binance {
         ws.on('close', this.handleDeliverySocketClose.bind(ws, params.reconnect));
         ws.on('message', data => {
             try {
+                if (this.Options.verbose) this.Options.log('deliverySubscribe: Received data:', data);
                 callback(JSON.parse(data).data);
             } catch (error) {
                 this.Options.log(`deliverySubscribe: Parse error: ${error.message}`);
@@ -2423,7 +2445,7 @@ export default class Binance {
             if (this.Options.future_account_update_callback) {
                 this.Options.future_account_update_callback(this.fUserDataAccountUpdateConvertData(data));
             }
-        } else if (type === 'ORDER_TRADE_UPDATE') {
+        } else if (type === 'ORDER_TRADE_UPDATE' || type === 'TRADE_LITE') {
             if (this.Options.future_order_update_callback) {
                 this.Options.future_order_update_callback(this.fUserDataOrderUpdateConvertData(data));
             }
@@ -2465,9 +2487,9 @@ export default class Binance {
     };
 
     /**
-    * Universal Transfer requires API permissions enabled 
+    * Universal Transfer requires API permissions enabled
     * @param {string} type - ENUM , example MAIN_UMFUTURE for SPOT to USDT futures, see https://binance-docs.github.io/apidocs/spot/en/#user-universal-transfer
-    * @param {string} asset - the asset - example :USDT    * 
+    * @param {string} asset - the asset - example :USDT    *
     * @param {number} amount - the callback function
     * @return {promise}
     */
@@ -2772,12 +2794,13 @@ export default class Binance {
         return { lastUpdateId: data.lastUpdateId, bids: bids, asks: asks };
     }
 
-    parseOrderBook(data): OrderBook {
+    parseOrderBook(data, symbol: string): OrderBook {
         const { lastUpdateId, bids, asks } = data;
         if (!bids || !asks) {
             return data;
         }
         const orderBook: OrderBook = {
+            symbol,
             lastUpdateId,
             bids: bids.map(b => zip(['price', 'quantity'], b)),
             asks: asks.map(a => zip(['price', 'quantity'], a))
@@ -3226,7 +3249,7 @@ export default class Binance {
     */
     async depth(symbol: string, limit = 100): Promise<OrderBook> {
         const data = await this.publicRequest(this.getSpotUrl() + 'v3/depth', { symbol: symbol, limit: limit });
-        return this.parseOrderBook(data);
+        return this.parseOrderBook(data, symbol);
     }
 
     /**
@@ -3910,7 +3933,7 @@ export default class Binance {
     async futuresDepth(symbol: string, params: Dict = {}): Promise<OrderBook> {
         params.symbol = symbol;
         const res = await this.futuresRequest('v1/depth', params, { base: this.getFapiUrl() });
-        return this.parseOrderBook(res);
+        return this.parseOrderBook(res, symbol);
     }
 
     /**
@@ -3933,11 +3956,11 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
-     * @param symbol 
-     * @param quantity 
-     * @param price 
-     * @param params 
-     * @returns 
+     * @param symbol
+     * @param quantity
+     * @param price
+     * @param params
+     * @returns
      */
     async futuresBuy(symbol: string, quantity: number, price: number, params: Dict = {}) {
         return await this.futuresOrder('LIMIT', 'BUY', symbol, quantity, price, params);
@@ -3945,11 +3968,11 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
-     * @param symbol 
-     * @param quantity 
-     * @param price 
-     * @param params 
-     * @returns 
+     * @param symbol
+     * @param quantity
+     * @param price
+     * @param params
+     * @returns
      */
     async futuresSell(symbol: string, quantity: number, price: number, params: Dict = {}) {
         return await this.futuresOrder('LIMIT', 'SELL', symbol, quantity, price, params);
@@ -3957,11 +3980,11 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
-     * @param symbol 
-     * @param quantity 
-     * @param price 
-     * @param params 
-     * @returns 
+     * @param symbol
+     * @param quantity
+     * @param price
+     * @param params
+     * @returns
      */
     async futuresMarketBuy(symbol: string, quantity: number, params: Dict = {}) {
         return await this.futuresOrder('MARKET', 'BUY', symbol, quantity, undefined, params);
@@ -3969,11 +3992,11 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
-     * @param symbol 
-     * @param quantity 
-     * @param price 
-     * @param params 
-     * @returns 
+     * @param symbol
+     * @param quantity
+     * @param price
+     * @param params
+     * @returns
      */
     async futuresMarketSell(symbol: string, quantity: number, params: Dict = {}) {
         return await this.futuresOrder('MARKET', 'SELL', symbol, quantity, undefined, params);
@@ -3992,48 +4015,111 @@ export default class Binance {
         return await this.futuresRequest('v1/batchOrders', params, { base: this.getFapiUrl(), type: 'TRADE', method: 'POST' });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Cancel-Multiple-Orders
+     */
+    async futuresCancelMultipleOrders(symbol: string, params: Dict = {}) {
+        return await this.futuresRequest('v1/batchOrders', this.extend({'symbol': symbol}, params), { base: this.getFapiUrl(), type: 'TRADE', method: 'DELETE' });
+    }
+
     // futuresOrder, // side symbol quantity [price] [params]
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Query-Order
+     * @param symbol
+     * @param params
+     * @returns
+     */
     async futuresOrderStatus(symbol: string, params: Dict = {}): Promise<FuturesOrder> { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
         return await this.futuresRequest('v1/order', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Cancel-Order
+     * @param symbol
+     * @param orderId
+     * @param params
+     * @returns
+     */
     async futuresCancel(symbol: string, orderId?: string, params: Dict = {}): Promise<CancelOrder> { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
         if (orderId) params.orderId = orderId;
         return await this.futuresRequest('v1/order', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'DELETE' });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Cancel-All-Open-Orders
+     * @param symbol
+     * @param params
+     * @returns
+     */
     async futuresCancelAll(symbol: string, params: Dict = {}): Promise<FuturesCancelAllOpenOrder[]> {
         params.symbol = symbol;
         return await this.futuresRequest('v1/allOpenOrders', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'DELETE' });
     }
 
+    /**
+     *
+     * @param symbol
+     * @param countdownTime
+     * @param params
+     * @returns
+     */
     async futuresCountdownCancelAll(symbol, countdownTime = 0, params: Dict = {}) {
         params.symbol = symbol;
         params.countdownTime = countdownTime;
         return await this.futuresRequest('v1/countdownCancelAll', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'POST' });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Current-All-Open-Orders
+     * @param symbol
+     * @param params
+     * @returns
+     */
     async futuresOpenOrders(symbol?: string, params: Dict = {}): Promise<FuturesOrder[]> {
         if (symbol) params.symbol = symbol;
         return await this.futuresRequest('v1/openOrders', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/All-Orders
+     * @param symbol
+     * @param params
+     * @returns
+     */
     async futuresAllOrders(symbol?: string, params: Dict = {}): Promise<FuturesOrder[]> { // Get all account orders; active, canceled, or filled.
         if (symbol) params.symbol = symbol;
         return await this.futuresRequest('v1/allOrders', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
+    /**
+     *
+     * @param params
+     * @returns
+     */
     async futuresPositionSideDual(params: Dict = {}) {
         return await this.futuresRequest('v1/positionSide/dual', params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
+    /**
+     *
+     * @param dualSidePosition
+     * @param params
+     * @returns
+     */
     async futuresChangePositionSideDual(dualSidePosition, params: Dict = {}) {
         params.dualSidePosition = dualSidePosition;
         return await this.futuresRequest('v1/positionSide/dual', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'POST' });
     }
+
+    /**
+     *
+     * @param symbol
+     * @param params
+     * @returns
+     */
     async futuresTransferAsset(asset: string, amount: number, type: string, params: Dict = {}) {
         params = Object.assign({ asset, amount, type });
         return await this.futuresRequest('v1/futures/transfer', params, { base: this.sapi, type: 'SIGNED', method: 'POST' });
@@ -4053,7 +4139,7 @@ export default class Binance {
     Cancel multiple orders DELETE /fapi/v1/batchOrders
     New Future Account Transfer POST https://api.binance.com/sapi/v1/futures/transfer
     Get Postion Margin Change History (TRADE)
-    
+
     wss://fstream.binance.com/ws/<listenKey>
     Diff. Book Depth Streams (250ms, 100ms, or realtime): <symbol>@depth OR <symbol>@depth@100ms OR <symbol>@depth@0ms
     Partial Book Depth Streams (5, 10, 20): <symbol>@depth<levels> OR <symbol>@depth<levels>@100ms
@@ -4249,7 +4335,7 @@ export default class Binance {
     async deliveryDepth(symbol: string, params: Dict = {}): Promise<OrderBook> {
         params.symbol = symbol;
         const res =  await this.futuresRequest('v1/depth', params, { base: this.getDapiUrl() });
-        return this.parseOrderBook(res);
+        return this.parseOrderBook(res, symbol);
     }
 
     async deliveryQuote(symbol?: string, params: Dict = {}) {
@@ -5083,7 +5169,6 @@ export default class Binance {
 
     /**
      * Userdata websockets function
-    
      * @param {function} execution_callback - optional execution callback
      * @param {function} subscribed_callback - subscription callback
      * @param {function} list_status_callback - status callback
@@ -5114,7 +5199,6 @@ export default class Binance {
 
     /**
      * Margin Userdata websockets function
-    
      * @param {function} execution_callback - optional execution callback
      * @param {function} subscribed_callback - subscription callback
      * @param {function} list_status_callback - status callback
