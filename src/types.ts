@@ -42,7 +42,6 @@ export type OrderStatus =
 
 export type TimeInForce = 'GTC' | 'IOC' | 'FOK' | 'GTE_GTC' | 'GTD'
 
-
 export interface Candle {
     openTime: number
     open: string
@@ -88,7 +87,7 @@ export interface Order {
     updateTime: number
   }
 
-  export interface FuturesOrder {
+export interface FuturesOrder {
     clientOrderId: string
     cumQty: string
     cumQuote: string
@@ -115,13 +114,11 @@ export interface Order {
 
 export type PositionSide = 'BOTH' | 'SHORT' | 'LONG'
 
-
 export type WorkingType = 'MARK_PRICE' | 'CONTRACT_PRICE'
 
 // export type symbol = string;
 
 export type Callback = (...args: any) => any;
-
 
 export interface IConstructorArgs {
     APIKEY: string;
@@ -165,7 +162,6 @@ export interface FundingRate {
     time: number
   }
 
-
 export interface PositionRisk {
     entryPrice: string
     marginType: 'isolated' | 'cross'
@@ -184,7 +180,6 @@ export interface PositionRisk {
     updateTime: number
 }
 
-
 export interface CancelOrder{
     symbol: string
     origClientOrderId: string
@@ -201,7 +196,6 @@ export interface CancelOrder{
     side: OrderSide
 }
 
-
 export interface AggregatedTrade {
     aggId: number
     symbol: string
@@ -214,7 +208,6 @@ export interface AggregatedTrade {
     wasBestPrice: boolean
 }
 
-
 export interface Trade {
     id: number
     price: string
@@ -225,7 +218,7 @@ export interface Trade {
     isBestMatch: boolean
   }
 
-  export interface MyTrade {
+export interface MyTrade {
     id: number
     symbol: string
     orderId: number
@@ -243,7 +236,6 @@ export interface Trade {
 
 export type WithdrawStatus = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
-
 export interface WithdrawHistoryResponse {
     [index: number]: {
       id: string
@@ -259,7 +251,6 @@ export interface WithdrawHistoryResponse {
       withdrawOrderId?: string
     }
 }
-
 
 export interface DepositHistoryResponse {
     [index: number]: {
@@ -309,7 +300,6 @@ export interface FuturesUserTrade {
     time: number
   }
 
-
 export interface DepositAddress {
     address: string
     tag: string
@@ -317,19 +307,16 @@ export interface DepositAddress {
     url: string
   }
 
-  export interface WithdrawResponse {
+export interface WithdrawResponse {
     id: string
   }
 
-
 export type DepositStatus = 0 | 1
-
 
 export interface FuturesCancelAllOpenOrder {
     code: number
     msg: string
 }
-
 
 export interface OrderBook {
     symbol: string
@@ -369,7 +356,6 @@ export interface Ticker {
     totalTrades: number
   }
 
-
 // export {
 //     _interval as interval,
 //     _symbol as symbol,
@@ -377,7 +363,7 @@ export interface Ticker {
 //     IConstructorArgs
 // }
 
-  export type TradingType = 'MARGIN' | 'SPOT'
+export type TradingType = 'MARGIN' | 'SPOT'
 
 export interface Account {
     accountType: TradingType
@@ -398,7 +384,6 @@ export interface AssetBalance {
     free: string
     locked: string
 }
-
 
 export interface FuturesAccountInfo {
     feeTier: number
@@ -421,7 +406,7 @@ export interface FuturesAccountInfo {
     positions: FuturesAccountPosition[]
   }
 
-  export interface FuturesAccountPosition {
+export interface FuturesAccountPosition {
     symbol: string
     initialMargin: string
     maintMargin: string
@@ -441,8 +426,7 @@ export interface FuturesAccountInfo {
     askNotional: string
   }
 
-
-  export type FuturesAssetType =
+export type FuturesAssetType =
   | 'DOT'
   | 'BTC'
   | 'SOL'
@@ -470,7 +454,6 @@ export type FuturesAsset = {
   updateTime: number
 }
 
-
 export interface FuturesBalance {
     accountAlias: string
     asset: string
@@ -480,7 +463,6 @@ export interface FuturesBalance {
     availableBalance: string
     maxWithdrawAmount: string
   }
-
 
 export interface QueryOrder {
     clientOrderId: string
