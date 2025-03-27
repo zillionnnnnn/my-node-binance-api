@@ -36,7 +36,7 @@
     "coveralls": "cat ./coverage/lcov.info | coveralls",
     "codacy": "cat ./coverage/lcov.info | codacy-coverage -v",
     "codecov": "codecov",
-    "bundle-cjs": "rollup -c rollup.config.js",
+    "bundle-cjs": "mkdir -p dist/cjs && rollup -c rollup.config.js",
     "publishPackage": "sh publish.sh && git push && git push --tags && npm publish"
   },
   "repository": {
