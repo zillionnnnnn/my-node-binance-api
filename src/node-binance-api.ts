@@ -15,7 +15,7 @@ import stringHash from 'string-hash';
 import async from 'async';
 // eslint-disable-next-line
 import { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder } from './types';
-export { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder } from './types';
+// export { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, FuturesAccountInfo, FuturesBalance, QueryOrder } from './types';
 
 export interface Dictionary<T> {
     [key: string]: T;
@@ -825,10 +825,10 @@ export default class Binance {
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
      * @param type
      * @param side
-     * @param symbol
+     * @param symbol symbol if the market
      * @param quantity
      * @param price
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresOrder(type: OrderType, side: string, symbol: string, quantity: number, price?: number, params: Dict = {}): Promise<FuturesOrder> {
@@ -3730,8 +3730,8 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Recent-Trades-List
-     * @param symbol
-     * @param params
+     * @param symbol symbol if the market
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresTrades(symbol: string, params: Dict = {}): Promise<Trade[]> {
@@ -3741,7 +3741,7 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Old-Trades-Lookup
-     * @param symbol
+     * @param symbol symbol if the market
      * @param param
      * @returns
      */
@@ -3760,7 +3760,7 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Users-Force-Orders
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresForceOrders(params: Dict = {}) {
@@ -3768,7 +3768,7 @@ export default class Binance {
     }
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-ADL-Quantile-Estimation
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresDeleverageQuantile(params: Dict = {}) {
@@ -3777,7 +3777,7 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Account-Trade-List
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresUserTrades(symbol: string, params: Dict = {}): Promise<FuturesUserTrade[]> {
@@ -3826,8 +3826,8 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Get-Funding-Rate-Info
-     * @param symbol
-     * @param params
+     * @param symbol symbol if the market
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresFundingRate(symbol: string, params: Dict = {}): Promise<FundingRate[]> {
@@ -3837,8 +3837,8 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Notional-and-Leverage-Brackets#http-request
-     * @param symbol
-     * @param params
+     * @param symbol symbol if the market
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresLeverageBracket(symbol?: string, params: Dict = {}) {
@@ -3848,8 +3848,8 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Futures-Trading-Quantitative-Rules-Indicators#http-request
-     * @param symbol
-     * @param params
+     * @param symbol symbol if the market
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresTradingStatus(symbol?: string, params: Dict = {}) {
@@ -3859,8 +3859,8 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/User-Commission-Rate#http-request
-     * @param symbol
-     * @param params
+     * @param symbol symbol if the market
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresCommissionRate(symbol?: string, params: Dict = {}) {
@@ -3881,9 +3881,9 @@ export default class Binance {
     // ISOLATED, CROSSED
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Change-Margin-Type
-     * @param symbol
+     * @param symbol symbol if the market
      * @param marginType
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresMarginType(symbol: string, marginType: string, params: Dict = {}) {
@@ -3921,7 +3921,7 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Account-Information-V3
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresAccount(params: Dict = {}): Promise<FuturesAccountInfo> {
@@ -3930,8 +3930,8 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Order-Book
-     * @param symbol
-     * @param params
+     * @param symbol symbol if the market
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresDepth(symbol: string, params: Dict = {}): Promise<OrderBook> {
@@ -3960,10 +3960,10 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
-     * @param symbol
+     * @param symbol symbol if the market
      * @param quantity
      * @param price
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresBuy(symbol: string, quantity: number, price: number, params: Dict = {}) {
@@ -3972,10 +3972,10 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
-     * @param symbol
+     * @param symbol symbol if the market
      * @param quantity
      * @param price
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresSell(symbol: string, quantity: number, price: number, params: Dict = {}) {
@@ -3984,10 +3984,10 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
-     * @param symbol
+     * @param symbol symbol if the market
      * @param quantity
      * @param price
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresMarketBuy(symbol: string, quantity: number, params: Dict = {}) {
@@ -3996,10 +3996,10 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
-     * @param symbol
+     * @param symbol symbol if the market
      * @param quantity
      * @param price
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresMarketSell(symbol: string, quantity: number, params: Dict = {}) {
@@ -4030,8 +4030,8 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Query-Order
-     * @param symbol
-     * @param params
+     * @param symbol symbol if the market
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresOrderStatus(symbol: string, params: Dict = {}): Promise<FuturesOrder> { // Either orderId or origClientOrderId must be sent
@@ -4041,9 +4041,9 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Cancel-Order
-     * @param symbol
+     * @param symbol symbol if the market
      * @param orderId
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresCancel(symbol: string, orderId?: string, params: Dict = {}): Promise<CancelOrder> { // Either orderId or origClientOrderId must be sent
@@ -4054,8 +4054,8 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Cancel-All-Open-Orders
-     * @param symbol
-     * @param params
+     * @param symbol symbol if the market
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresCancelAll(symbol: string, params: Dict = {}): Promise<FuturesCancelAllOpenOrder[]> {
@@ -4065,9 +4065,9 @@ export default class Binance {
 
     /**
      *
-     * @param symbol
+     * @param symbol symbol if the market
      * @param countdownTime
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresCountdownCancelAll(symbol, countdownTime = 0, params: Dict = {}) {
@@ -4078,8 +4078,8 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Current-All-Open-Orders
-     * @param symbol
-     * @param params
+     * @param symbol symbol if the market
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresOpenOrders(symbol?: string, params: Dict = {}): Promise<FuturesOrder[]> {
@@ -4089,8 +4089,8 @@ export default class Binance {
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/All-Orders
-     * @param symbol
-     * @param params
+     * @param symbol symbol if the market
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresAllOrders(symbol?: string, params: Dict = {}): Promise<FuturesOrder[]> { // Get all account orders; active, canceled, or filled.
@@ -4100,7 +4100,7 @@ export default class Binance {
 
     /**
      *
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresPositionSideDual(params: Dict = {}) {
@@ -4110,7 +4110,7 @@ export default class Binance {
     /**
      *
      * @param dualSidePosition
-     * @param params
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresChangePositionSideDual(dualSidePosition, params: Dict = {}) {
@@ -4120,8 +4120,8 @@ export default class Binance {
 
     /**
      *
-     * @param symbol
-     * @param params
+     * @param symbol symbol if the market
+     * @param params extra parameters to be sent in the request
      * @returns
      */
     async futuresTransferAsset(asset: string, amount: number, type: string, params: Dict = {}) {
@@ -5765,5 +5765,4 @@ export default class Binance {
         }
         return (subscription as any).endpoint;
     }
-
 }
