@@ -248,4 +248,22 @@ describe( 'Static tests', async function () {
         assert.equal( obj.price, 100 )
         assert.equal( obj.newClientOrderId, 'myid')
     })
+
+    it( 'delivery OrderBook', async function ( ) {
+        await binance.deliveryDepth( 'BTCUSD_PERP' )
+        assert.equal( interceptedUrl, 'https://dapi.binance.com/dapi/v1/depth?symbol=BTCUSD_PERP' )
+
+    })
+
+    it( 'delivery MarketBuy', async function ( ) {
+        await binance.deliveryOrder( 'MARKET', 'BUY', 'BTCUSD_PERP', 0.1 )
+        assert.isTrue( interceptedUrl.startsWith('https://dapi.binance.com/dapi/v1/order' ))
+        const obj = urlToObject( interceptedUrl.replace('https://dapi.binance.com/dapi/v1/order', '') )
+        assert.equal( obj.symbol, 'BTCUSD_PERP' )
+        assert.equal( obj.side, 'BUY' )
+        assert.equal( obj.type, 'MARKET' )
+        assert.equal( obj.quantity, 0.1 )
+        assert(obj.newClientOrderId.startsWith(CONTRACT_PREFIX))
+    })
+
 })

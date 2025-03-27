@@ -54,6 +54,8 @@ export default class Binance {
     APISECRET: string = undefined;
     test = false;
 
+    timeOffset: number = 0;
+
     userAgent = 'Mozilla/4.0 (compatible; Node Binance API)';
     contentType = 'application/x-www-form-urlencoded';
     SPOT_PREFIX = "x-HNA2TXFJ";
@@ -135,21 +137,21 @@ export default class Binance {
         if (!this.Options.family) this.Options.family = this.default_options.family;
         if (this.Options.urls !== undefined) {
             const { urls } = this.Options;
-            if (typeof urls.base === 'string') this.base = urls.base;
-            if (typeof urls.wapi === 'string') this.wapi = urls.wapi;
-            if (typeof urls.sapi === 'string') this.sapi = urls.sapi;
-            if (typeof urls.fapi === 'string') this.fapi = urls.fapi;
-            if (typeof urls.fapiTest === 'string') this.fapiTest = urls.fapiTest;
-            if (typeof urls.stream === 'string') this.stream = urls.stream;
-            if (typeof urls.combineStream === 'string') this.combineStream = urls.combineStream;
-            if (typeof urls.fstream === 'string') this.fstream = urls.fstream;
-            if (typeof urls.fstreamSingle === 'string') this.fstreamSingle = urls.fstreamSingle;
-            if (typeof urls.fstreamTest === 'string') this.fstreamTest = urls.fstreamTest;
-            if (typeof urls.fstreamSingleTest === 'string') this.fstreamSingleTest = urls.fstreamSingleTest;
-            if (typeof urls.dstream === 'string') this.dstream = urls.dstream;
-            if (typeof urls.dstreamSingle === 'string') this.dstreamSingle = urls.dstreamSingle;
-            if (typeof urls.dstreamTest === 'string') this.dstreamTest = urls.dstreamTest;
-            if (typeof urls.dstreamSingleTest === 'string') this.dstreamSingleTest = urls.dstreamSingleTest;
+            if (urls.base) this.base = urls.base;
+            if (urls.wapi) this.wapi = urls.wapi;
+            if (urls.sapi) this.sapi = urls.sapi;
+            if (urls.fapi) this.fapi = urls.fapi;
+            if (urls.fapiTest) this.fapiTest = urls.fapiTest;
+            if (urls.stream) this.stream = urls.stream;
+            if (urls.combineStream) this.combineStream = urls.combineStream;
+            if (urls.fstream) this.fstream = urls.fstream;
+            if (urls.fstreamSingle) this.fstreamSingle = urls.fstreamSingle;
+            if (urls.fstreamTest) this.fstreamTest = urls.fstreamTest;
+            if (urls.fstreamSingleTest) this.fstreamSingleTest = urls.fstreamSingleTest;
+            if (urls.dstream) this.dstream = urls.dstream;
+            if (urls.dstreamSingle) this.dstreamSingle = urls.dstreamSingle;
+            if (urls.dstreamTest) this.dstreamTest = urls.dstreamTest;
+            if (urls.dstreamSingleTest) this.dstreamSingleTest = urls.dstreamSingleTest;
         }
 
         if (this.Options.APIKEY) this.APIKEY = this.Options.APIKEY;
@@ -162,8 +164,8 @@ export default class Binance {
 
         this.assignOptions(opt);
         if (this.Options.useServerTime) {
-            const res = await this.publicRequest(this.getSpotUrl() + 'v3/time');
-            this.info.timeOffset = res.serverTime - new Date().getTime();
+            const res = await this.publicSpotRequest('v3/time');
+            this.timeOffset = res.serverTime - new Date().getTime();
         }
         return this;
     }
@@ -382,8 +384,8 @@ export default class Binance {
         }
         if (flags.type === 'SIGNED' || flags.type === 'TRADE' || flags.type === 'USER_DATA') {
             data.timestamp = new Date().getTime();
-            if (this.info.timeOffset) {
-                data.timestamp += this.info.timeOffset;
+            if (this.timeOffset) {
+                data.timestamp += this.timeOffset;
             }
             query = this.makeQueryString(data);
             data.signature = crypto.createHmac('sha256', this.Options.APISECRET).update(query).digest('hex'); // HMAC hash header
@@ -509,6 +511,30 @@ export default class Binance {
     }
 
     /**
+     * Create a public spot/margin request
+     * @param {string} path - url path
+     * @param {object} data - The data to send
+     * @param {string} method - the http method
+     * @param {boolean} noDataInSignature - Prevents data from being added to signature
+     * @return {undefined}
+     */
+    async publicSpotRequest(path: string, data: Dict = {}, method: HttpMethod = 'GET') {
+        return await this.publicRequest/**/(this.getSpotUrl() + path, data, method);
+    }
+
+    /**
+     * Create a signed spot/margin request
+     * @param {string} path - url path
+     * @param {object} data - The data to send
+     * @param {string} method - the http method
+     * @param {boolean} noDataInSignature - Prevents data from being added to signature
+     * @return {undefined}
+     */
+    async privateSpotRequest(path: string, data: Dict = {}, method: HttpMethod = 'GET', noDataInSignature = false) {
+        return await this.signedRequest/**/(this.getSpotUrl() + path, data, method, noDataInSignature);
+    }
+
+    /**
      * Create a signed http request
      * @param {string} url - The http endpoint
      * @param {object} data - The data to send
@@ -521,7 +547,7 @@ export default class Binance {
         this.requireApiSecret('signedRequest');
 
         data.timestamp = new Date().getTime();
-        if (this.info.timeOffset) data.timestamp += this.info.timeOffset;
+        if (this.timeOffset) data.timestamp += this.timeOffset;
 
         if (!data.recvWindow) data.recvWindow = this.Options.recvWindow;
         const query = method === 'POST' && noDataInSignature ? '' : this.makeQueryString(data);
@@ -616,7 +642,7 @@ export default class Binance {
             request.stopPrice = params.stopPrice;
             if (request.type === 'LIMIT') throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
         }
-        const response = await this.signedRequest(this.getSpotUrl() + endpoint, this.extend(request, params), 'POST');
+        const response = await this.privateSpotRequest(endpoint, this.extend(request, params), 'POST');
         // to do error handling
         // if ( !response ) {
         //     if ( callback ) callback( error, response );
@@ -692,7 +718,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async cancel(symbol: string, orderid: string, params: Dict = {}): Promise<CancelOrder> {
-        return await this.signedRequest(this.getSpotUrl() + 'v3/order', this.extend({ symbol: symbol, orderId: orderid }, params), 'DELETE');
+        return await this.privateSpotRequest('v3/order', this.extend({ symbol: symbol, orderId: orderid }, params), 'DELETE');
     }
 
     /**
@@ -708,7 +734,7 @@ export default class Binance {
         if (orderid) {
             parameters = Object.assign({ orderId: orderid }, parameters);
         }
-        return await this.signedRequest(this.getSpotUrl() + 'v3/order', parameters);
+        return await this.privateSpotRequest('v3/order', parameters);
     }
 
     /**
@@ -719,7 +745,7 @@ export default class Binance {
 */
     async openOrders(symbol?: string, params: Dict = {}): Promise<QueryOrder[]> {
         const parameters = symbol ? { symbol: symbol } : {};
-        return await this.signedRequest(this.getSpotUrl() + 'v3/openOrders', this.extend(parameters, params));
+        return await this.privateSpotRequest('v3/openOrders', this.extend(parameters, params));
     }
 
     /**
@@ -729,7 +755,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async cancelAll(symbol: string, params: Dict = {}) {
-        return await this.signedRequest(this.getSpotUrl() + 'v3/openOrders', this.extend({ symbol }, params), 'DELETE');
+        return await this.privateSpotRequest('v3/openOrders', this.extend({ symbol }, params), 'DELETE');
     }
 
     /**
@@ -738,7 +764,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async cancelOrders(symbol: string, params: Dict = {}) {
-        const json = await this.signedRequest(this.getSpotUrl() + 'v3/openOrders', this.extend({ symbol: symbol }, params), 'DELETE');
+        const json = await this.privateSpotRequest('v3/openOrders', this.extend({ symbol: symbol }, params), 'DELETE');
         // if (json.length === 0) {
         //     return callback.call(this, 'No orders present for this symbol', {}, symbol);
         // }
@@ -765,7 +791,7 @@ export default class Binance {
     */
     async allOrders(symbol: string, params: Dict = {}): Promise<QueryOrder[]> {
         const parameters = this.extend({ symbol }, params);
-        return await this.signedRequest(this.getSpotUrl() + 'v3/allOrders', parameters);
+        return await this.privateSpotRequest('v3/allOrders', parameters);
     }
 
     /**
@@ -817,7 +843,7 @@ export default class Binance {
             request.stopPrice = params.stopPrice;
             if (request.type === 'LIMIT') throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
         }
-        return await this.signedRequest(this.sapi + endpoint, this.extend(request, params), 'POST');
+        return await this.privateSpotRequest(endpoint, this.extend(request, params), 'POST');
     }
 
     // Futures internal functions
@@ -975,7 +1001,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async time() {
-        const res = await this.publicRequest(this.getSpotUrl() + 'v3/time', {});
+        const res = await this.publicSpotRequest('v3/time', {});
         return res;
     }
 
@@ -2482,8 +2508,7 @@ export default class Binance {
             amount,
             type,
         });
-        return await this.signedRequest(
-            this.sapi + "v1/asset/transfer",
+        return await this.privateSpotRequest("v1/asset/transfer",
             parameters,
             "POST"
         );
@@ -2506,8 +2531,7 @@ export default class Binance {
             amount,
             type,
         });
-        return await this.signedRequest(
-            this.sapi + "v1/futures/transfer",
+        return await this.privateSpotRequest("v1/futures/transfer",
             parameters,
             "POST"
         );
@@ -3230,7 +3254,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async depth(symbol: string, limit = 100): Promise<OrderBook> {
-        const data = await this.publicRequest(this.getSpotUrl() + 'v3/depth', { symbol: symbol, limit: limit });
+        const data = await this.publicSpotRequest('v3/depth', { symbol: symbol, limit: limit });
         return this.parseOrderBook(data, symbol);
     }
 
@@ -3241,7 +3265,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async avgPrice(symbol: string) {
-        return await this.publicRequest(this.getSpotUrl() + 'v3/avgPrice', { symbol: symbol });
+        return await this.publicSpotRequest('v3/avgPrice', { symbol: symbol });
     }
 
     /**
@@ -3251,7 +3275,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async prices(symbol: string) {
-        const data = await this.publicRequest(this.getSpotUrl() + 'v3/ticker/price', { symbol: symbol });
+        const data = await this.publicSpotRequest('v3/ticker/price', { symbol: symbol });
         return this.priceData(data);
     }
 
@@ -3262,7 +3286,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async bookTickers(symbol: string) {
-        const data = await this.publicRequest(this.getSpotUrl() + 'v3/ticker/bookTicker', { symbol: symbol });
+        const data = await this.publicSpotRequest('v3/ticker/bookTicker', { symbol: symbol });
         return this.bookPriceData(data);
     }
 
@@ -3274,7 +3298,7 @@ export default class Binance {
     */
     async prevDay(symbol: string) {
         const input = symbol ? { symbol: symbol } : {};
-        return await this.publicRequest(this.getSpotUrl() + 'v3/ticker/24hr', input);
+        return await this.publicSpotRequest('v3/ticker/24hr', input);
     }
 
     /**
@@ -3283,7 +3307,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async exchangeInfo() {
-        return await this.publicRequest(this.getSpotUrl() + 'v3/exchangeInfo', {});
+        return await this.publicSpotRequest('v3/exchangeInfo', {});
     }
 
     /**
@@ -3291,15 +3315,15 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async dustLog() {
-        return await this.signedRequest(this.sapi + 'v1/asset/dribblet', {});
+        return await this.privateSpotRequest('v1/asset/dribblet', {});
     }
 
     async dustTransfer(assets) {
-        return await this.signedRequest(this.sapi + 'v1/asset/dust', { asset: assets }, 'POST');
+        return await this.privateSpotRequest('v1/asset/dust', { asset: assets }, 'POST');
     }
 
     async assetDividendRecord(params: Dict = {}) {
-        return await this.signedRequest(this.sapi + 'v1/asset/assetDividend', params);
+        return await this.privateSpotRequest('v1/asset/assetDividend', params);
     }
 
     /**
@@ -3329,7 +3353,7 @@ export default class Binance {
         if (name) params.name = name;
         if (addressTag) params.addressTag = addressTag;
 
-        return await this.signedRequest(this.sapi + 'v1/capital/withdraw/apply', params, 'POST');
+        return await this.privateSpotRequest('v1/capital/withdraw/apply', params, 'POST');
     }
 
     /**
@@ -3340,7 +3364,7 @@ export default class Binance {
     */
     async withdrawHistory(params: Dict = {}): Promise<WithdrawHistoryResponse> {
         if (typeof params === 'string') params = { asset: params };
-        return await this.signedRequest(this.sapi + 'v1/capital/withdraw/history', params);
+        return await this.privateSpotRequest('v1/capital/withdraw/history', params);
     }
 
     /**
@@ -3351,7 +3375,7 @@ export default class Binance {
     */
     async depositHistory(asset?: string, params: Dict = {}): Promise<DepositHistoryResponse> {
         if (asset) params = { asset: asset };
-        return await this.signedRequest(this.sapi + 'v1/capital/deposit/hisrec', params);
+        return await this.privateSpotRequest('v1/capital/deposit/hisrec', params);
     }
 
     /**
@@ -3361,7 +3385,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async depositAddress(asset: string, params: Dict = {}): Promise<DepositAddress> {
-        return await this.signedRequest(this.sapi + 'v1/capital/deposit/address', this.extend({ coin: asset }, params));
+        return await this.privateSpotRequest('v1/capital/deposit/address', this.extend({ coin: asset }, params));
     }
 
     /**
@@ -3371,7 +3395,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async depositAddressList(asset: string, params: Dict = {}) {
-        return await this.signedRequest(this.sapi + 'v1/capital/deposit/address/list', this.extend({ coin: asset }, params));
+        return await this.privateSpotRequest('v1/capital/deposit/address/list', this.extend({ coin: asset }, params));
     }
 
     /**
@@ -3380,14 +3404,14 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async accountStatus(params: Dict = {}) {
-        return await this.signedRequest(this.sapi + 'v3/account', params);
+        return await this.privateSpotRequest('v3/account', params);
     }
 
     /**
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async apiPermission(params: Dict = {}) {
-        return await this.signedRequest(this.sapi + 'v1/account/apiRestrictions', params);
+        return await this.privateSpotRequest('v1/account/apiRestrictions', params);
     }
 
     /**
@@ -3398,7 +3422,7 @@ export default class Binance {
     */
     async tradeFee(symbol?: string) {
         const params = symbol ? { symbol: symbol } : {};
-        return await this.signedRequest(this.sapi + 'v1/asset/tradeFee', params);
+        return await this.privateSpotRequest('v1/asset/tradeFee', params);
     }
 
     /**
@@ -3407,7 +3431,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async assetDetail(params: Dict = {}) {
-        return await this.signedRequest(this.sapi + 'asset/assetDetail', params);
+        return await this.privateSpotRequest('asset/assetDetail', params);
     }
 
     /**
@@ -3416,7 +3440,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async account(params: Dict = {}): Promise<Account> {
-        return await this.signedRequest(this.getSpotUrl() + 'v3/account', params);
+        return await this.privateSpotRequest('v3/account', params);
     }
 
     /**
@@ -3425,7 +3449,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async balance(params: Dict = {}) {
-        const data = await this.signedRequest(this.getSpotUrl() + 'v3/account', params);
+        const data = await this.privateSpotRequest('v3/account', params);
         return this.balanceData(data);
     }
 
@@ -3438,7 +3462,7 @@ export default class Binance {
     */
     async trades(symbol: string, params: Dict = {}): Promise<MyTrade[]> {
         const parameters = this.extend({ symbol: symbol }, params);
-        return await this.signedRequest(this.getSpotUrl() + 'v3/myTrades', parameters);
+        return await this.privateSpotRequest('v3/myTrades', parameters);
     }
 
     /**
@@ -3450,7 +3474,7 @@ export default class Binance {
     */
     async myTrades(symbol: string, params: Dict = {}): Promise<MyTrade[]> {
         const parameters = this.extend({ symbol: symbol }, params);
-        return await this.signedRequest(this.getSpotUrl() + 'v3/myTrades', parameters);
+        return await this.privateSpotRequest('v3/myTrades', parameters);
     }
 
     /**
@@ -3459,8 +3483,8 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async useServerTime() {
-        const response = await this.publicRequest(this.getSpotUrl() + 'v3/time', {});
-        this.info.timeOffset = response.serverTime - new Date().getTime();
+        const response = await this.publicSpotRequest('v3/time', {});
+        this.timeOffset = response.serverTime - new Date().getTime();
         return response;
     }
 
@@ -3479,7 +3503,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async ping() {
-        return await this.publicRequest(this.getSpotUrl() + 'v3/ping', {});
+        return await this.publicSpotRequest('v3/ping', {});
     }
 
     /**
@@ -3491,7 +3515,7 @@ export default class Binance {
     */
     async aggTrades(symbol: string, params: Dict = {}): Promise<AggregatedTrade[]> { //fromId startTime endTime limit
         const parameters = Object.assign({ symbol }, params);
-        return await this.publicRequest(this.getSpotUrl() + 'v3/aggTrades', parameters);
+        return await this.publicSpotRequest('v3/aggTrades', parameters);
     }
 
     /**
@@ -3573,7 +3597,7 @@ export default class Binance {
     async candlesticks(symbol: string, interval: Interval = '5m', params: Dict = {}): Promise<Candle[]> {
         if (!params.limit) params.limit = 500;
         params = Object.assign({ symbol: symbol, interval: interval }, params);
-        return await this.publicRequest(this.getSpotUrl() + 'v3/klines', params);
+        return await this.publicSpotRequest('v3/klines', params);
     }
 
     /**
@@ -4486,7 +4510,7 @@ export default class Binance {
      * @return {undefined}
      */
     async mgCancel(symbol: string, orderid: string, isIsolated = 'FALSE'): Promise<CancelOrder> {
-        return await this.signedRequest(this.sapi + 'v1/margin/order', { symbol: symbol, orderId: orderid, isIsolated }, 'DELETE');
+        return await this.privateSpotRequest('v1/margin/order', { symbol: symbol, orderId: orderid, isIsolated }, 'DELETE');
     }
 
     /**
@@ -4497,7 +4521,7 @@ export default class Binance {
     */
     async mgAllOrders(symbol: string, params: Dict = {}): Promise<Order[]> {
         const parameters = Object.assign({ symbol: symbol }, params);
-        return await this.signedRequest(this.sapi + 'v1/margin/allOrders', parameters);
+        return await this.privateSpotRequest('v1/margin/allOrders', parameters);
     }
 
     /**
@@ -4509,7 +4533,7 @@ export default class Binance {
      */
     async mgOrderStatus(symbol: string, orderid: string, flags = {}): Promise<Order> {
         const parameters = Object.assign({ symbol: symbol, orderId: orderid }, flags);
-        return await this.signedRequest(this.sapi + 'v1/margin/order', parameters);
+        return await this.privateSpotRequest('v1/margin/order', parameters);
     }
 
     /**
@@ -4519,7 +4543,7 @@ export default class Binance {
      */
     async mgOpenOrders(symbol?: string, params: Dict = {}): Promise<Order[]> {
         if (symbol) params.symbol = symbol;
-        return await this.signedRequest(this.sapi + 'v1/margin/openOrders', params);
+        return await this.privateSpotRequest('v1/margin/openOrders', params);
     }
 
     /**
@@ -4540,7 +4564,7 @@ export default class Binance {
         //         }, 'DELETE');
         //     }
         // }); // to do check this
-        return await this.signedRequest(this.sapi + 'v1/margin/openOrders', this.extend({ symbol: symbol }, params), 'DELETE');
+        return await this.privateSpotRequest('v1/margin/openOrders', this.extend({ symbol: symbol }, params), 'DELETE');
     }
 
     /**
@@ -4552,7 +4576,7 @@ export default class Binance {
      */
     async mgTransferMainToMargin(asset: string, amount: number, params: Dict = {}) {
         params = this.extend({ asset: asset, amount: amount, type: 1 }, params);
-        return await this.signedRequest(this.sapi + 'v1/margin/transfer', params, 'POST');
+        return await this.privateSpotRequest('v1/margin/transfer', params, 'POST');
     }
 
     /**
@@ -4563,7 +4587,7 @@ export default class Binance {
      */
     async mgTransferMarginToMain(asset: string, amount: number) {
         const parameters = Object.assign({ asset: asset, amount: amount, type: 2 });
-        return await this.signedRequest(this.sapi + 'v1/margin/transfer', parameters, 'POST');
+        return await this.privateSpotRequest('v1/margin/transfer', parameters, 'POST');
     }
     // /**
     // * Universal Transfer requires API permissions enabled
@@ -4584,7 +4608,7 @@ export default class Binance {
     */
     async mgTrades(symbol: string, params: Dict = {}): Promise<MyTrade[]> {
         const parameters = Object.assign({ symbol: symbol }, params);
-        return await this.signedRequest(this.sapi + 'v1/margin/myTrades', parameters);
+        return await this.privateSpotRequest('v1/margin/myTrades', parameters);
     }
 
     /**
@@ -4637,7 +4661,7 @@ export default class Binance {
      * @return {undefined}
      */
     async maxTransferable(asset: string) {
-        return await this.signedRequest(this.sapi + 'v1/margin/maxTransferable', { asset: asset });
+        return await this.privateSpotRequest('v1/margin/maxTransferable', { asset: asset });
     }
 
     /**
@@ -4655,7 +4679,7 @@ export default class Binance {
             isIsolated,
             symbol
         } : {};
-        return await this.signedRequest(this.sapi + 'v1/margin/loan', { ...parameters, ...isolatedObj }, 'POST');
+        return await this.privateSpotRequest('v1/margin/loan', { ...parameters, ...isolatedObj }, 'POST');
     }
 
     /**
@@ -4666,7 +4690,7 @@ export default class Binance {
      */
     async mgQueryLoan(asset: string, options) {
         const parameters = Object.assign({ asset: asset }, options);
-        return await this.signedRequest(this.sapi + 'v1/margin/loan', { ...parameters }, 'GET');
+        return await this.privateSpotRequest('v1/margin/loan', { ...parameters }, 'GET');
     }
 
     /**
@@ -4677,7 +4701,7 @@ export default class Binance {
      */
     async mgQueryRepay(asset: string, options) {
         const parameters = Object.assign({ asset: asset }, options);
-        return await this.signedRequest(this.sapi + 'v1/margin/repay', { ...parameters }, 'GET');
+        return await this.privateSpotRequest('v1/margin/repay', { ...parameters }, 'GET');
     }
 
     /**
@@ -4695,7 +4719,7 @@ export default class Binance {
             isIsolated,
             symbol
         } : {};
-        return await this.signedRequest(this.sapi + 'v1/margin/repay', { ...parameters, ...isolatedObj }, 'POST');
+        return await this.privateSpotRequest('v1/margin/repay', { ...parameters, ...isolatedObj }, 'POST');
     }
 
     /**
@@ -4706,7 +4730,7 @@ export default class Binance {
     async mgAccount(isIsolated = false) {
         let endpoint = 'v1/margin';
         endpoint += (isIsolated) ? '/isolated' : '' + '/account';
-        return await this.signedRequest(this.sapi + endpoint, {});
+        return await this.privateSpotRequest(endpoint, {});
     }
     /**
      * Get maximum borrow amount of an asset
@@ -4714,7 +4738,7 @@ export default class Binance {
      * @return {undefined}
      */
     async maxBorrowable(asset: string) {
-        return await this.signedRequest(this.sapi + 'v1/margin/maxBorrowable', { asset: asset });
+        return await this.privateSpotRequest('v1/margin/maxBorrowable', { asset: asset });
     }
 
     // // Futures WebSocket Functions:
@@ -5433,7 +5457,7 @@ export default class Binance {
         };
 
         const getSymbolDepthSnapshot = async (symbol: string, cb: Function) => {
-            const json = await this.publicRequest(this.getSpotUrl() + 'v3/depth', { symbol: symbol, limit: limit });
+            const json = await this.publicSpotRequest('v3/depth', { symbol: symbol, limit: limit });
             json.symbol = symbol;
             cb(null, json);
         };
@@ -5615,7 +5639,7 @@ export default class Binance {
         };
 
         const getSymbolKlineSnapshot = async (symbol: string, limit = 500) => {
-            const data = await this.publicRequest(this.getSpotUrl() + 'v3/klines', { symbol: symbol, interval: interval, limit: limit });
+            const data = await this.publicSpotRequest('v3/klines', { symbol: symbol, interval: interval, limit: limit });
             // function (error, data) {
             //     klineData(symbol, interval, data);
             //     //this.options.log('/klines at ' +this.info[symbol][interval].timestamp);
