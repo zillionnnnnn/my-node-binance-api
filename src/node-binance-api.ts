@@ -14,7 +14,7 @@ import zip from 'lodash.zipobject';
 import stringHash from 'string-hash';
 import async from 'async';
 // eslint-disable-next-line
-import { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder } from './types';
+import { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder, HttpMethod } from './types';
 // export { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, FuturesAccountInfo, FuturesBalance, QueryOrder } from './types';
 
 export interface Dictionary<T> {
@@ -307,7 +307,7 @@ export default class Binance {
         return json;
     }
 
-    reqObj(url: string, data: Dict = {}, method = 'GET', key?: string) {
+    reqObj(url: string, data: Dict = {}, method: HttpMethod = 'GET', key?: string) {
         return {
             url: url,
             qs: data,
@@ -344,7 +344,7 @@ export default class Binance {
         };
     }
 
-    async publicRequest(url: string, data: Dict = {}, method = 'GET') {
+    async publicRequest(url: string, data: Dict = {}, method: HttpMethod = 'GET') {
         const query = this.makeQueryString(data);
         const opt = this.reqObj(url + (query ? '?' + query : ''), data, method);
         const res = await this.proxyRequest(opt);
@@ -454,7 +454,7 @@ export default class Binance {
      * @param {string} method - the http method
      * @return {undefined}
      */
-    async apiRequest(url: string, data: Dict = {}, method = 'GET') {
+    async apiRequest(url: string, data: Dict = {}, method: HttpMethod = 'GET') {
         this.requireApiKey('apiRequest');
         const opt = this.reqObj(
             url,
@@ -495,7 +495,7 @@ export default class Binance {
  * @param {string} method - the http method
  * @return {undefined}
  */
-    async marketRequest(url: string, data: Dict = {}, method = 'GET') {
+    async marketRequest(url: string, data: Dict = {}, method: HttpMethod = 'GET') {
         this.requireApiKey('marketRequest');
         const query = this.makeQueryString(data);
         const opt = this.reqObj(
@@ -517,7 +517,7 @@ export default class Binance {
      * @param {boolean} noDataInSignature - Prevents data from being added to signature
      * @return {undefined}
      */
-    async signedRequest(url: string, data: Dict = {}, method = 'GET', noDataInSignature = false) {
+    async signedRequest(url: string, data: Dict = {}, method: HttpMethod = 'GET', noDataInSignature = false) {
         this.requireApiSecret('signedRequest');
 
         data.timestamp = new Date().getTime();
@@ -3596,7 +3596,7 @@ export default class Binance {
     // * @param {string} method - the http method
     // * @return {promise or undefined} - omitting the callback returns a promise
     // */
-    // publicRequest(url: string, data, method = 'GET') {
+    // publicRequest(url: string, data, method: HttpMethod = 'Get') {
     //     if (!callback) {
     //         return new Promise((resolve, reject) => {
     //             callback = (error, response) => {
@@ -3632,7 +3632,7 @@ export default class Binance {
     // * @param {boolean} noDataInSignature - Prevents data from being added to signature
     // * @return {promise or undefined} - omitting the callback returns a promise
     // */
-    // signedRequest(url, data, callback, method = 'GET', noDataInSignature = false) {
+    // signedRequest(url, data, callback, method: HttpMethod = 'GET', noDataInSignature = false) {
     //     if (!callback) {
     //         return new Promise((resolve, reject) => {
     //             callback = (error, response) => {

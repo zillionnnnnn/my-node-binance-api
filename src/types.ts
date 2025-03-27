@@ -2,6 +2,8 @@
 // trying to keep them compatible with
 // https://github.com/ViewBlock/binance-api-node/blob/master/index.d.ts
 
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
+
 export type Interval =
     | '1m'
     | '3m'
