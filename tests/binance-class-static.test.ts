@@ -225,4 +225,27 @@ describe( 'Static tests', async function () {
         assert.equal( obj.orderId, '34234234' )
         assert.equal( obj.symbol, 'LTCUSDT' )
     })
+
+    it( 'MarketBuy test', async function ( ) {
+        await binance.marketBuy( 'LTCUSDT', 0.5, {'test': true})
+        assert.equal( interceptedUrl, 'https://api.binance.com/api/v3/order/test' )
+        const obj = urlToObject( interceptedBody )
+        assert.equal( obj.symbol, 'LTCUSDT' )
+        assert.equal( obj.side, 'BUY' )
+        assert.equal( obj.type, 'MARKET' )
+        assert.equal( obj.quantity, 0.5 )
+        assert(obj.newClientOrderId.startsWith(SPOT_PREFIX))
+    })
+
+    it( 'spot order with custom clientorderId', async function ( ) {
+        await binance.order( 'LIMIT', 'BUY', 'LTCUSDT', 0.5, 100, {'newClientOrderId': 'myid'})
+        assert.equal( interceptedUrl, 'https://api.binance.com/api/v3/order' )
+        const obj = urlToObject( interceptedBody )
+        assert.equal( obj.symbol, 'LTCUSDT' )
+        assert.equal( obj.side, 'BUY' )
+        assert.equal( obj.type, 'LIMIT' )
+        assert.equal( obj.quantity, 0.5 )
+        assert.equal( obj.price, 100 )
+        assert.equal( obj.newClientOrderId, 'myid')
+    })
 })

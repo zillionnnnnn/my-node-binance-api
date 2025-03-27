@@ -13,7 +13,7 @@ import { SocksProxyAgent } from 'socks-proxy-agent';
 import zip from 'lodash.zipobject';
 import stringHash from 'string-hash';
 import async from 'async';
-
+// eslint-disable-next-line
 import { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder } from './types';
 export { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder } from './types';
 
@@ -65,6 +65,7 @@ export default class Binance {
     endpoint: string = ""; // endpoint for WS?
     reconnect = true;
 
+    headers: Dict = {};
     subscriptions: Dict = {};
     futuresSubscriptions: Dict = {};
     futuresInfo: Dict = {};
@@ -111,14 +112,14 @@ export default class Binance {
 
     }
 
-    options(opt = {}, callback: any = false): Binance {
+    options(opt = {}): Binance {
         // // return await this.setOptions(opt, callback); // keep this method for backwards compatibility
         // this.assignOptions(opt, callback);
-        this.setOptions(opt, callback);
+        this.setOptions(opt);
         return this;
     }
 
-    assignOptions(opt = {}, callback: any = false) {
+    assignOptions(opt = {}) {
         if (typeof opt === 'string') { // Pass json config filename
             this.Options = JSON.parse(file.readFileSync(opt) as any);
         } else this.Options = opt;
@@ -154,11 +155,12 @@ export default class Binance {
         if (this.Options.APIKEY) this.APIKEY = this.Options.APIKEY;
         if (this.Options.APISECRET) this.APISECRET = this.Options.APISECRET;
         if (this.Options.test) this.test = true;
+        if (this.Options.headers) this.headers = this.Options.Headers;
     }
 
-    async setOptions(opt = {}, callback: any = false): Promise<Binance> {
+    async setOptions(opt = {}): Promise<Binance> {
 
-        this.assignOptions(opt, callback);
+        this.assignOptions(opt);
         if (this.Options.useServerTime) {
             const res = await this.publicRequest(this.getSpotUrl() + 'v3/time');
             this.info.timeOffset = res.serverTime - new Date().getTime();
@@ -351,7 +353,8 @@ export default class Binance {
 
     // used for futures
     async futuresRequest(url: string, data: Dict = {}, flags: Dict = {}) {
-        let query = '', headers = {
+        let query = '';
+        const headers = {
             'User-Agent': this.userAgent,
             'Content-type': 'application/x-www-form-urlencoded'
         } as Dict;
@@ -367,7 +370,7 @@ export default class Binance {
         if (this.Options.test && baseURL === this.fapi) baseURL = this.fapiTest;
         if (this.Options.test && baseURL === this.dapi) baseURL = this.dapiTest;
         const opt = {
-            headers,
+            headers: this.extend(headers, this.headers),
             url: baseURL + url,
             method: flags.method,
             timeout: this.Options.recvWindow,
@@ -1493,12 +1496,13 @@ export default class Binance {
      * @return {object} - user friendly data type
      */
     fUserDataMarginConvertData(data: any) {
-        let {
+        const {
             e: eventType,
             E: eventTime,
             cw: crossWalletBalance, // only pushed with crossed position margin call
-            p: positions
+            // p: positions
         } = data;
+        let { positions } = data;
         const positionConverter = position => {
             const {
                 s: symbol,
@@ -1557,15 +1561,18 @@ export default class Binance {
      * @return {object} - user friendly data type
      */
     fUserDataAccountUpdateConvertData(data: any) {
-        let {
+        const {
             e: eventType,
             E: eventTime,
             T: transaction,
-            a: updateData
         } = data;
+        let { a: updateData } = data;
         const updateConverter = updateData => {
+            const {
+                m: eventReasonType
+            } = data;
             let {
-                m: eventReasonType,
+                // m: eventReasonType,
                 B: balances,
                 P: positions
             } = updateData;
@@ -1639,12 +1646,13 @@ export default class Binance {
      * @return {object} - user friendly data type
      */
     fUserDataOrderUpdateConvertData(data: any) {
-        let {
+        const {
             e: eventType,
             E: eventTime,
             T: transaction, // transaction time
-            o: order
         } = data;
+
+        let { o: order } = data;
 
         const orderConverter = (order: any) => {
             const {
@@ -2277,12 +2285,13 @@ export default class Binance {
    * @return {object} - user friendly data type
    */
     dUserDataOrderUpdateConvertData(data: any) {
-        let {
+        const {
             e: eventType,
             E: eventTime,
             T: transaction, // transaction time
-            o: order,
         } = data;
+
+        let { o: order } = data;
 
         const orderConverter = (order) => {
             const {
@@ -2753,7 +2762,8 @@ export default class Binance {
      */
     depthData(data: any) {
         if (!data) return { bids: [], asks: [] };
-        let bids = {}, asks = {}, obj;
+        const bids = {}, asks = {};
+        let obj;
         if (typeof data.bids !== 'undefined') {
             for (obj of data.bids) {
                 bids[obj[0]] = parseFloat(obj[1]);
@@ -2787,7 +2797,8 @@ export default class Binance {
      * @return {undefined}
      */
     depthHandler(depth) {
-        let symbol = depth.s, obj;
+        const symbol = depth.s;
+        let obj;
         const context = this.depthCacheContext[symbol];
         const updateDepthCache = () => {
             this.depthCache[symbol].eventTime = depth.E;
@@ -2855,7 +2866,8 @@ export default class Binance {
      * @return {object} - the depth volume cache object
      */
     depthVolume(symbol: string) {
-        let cache = this.getDepthCache(symbol), quantity, price;
+        const cache = this.getDepthCache(symbol);
+        let quantity, price;
         let bidbase = 0, askbase = 0, bidqty = 0, askqty = 0;
         for (price in cache.bids) {
             quantity = cache.bids[price];
@@ -2971,7 +2983,8 @@ export default class Binance {
     * @return {object} - the object
     */
     sortBids(symbol: string, max = Infinity, baseValue?: string) {
-        let object = {}, count = 0, cache;
+        const object = {};
+        let count = 0, cache;
         if (typeof symbol === 'object') cache = symbol;
         else cache = this.getDepthCache(symbol).bids;
         const sorted = Object.keys(cache).sort((a, b) => parseFloat(b) - parseFloat(a));
@@ -2995,7 +3008,8 @@ export default class Binance {
     * @return {object} - the object
     */
     sortAsks(symbol: string, max = Infinity, baseValue?: string) {
-        let object = {}, count = 0, cache;
+        let count = 0, cache;
+        const object = {};
         if (typeof symbol === 'object') cache = symbol;
         else cache = this.getDepthCache(symbol).asks;
         const sorted = Object.keys(cache).sort((a, b) => parseFloat(a) - parseFloat(b));
@@ -3045,6 +3059,7 @@ export default class Binance {
     * @return {string} - the minimum key
     */
     min(object) {
+        // eslint-disable-next-line prefer-spread
         return Math.min.apply(Math, Object.keys(object));
     }
 
@@ -3054,6 +3069,7 @@ export default class Binance {
     * @return {string} - the minimum key
     */
     max(object) {
+        // eslint-disable-next-line prefer-spread
         return Math.max.apply(Math, Object.keys(object));
     }
 
@@ -4752,7 +4768,8 @@ export default class Binance {
         const reconnect = () => {
             if (this.Options.reconnect) this.futuresAggTradeStream(symbols, callback);
         };
-        let subscription, cleanCallback = data => callback(this.fAggTradeConvertData(data));
+        let subscription;
+        const cleanCallback = data => callback(this.fAggTradeConvertData(data));
         if (Array.isArray(symbols)) {
             if (!this.isArrayUnique(symbols)) throw Error('futuresAggTradeStream: "symbols" cannot contain duplicate elements.');
             const streams = symbols.map(symbol => symbol.toLowerCase() + '@aggTrade');
@@ -4979,7 +4996,8 @@ export default class Binance {
         const reconnect = () => {
             if (this.Options.reconnect) this.deliveryAggTradeStream(symbols, callback);
         };
-        let subscription, cleanCallback = data => callback(this.dAggTradeConvertData(data));
+        let subscription;
+        const cleanCallback = data => callback(this.dAggTradeConvertData(data));
         if (Array.isArray(symbols)) {
             if (!this.isArrayUnique(symbols)) throw Error('deliveryAggTradeStream: "symbols" cannot contain duplicate elements.');
             const streams = symbols.map(symbol => symbol.toLowerCase() + '@aggTrade');
@@ -5202,7 +5220,7 @@ export default class Binance {
         const apiRequest = this.apiRequest;
         setTimeout(async function userDataKeepAlive() { // keepalive
             try {
-                const res = await apiRequest(url, {}, 'PUT');
+                await apiRequest(url, {}, 'PUT');
                 // if (err) setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
                 setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
             } catch (error) {

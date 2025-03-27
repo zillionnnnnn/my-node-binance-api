@@ -34,7 +34,7 @@
         "space-infix-ops": "error",
         "space-unary-ops": "error",
         "space-in-parens": "error",
-        "jsdoc/require-description": "warn"
+        "jsdoc/require-description": "off"
     },
     "settings": {
         "import/resolver": {

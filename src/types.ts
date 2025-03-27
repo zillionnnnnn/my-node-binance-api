@@ -117,7 +117,7 @@ export type PositionSide = 'BOTH' | 'SHORT' | 'LONG'
 export type WorkingType = 'MARK_PRICE' | 'CONTRACT_PRICE'
 
 // export type symbol = string;
-
+// eslint-disable-next-line
 export type Callback = (...args: any) => any;
 
 export interface IConstructorArgs {
@@ -130,6 +130,8 @@ export interface IConstructorArgs {
     hedgeMode: boolean;
     httpsProxy: string;
     socksProxy: string;
+    headers: Record<string, any>;
+    // eslint-disable-next-line
     log: (...args: any[]) => void;
     verbose: boolean;
     keepAlive: boolean;
