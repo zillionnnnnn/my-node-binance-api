@@ -162,6 +162,15 @@ describe( 'Static tests', async function () {
         assert(obj.newClientOrderId.startsWith(SPOT_PREFIX))
     })
 
+    it( 'cancel order', async function ( ) {
+        await binance.cancel( 'LTCUSDT', '34234234' )
+        const url = 'https://api.binance.com/api/v3/order'
+        assert.isTrue( interceptedUrl.startsWith(url) )
+        const obj = urlToObject( interceptedUrl.replace(url, '') )
+        assert.equal( obj.orderId, '34234234' )
+        assert.equal( obj.symbol, 'LTCUSDT' )
+    })
+
     const CONTRACT_PREFIX = "x-Cb7ytekJ"
 
     it( 'Futures MarketBuy', async function ( ) {
@@ -206,5 +215,14 @@ describe( 'Static tests', async function () {
         assert.equal( obj.type, 'LIMIT' )
         assert.equal( obj.quantity, 0.5 )
         assert(obj.newClientOrderId.startsWith(CONTRACT_PREFIX))
+    })
+
+    it( 'cancel order', async function ( ) {
+        await binance.futuresCancel( 'LTCUSDT', '34234234' )
+        const url = 'https://fapi.binance.com/fapi/v1/order'
+        assert.isTrue( interceptedUrl.startsWith(url) )
+        const obj = urlToObject( interceptedUrl.replace(url, '') )
+        assert.equal( obj.orderId, '34234234' )
+        assert.equal( obj.symbol, 'LTCUSDT' )
     })
 })
