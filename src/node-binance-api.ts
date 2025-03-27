@@ -3823,9 +3823,7 @@ export default class Binance {
     }
 
     /**
-    * Get the account binance lending information
-
-    * @param {string} symbol - position symbol, optional
+    * Get the account position risk (v3)
     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-Information-V3
     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-Information-V2
     * @return {promise or undefined} - omitting the callback returns a promise
@@ -3835,11 +3833,18 @@ export default class Binance {
         return await this.futuresRequest(endpoint, params, { base: this.getFapiUrl(), type: 'SIGNED' });
     }
 
+    /**
+    * Get the account position risk (v2)
+    * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-Information-V3
+    * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-Information-V2
+    * @return {promise or undefined} - omitting the callback returns a promise
+    */
     async futuresPositionRiskV2(params: Dict = {}): Promise<PositionRisk[]> {
         return this.futuresPositionRisk(params, true)
     }
 
     /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Get-Funding-Rate-Info
      * @param symbol
      * @param params
      * @returns
@@ -3849,16 +3854,34 @@ export default class Binance {
         return await this.futuresRequest('v1/fundingRate', params, { base: this.getFapiUrl() });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Notional-and-Leverage-Brackets#http-request
+     * @param symbol
+     * @param params
+     * @returns
+     */
     async futuresLeverageBracket(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
         return await this.futuresRequest('v1/leverageBracket', params, { base: this.getFapiUrl(), type: 'USER_DATA' });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Futures-Trading-Quantitative-Rules-Indicators#http-request
+     * @param symbol 
+     * @param params 
+     * @returns 
+     */
     async futuresTradingStatus(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
         return await this.futuresRequest('v1/apiTradingStatus', params, { base: this.getFapiUrl(), type: 'USER_DATA' });
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/User-Commission-Rate#http-request
+     * @param symbol 
+     * @param params 
+     * @returns 
+     */
     async futuresCommissionRate(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
         return await this.futuresRequest('v1/commissionRate', params, { base: this.getFapiUrl(), type: 'USER_DATA' });
