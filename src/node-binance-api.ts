@@ -353,75 +353,92 @@ export default class Binance {
         return res;
     }
 
-    // used for futures
-    async futuresRequest(url: string, data: Dict = {}, flags: Dict = {}) {
+    /**
+     * Used to make public requests to the futures (FAPI) API
+     * @param path
+     * @param data
+     * @param method
+     * @returns
+     */
+    async publicFuturesRequest(path: string, data: Dict = {}, method: HttpMethod = 'GET') {
+        return await this.publicRequest(this.getFapiUrl() + path, data, method);
+    }
+
+    /**
+     * Used to make public requests to the delivery (DAPI) API
+     * @param path
+     * @param data
+     * @param method
+     * @returns
+     */
+    async publicDeliveryRequest(path: string, data: Dict = {}, method: HttpMethod = 'GET') {
+        return await this.publicRequest(this.getDapiUrl() + path, data, method);
+    }
+
+    /**
+     * Used to make private requests to the futures (FAPI) API
+     * @param path
+     * @param data
+     * @param method
+     * @returns
+     */
+    async privateFuturesRequest(path: string, data: Dict = {}, method: HttpMethod = 'GET'): Promise<any> {
+        return await this.futuresRequest(this.getFapiUrl() + path, data, method, true);
+    }
+
+    /**
+     * Used to make private requests to the delivery (DAPI) API
+     * @param path
+     * @param data
+     * @param method
+     * @returns
+     */
+    async privateDeliveryRequest(path: string, data: Dict = {}, method: HttpMethod = 'GET'): Promise<any> {
+        return await this.futuresRequest(this.getDapiUrl() + path, data, method, true);
+    }
+
+    /**
+     * Used to make a request to the futures API, this is a generic function that can be used to make any request to the futures API
+     * @param url
+     * @param data
+     * @param method
+     * @param isPrivate
+     * @returns
+     */
+    async futuresRequest(url: string, data: Dict = {}, method: HttpMethod = 'GET', isPrivate = false) {
         let query = '';
         const headers = {
             'User-Agent': this.userAgent,
             'Content-type': 'application/x-www-form-urlencoded'
         } as Dict;
-        if (!flags.method) flags.method = 'GET'; // GET POST PUT DELETE
-        if (!flags.type) flags.type = false; // TRADE, SIGNED, MARKET_DATA, USER_DATA, USER_STREAM
-        else {
+
+        if (isPrivate) {
             if (!data.recvWindow) data.recvWindow = this.Options.recvWindow;
             this.requireApiKey('promiseRequest');
             headers['X-MBX-APIKEY'] = this.APIKEY;
         }
-        let baseURL = !flags.base ? this.base : flags.base;
-        if (this.Options.test && baseURL === this.base) baseURL = this.baseTest;
-        if (this.Options.test && baseURL === this.fapi) baseURL = this.fapiTest;
-        if (this.Options.test && baseURL === this.dapi) baseURL = this.dapiTest;
+
         const opt = {
             headers: this.extend(headers, this.headers),
-            url: baseURL + url,
-            method: flags.method,
+            url: url,
+            method: method,
             timeout: this.Options.recvWindow,
             followAllRedirects: true
         };
         query = this.makeQueryString(data);
-        if (flags.method === 'GET') {
-            opt.url = `${baseURL}${url}?${query}`;
+        if (method === 'GET') {
+            opt.url = `${url}?${query}`;
         }
-        if (flags.type === 'SIGNED' || flags.type === 'TRADE' || flags.type === 'USER_DATA') {
+        if (isPrivate) {
             data.timestamp = new Date().getTime();
             if (this.timeOffset) {
                 data.timestamp += this.timeOffset;
             }
             query = this.makeQueryString(data);
-            data.signature = crypto.createHmac('sha256', this.Options.APISECRET).update(query).digest('hex'); // HMAC hash header
-            opt.url = `${baseURL}${url}?${query}&signature=${data.signature}`;
+            data.signature = crypto.createHmac('sha256', this.APISECRET).update(query).digest('hex'); // HMAC hash header
+            opt.url = `${url}?${query}&signature=${data.signature}`;
         }
         (opt as any).qs = data;
-        /*if ( flags.method === 'POST' ) {
-            opt.form = data;
-        } else {
-            opt.qs = data;
-        }*/
-        // try {
-        //     request(addProxy(opt), (error, response, body) => {
-        //         if (error) return reject(error);
-        //         try {
-        //             this.info.lastRequest = new Date().getTime();
-        //             if (response) {
-        //                 this.info.statusCode = response.statusCode || 0;
-        //                 if (response.request) this.info.lastURL = response.request.uri.href;
-        //                 if (response.headers) {
-        //                     this.info.usedWeight = response.headers['x-mbx-used-weight-1m'] || 0;
-        //                     this.info.futuresLatency = response.headers['x-response-time'] || 0;
-        //                 }
-        //             }
-        //             if (!error && response.statusCode == 200) return resolve(JSONbig.parse(body));
-        //             if (typeof response.body !== 'undefined') {
-        //                 return resolve(JSONbig.parse(response.body));
-        //             }
-        //             return reject(response);
-        //         } catch (err) {
-        //             return reject(`promiseRequest error #${response.statusCode}`);
-        //         }
-        //     }).on('error', reject);
-        // } catch (err) {
-        //     return reject(err);
-        // }
         const response = await this.proxyRequest(opt);
         return response;
 
@@ -487,27 +504,6 @@ export default class Binance {
             return false;
         }
         return true;
-    }
-
-    /**
- * Make market request
- * @param {string} url - The http endpoint
- * @param {object} data - The data to send
- * @param {function} callback - The callback method to call
- * @param {string} method - the http method
- * @return {undefined}
- */
-    async marketRequest(url: string, data: Dict = {}, method: HttpMethod = 'GET') {
-        this.requireApiKey('marketRequest');
-        const query = this.makeQueryString(data);
-        const opt = this.reqObj(
-            url + (query ? '?' + query : ''),
-            data,
-            method,
-            this.APIKEY
-        );
-        const res = await this.proxyRequest(opt);
-        return res;
     }
 
     /**
@@ -878,7 +874,7 @@ export default class Binance {
         if (!params.newClientOrderId) {
             params.newClientOrderId = this.CONTRACT_PREFIX + this.uuid22();
         }
-        return await this.futuresRequest('v1/order', params, { base: this.getFapiUrl(), type: 'TRADE', method: 'POST' });
+        return await this.privateFuturesRequest('v1/order', params, 'POST');
     }
 
     async deliveryOrder(type: OrderType, side: string, symbol: string, quantity: number, price?: number, params: Dict = {}): Promise<FuturesOrder> {
@@ -905,7 +901,7 @@ export default class Binance {
         if (!params.newClientOrderId) {
             params.newClientOrderId = this.CONTRACT_PREFIX + this.uuid22();
         }
-        return await this.futuresRequest('v1/order', params, { base: this.getDapiUrl(), type: 'TRADE', method: 'POST' });
+        return await this.privateDeliveryRequest('v1/order', params, 'POST');
     }
 
     // ------ WS RELATED FUNCTIONS ------ //
@@ -3526,7 +3522,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async recentTrades(symbol: string, limit = 500, params: Dict = {}): Promise<Trade[]> {
-        return await this.marketRequest(this.getSpotUrl() + 'v3/trades', this.extend({ symbol: symbol, limit: limit }, params));
+        return await this.publicSpotRequest('v3/trades', this.extend({ symbol: symbol, limit: limit }, params));
     }
 
     /**
@@ -3541,7 +3537,7 @@ export default class Binance {
         params.symbol = symbol;
         params.limit = limit;
         if (fromId) params.fromId = fromId;
-        return await this.marketRequest(this.getSpotUrl() + 'v3/historicalTrades', params);
+        return await this.publicSpotRequest('v3/historicalTrades', params);
     }
 
     /**
@@ -3700,18 +3696,18 @@ export default class Binance {
 
     //** Futures methods */
     async futuresPing(params: Dict = {}) {
-        return await this.futuresRequest('v1/ping', params, { base: this.getFapiUrl() });
+        return await this.publicFuturesRequest('v1/ping', params);
     }
 
     async futuresTime(params: Dict = {}) {
-        return await this.futuresRequest('v1/time', params, { base: this.getFapiUrl() }).then(r => r.serverTime);
+        return await this.publicFuturesRequest('v1/time', params).then(r => r.serverTime);
     }
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Exchange-Information
      * @returns
      */
     async futuresExchangeInfo() {
-        return await this.futuresRequest('v1/exchangeInfo', {}, { base: this.getFapiUrl() });
+        return await this.publicFuturesRequest('v1/exchangeInfo', {});
     }
 
     /**
@@ -3719,7 +3715,7 @@ export default class Binance {
      *
      */
     async futuresPrices(params: Dict = {}) {
-        const data = await this.futuresRequest('v2/ticker/price', params, { base: this.getFapiUrl() });
+        const data = await this.publicFuturesRequest('v2/ticker/price', params);
         return Array.isArray(data) ? data.reduce((out, i) => ((out[i.symbol] = i.price), out), {}) : data;
     }
 
@@ -3728,12 +3724,12 @@ export default class Binance {
     */
     async futuresDaily(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        const data = await this.futuresRequest('v1/ticker/24hr', params, { base: this.getFapiUrl() });
+        const data = await this.publicFuturesRequest('v1/ticker/24hr', params);
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
     async futuresOpenInterest(symbol: string) {
-        return await this.futuresRequest('v1/openInterest', { symbol }, { base: this.getFapiUrl() });
+        return await this.publicFuturesRequest('v1/openInterest', { symbol });
     }
 
     /**
@@ -3742,14 +3738,14 @@ export default class Binance {
     async futuresCandles(symbol: string, interval: Interval = "30m", params: Dict = {}): Promise<Candle[]> {
         params.symbol = symbol;
         params.interval = interval;
-        return await this.futuresRequest('v1/klines', params, { base: this.getFapiUrl() });
+        return await this.publicFuturesRequest('v1/klines', params);
     }
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Mark-Price
      */
     async futuresMarkPrice(symbol?: string) {
-        return await this.futuresRequest('v1/premiumIndex', symbol ? { symbol } : {}, { base: this.getFapiUrl() });
+        return await this.publicFuturesRequest('v1/premiumIndex', symbol ? { symbol } : {});
     }
 
     /**
@@ -3760,7 +3756,7 @@ export default class Binance {
      */
     async futuresTrades(symbol: string, params: Dict = {}): Promise<Trade[]> {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/trades', params, { base: this.getFapiUrl() });
+        return await this.publicFuturesRequest('v1/trades', params);
     }
 
     /**
@@ -3771,7 +3767,7 @@ export default class Binance {
      */
     async futuresHistoricalTrades(symbol: string, params: Dict = {}): Promise<Trade[]> {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/historicalTrades', params, { base: this.getFapiUrl(), type: 'MARKET_DATA' });
+        return await this.publicFuturesRequest('v1/historicalTrades', params);
     }
 
     /**
@@ -3779,7 +3775,7 @@ export default class Binance {
     */
     async futuresAggTrades(symbol: string, params: Dict = {}): Promise<AggregatedTrade[]> {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/aggTrades', params, { base: this.getFapiUrl() });
+        return await this.publicFuturesRequest('v1/aggTrades', params);
     }
 
     /**
@@ -3788,7 +3784,7 @@ export default class Binance {
      * @returns
      */
     async futuresForceOrders(params: Dict = {}) {
-        return await this.futuresRequest('v1/forceOrders', params, { base: this.getFapiUrl(), type: 'SIGNED' });
+        return await this.privateFuturesRequest('v1/forceOrders', params);
     }
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-ADL-Quantile-Estimation
@@ -3796,7 +3792,7 @@ export default class Binance {
      * @returns
      */
     async futuresDeleverageQuantile(params: Dict = {}) {
-        return await this.futuresRequest('v1/adlQuantile', params, { base: this.getFapiUrl(), type: 'SIGNED' });
+        return await this.privateFuturesRequest('v1/adlQuantile', params);
     }
 
     /**
@@ -3806,25 +3802,25 @@ export default class Binance {
      */
     async futuresUserTrades(symbol: string, params: Dict = {}): Promise<FuturesUserTrade[]> {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/userTrades', params, { base: this.getFapiUrl(), type: 'SIGNED' });
+        return await this.privateFuturesRequest('v1/userTrades', params);
     }
 
     async futuresGetDataStream(params: Dict = {}) {
         //A User Data Stream listenKey is valid for 60 minutes after creation. setInterval
-        return await this.futuresRequest('v1/listenKey', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'POST' });
+        return await this.privateFuturesRequest('v1/listenKey', params, 'POST');
     }
 
     async futuresKeepDataStream(params: Dict = {}) {
-        return await this.futuresRequest('v1/listenKey', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'PUT' });
+        return await this.privateFuturesRequest('v1/listenKey', params, 'PUT');
     }
 
     async futuresCloseDataStream(params: Dict = {}) {
-        return await this.futuresRequest('v1/listenKey', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'DELETE' });
+        return await this.privateFuturesRequest('v1/listenKey', params, 'DELETE');
     }
 
     async futuresLiquidationOrders(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/allForceOrders', params, { base: this.getFapiUrl() });
+        return await this.futuresRequest('v1/allForceOrders', params);
     }
 
     /**
@@ -3835,7 +3831,7 @@ export default class Binance {
     */
     async futuresPositionRisk(params: Dict = {}, useV2 = false): Promise<PositionRisk[]> {
         const endpoint = useV2 ? 'v2/positionRisk' : 'v3/positionRisk';
-        return await this.futuresRequest(endpoint, params, { base: this.getFapiUrl(), type: 'SIGNED' });
+        return await this.privateFuturesRequest(endpoint, params);
     }
 
     /**
@@ -3856,7 +3852,7 @@ export default class Binance {
      */
     async futuresFundingRate(symbol: string, params: Dict = {}): Promise<FundingRate[]> {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/fundingRate', params, { base: this.getFapiUrl() });
+        return await this.futuresRequest('v1/fundingRate', params);
     }
 
     /**
@@ -3867,7 +3863,7 @@ export default class Binance {
      */
     async futuresLeverageBracket(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/leverageBracket', params, { base: this.getFapiUrl(), type: 'USER_DATA' });
+        return await this.privateFuturesRequest('v1/leverageBracket', params);
     }
 
     /**
@@ -3878,7 +3874,7 @@ export default class Binance {
      */
     async futuresTradingStatus(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/apiTradingStatus', params, { base: this.getFapiUrl(), type: 'USER_DATA' });
+        return await this.privateFuturesRequest('v1/apiTradingStatus', params);
     }
 
     /**
@@ -3889,7 +3885,7 @@ export default class Binance {
      */
     async futuresCommissionRate(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/commissionRate', params, { base: this.getFapiUrl(), type: 'USER_DATA' });
+        return await this.privateFuturesRequest('v1/commissionRate', params);
     }
 
     // leverage 1 to 125
@@ -3899,7 +3895,7 @@ export default class Binance {
     async futuresLeverage(symbol: string, leverage: number, params: Dict = {}) {
         params.symbol = symbol;
         params.leverage = leverage;
-        return await this.futuresRequest('v1/leverage', params, { base: this.getFapiUrl(), method: 'POST', type: 'SIGNED' });
+        return await this.privateFuturesRequest('v1/leverage', params);
     }
 
     // ISOLATED, CROSSED
@@ -3913,7 +3909,7 @@ export default class Binance {
     async futuresMarginType(symbol: string, marginType: string, params: Dict = {}) {
         params.symbol = symbol;
         params.marginType = marginType;
-        return await this.futuresRequest('v1/marginType', params, { base: this.getFapiUrl(), method: 'POST', type: 'SIGNED' });
+        return await this.privateFuturesRequest('v1/marginType', params);
     }
 
     // type: 1: Add postion margin，2: Reduce postion margin
@@ -3921,26 +3917,26 @@ export default class Binance {
         params.symbol = symbol;
         params.amount = amount;
         params.type = type;
-        return await this.futuresRequest('v1/positionMargin', params, { base: this.getFapiUrl(), method: 'POST', type: 'SIGNED' });
+        return await this.privateFuturesRequest('v1/positionMargin', params);
     }
 
     async futuresPositionMarginHistory(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/positionMargin/history', params, { base: this.getFapiUrl(), type: 'SIGNED' });
+        return await this.privateFuturesRequest('v1/positionMargin/history', params);
     }
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Get-Income-History
      */
     async futuresIncome(params: Dict = {}) {
-        return await this.futuresRequest('v1/income', params, { base: this.getFapiUrl(), type: 'SIGNED' });
+        return await this.privateFuturesRequest('v1/income', params);
     }
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Futures-Account-Balance-V2
     */
     async futuresBalance(params: Dict = {}): Promise<FuturesBalance[]> {
-        return await this.futuresRequest('v2/balance', params, { base: this.getFapiUrl(), type: 'SIGNED' });
+        return await this.privateFuturesRequest('v2/balance', params);
     }
 
     /**
@@ -3949,7 +3945,7 @@ export default class Binance {
      * @returns
      */
     async futuresAccount(params: Dict = {}): Promise<FuturesAccountInfo> {
-        return await this.futuresRequest('v3/account', params, { base: this.getFapiUrl(), type: 'SIGNED' });
+        return await this.privateFuturesRequest('v3/account', params);
     }
 
     /**
@@ -3960,7 +3956,7 @@ export default class Binance {
      */
     async futuresDepth(symbol: string, params: Dict = {}): Promise<OrderBook> {
         params.symbol = symbol;
-        const res = await this.futuresRequest('v1/depth', params, { base: this.getFapiUrl() });
+        const res = await this.publicFuturesRequest('v1/depth', params);
         return this.parseOrderBook(res, symbol);
     }
 
@@ -3971,7 +3967,7 @@ export default class Binance {
         if (symbol) params.symbol = symbol;
         //let data = await this.promiseRequest( 'v1/ticker/bookTicker', params, {base:fapi} );
         //return data.reduce((out, i) => ((out[i.symbol] = i), out), {}),
-        const data = await this.futuresRequest('v1/ticker/bookTicker', params, { base: this.getFapiUrl() });
+        const data = await this.publicFuturesRequest('v1/ticker/bookTicker', params);
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
@@ -4040,14 +4036,14 @@ export default class Binance {
             }
         }
         const params = { batchOrders: JSON.stringify(orders) };
-        return await this.futuresRequest('v1/batchOrders', params, { base: this.getFapiUrl(), type: 'TRADE', method: 'POST' });
+        return await this.privateFuturesRequest('v1/batchOrders', params, 'POST');
     }
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Cancel-Multiple-Orders
      */
     async futuresCancelMultipleOrders(symbol: string, params: Dict = {}) {
-        return await this.futuresRequest('v1/batchOrders', this.extend({ 'symbol': symbol }, params), { base: this.getFapiUrl(), type: 'TRADE', method: 'DELETE' });
+        return await this.privateFuturesRequest('v1/batchOrders', this.extend({ 'symbol': symbol }, params), 'DELETE');
     }
 
     // futuresOrder, // side symbol quantity [price] [params]
@@ -4060,7 +4056,7 @@ export default class Binance {
      */
     async futuresOrderStatus(symbol: string, params: Dict = {}): Promise<FuturesOrder> { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
-        return await this.futuresRequest('v1/order', params, { base: this.getFapiUrl(), type: 'SIGNED' });
+        return await this.privateFuturesRequest('v1/order', params);
     }
 
     /**
@@ -4073,7 +4069,7 @@ export default class Binance {
     async futuresCancel(symbol: string, orderId?: string, params: Dict = {}): Promise<CancelOrder> { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
         if (orderId) params.orderId = orderId;
-        return await this.futuresRequest('v1/order', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'DELETE' });
+        return await this.privateFuturesRequest('v1/order', params, 'DELETE');
     }
 
     /**
@@ -4084,7 +4080,7 @@ export default class Binance {
      */
     async futuresCancelAll(symbol: string, params: Dict = {}): Promise<FuturesCancelAllOpenOrder[]> {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/allOpenOrders', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'DELETE' });
+        return await this.privateFuturesRequest('v1/allOpenOrders', params, 'DELETE');
     }
 
     /**
@@ -4097,7 +4093,7 @@ export default class Binance {
     async futuresCountdownCancelAll(symbol, countdownTime = 0, params: Dict = {}) {
         params.symbol = symbol;
         params.countdownTime = countdownTime;
-        return await this.futuresRequest('v1/countdownCancelAll', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'POST' });
+        return await this.privateFuturesRequest('v1/countdownCancelAll', params, 'POST');
     }
 
     /**
@@ -4108,7 +4104,7 @@ export default class Binance {
      */
     async futuresOpenOrders(symbol?: string, params: Dict = {}): Promise<FuturesOrder[]> {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/openOrders', params, { base: this.getFapiUrl(), type: 'SIGNED' });
+        return await this.privateFuturesRequest('v1/openOrders', params);
     }
 
     /**
@@ -4119,7 +4115,7 @@ export default class Binance {
      */
     async futuresAllOrders(symbol?: string, params: Dict = {}): Promise<FuturesOrder[]> { // Get all account orders; active, canceled, or filled.
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/allOrders', params, { base: this.getFapiUrl(), type: 'SIGNED' });
+        return await this.privateFuturesRequest('v1/allOrders', params);
     }
 
     /**
@@ -4128,7 +4124,7 @@ export default class Binance {
      * @returns
      */
     async futuresPositionSideDual(params: Dict = {}) {
-        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.getFapiUrl(), type: 'SIGNED' });
+        return await this.privateFuturesRequest('v1/positionSide/dual', params);
     }
 
     /**
@@ -4139,7 +4135,7 @@ export default class Binance {
      */
     async futuresChangePositionSideDual(dualSidePosition, params: Dict = {}) {
         params.dualSidePosition = dualSidePosition;
-        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.getFapiUrl(), type: 'SIGNED', method: 'POST' });
+        return await this.privateFuturesRequest('v1/positionSide/dual', params, 'POST');
     }
 
     /**
@@ -4208,25 +4204,25 @@ export default class Binance {
     //** Delivery methods */
 
     async deliveryPing(params: Dict = {}) {
-        return await this.futuresRequest('v1/ping', params, { base: this.getDapiUrl() });
+        return await this.publicDeliveryRequest('v1/ping', params);
     }
 
     async deliveryTime(params: Dict = {}) {
-        return await this.futuresRequest('v1/time', params, { base: this.getDapiUrl() });
+        return await this.publicDeliveryRequest('v1/time', params);
     }
 
     async deliveryExchangeInfo(params: Dict = {}) {
-        return await this.futuresRequest('v1/exchangeInfo', params, { base: this.getDapiUrl() });
+        return await this.publicDeliveryRequest('v1/exchangeInfo', params);
     }
 
     async deliveryPrices(params: Dict = {}) {
-        const data = await this.futuresRequest('v1/ticker/price', params, { base: this.getDapiUrl() });
+        const data = await this.publicDeliveryRequest('v1/ticker/price', params);
         return data.reduce((out, i) => ((out[i.symbol] = i.price), out), {});
     }
 
     async deliveryDaily(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        const data = await this.futuresRequest('v1/ticker/24hr', params, { base: this.getDapiUrl() });
+        const data = await this.publicDeliveryRequest('v1/ticker/24hr', params);
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
@@ -4237,102 +4233,102 @@ export default class Binance {
     async deliveryCandles(symbol: string, interval: Interval = "30m", params: Dict = {}): Promise<Candle[]> {
         params.symbol = symbol;
         params.interval = interval;
-        return await this.futuresRequest('v1/klines', params, { base: this.getDapiUrl() });
+        return await this.publicDeliveryRequest('v1/klines', params);
     }
 
     async deliveryContinuousKlines(pair: string, contractType = "CURRENT_QUARTER", interval: Interval = "30m", params: Dict = {}) {
         params.pair = pair;
         params.interval = interval;
         params.contractType = contractType;
-        return await this.futuresRequest('v1/continuousKlines', params, { base: this.getDapiUrl() });
+        return await this.publicDeliveryRequest('v1/continuousKlines', params);
     }
 
     async deliveryIndexKlines(pair: string, interval: Interval = "30m", params: Dict = {}) {
         params.pair = pair;
         params.interval = interval;
-        return await this.futuresRequest('v1/indexPriceKlines', params, { base: this.getDapiUrl() });
+        return await this.publicDeliveryRequest('v1/indexPriceKlines', params);
     }
 
     async deliveryMarkPriceKlines(symbol: string, interval: Interval = "30m", params: Dict = {}) {
         params.symbol = symbol;
         params.interval = interval;
-        return await this.futuresRequest('v1/markPriceKlines', params, { base: this.getDapiUrl() });
+        return await this.publicDeliveryRequest('v1/markPriceKlines', params);
     }
 
     async deliveryMarkPrice(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/premiumIndex', params, { base: this.getDapiUrl() });
+        return await this.publicDeliveryRequest('v1/premiumIndex', params);
     }
 
     async deliveryTrades(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/trades', params, { base: this.getDapiUrl() });
+        return await this.publicDeliveryRequest('v1/trades', params);
     }
 
     async deliveryHistoricalTrades(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/historicalTrades', params, { base: this.getDapiUrl(), type: 'MARKET_DATA' });
+        return await this.publicDeliveryRequest('v1/historicalTrades', params);
     }
 
     async deliveryAggTrades(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/aggTrades', params, { base: this.getDapiUrl() });
+        return await this.publicDeliveryRequest('v1/aggTrades', params);
     }
 
     async deliveryUserTrades(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/userTrades', params, { base: this.getDapiUrl(), type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/userTrades', params);
     }
 
     async deliveryCommissionRate(symbol: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/commissionRate', params, { base: this.getDapiUrl(), type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/commissionRate', params);
     }
 
     async deliveryGetDataStream(params: Dict = {}) {
         //A User Data Stream listenKey is valid for 60 minutes after creation. setInterval
-        return await this.futuresRequest('v1/listenKey', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'POST' });
+        return await this.privateDeliveryRequest('v1/listenKey', params, 'POST');
     }
 
     async deliveryKeepDataStream(params: Dict = {}) {
-        return await this.futuresRequest('v1/listenKey', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'PUT' });
+        return await this.privateDeliveryRequest('v1/listenKey', params, 'PUT');
     }
 
     async deliveryCloseDataStream(params: Dict = {}) {
-        return await this.futuresRequest('v1/listenKey', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'DELETE' });
+        return await this.privateDeliveryRequest('v1/listenKey', params, 'DELETE');
     }
 
     async deliveryLiquidationOrders(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/allForceOrders', params, { base: this.getDapiUrl() });
+        return await this.publicDeliveryRequest('v1/allForceOrders', params);
     }
 
     async deliveryPositionRisk(params: Dict = {}) {
-        return await this.futuresRequest('v1/positionRisk', params, { base: this.getDapiUrl(), type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/positionRisk', params);
     }
 
     async deliveryLeverageBracket(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/leverageBracket', params, { base: this.getDapiUrl(), type: 'USER_DATA' });
+        return await this.privateDeliveryRequest('v1/leverageBracket', params);
     }
 
     async deliveryLeverageBracketSymbols(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v2/leverageBracket', params, { base: this.getDapiUrl(), type: 'USER_DATA' });
+        return await this.privateDeliveryRequest('v2/leverageBracket', params);
     }
 
     // leverage 1 to 125
     async deliveryLeverage(symbol: string, leverage: number, params: Dict = {}) {
         params.symbol = symbol;
         params.leverage = leverage;
-        return await this.futuresRequest('v1/leverage', params, { base: this.getDapiUrl(), method: 'POST', type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/leverage', params, 'POST');
     }
 
     // ISOLATED, CROSSED
     async deliveryMarginType(symbol: string, marginType: string, params: Dict = {}) {
         params.symbol = symbol;
         params.marginType = marginType;
-        return await this.futuresRequest('v1/marginType', params, { base: this.getDapiUrl(), method: 'POST', type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/marginType', params, 'POST');
     }
 
     // type: 1: Add postion margin，2: Reduce postion margin
@@ -4340,29 +4336,29 @@ export default class Binance {
         params.symbol = symbol;
         params.amount = amount;
         params.type = type;
-        return await this.futuresRequest('v1/positionMargin', params, { base: this.getDapiUrl(), method: 'POST', type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/positionMargin', params, 'POST');
     }
 
     async deliveryPositionMarginHistory(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/positionMargin/history', params, { base: this.getDapiUrl(), type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/positionMargin/history', params);
     }
 
     async deliveryIncome(params: Dict = {}) {
-        return await this.futuresRequest('v1/income', params, { base: this.getDapiUrl(), type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/income', params);
     }
 
     async deliveryBalance(params: Dict = {}) {
-        return await this.futuresRequest('v1/balance', params, { base: this.getDapiUrl(), type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/balance', params);
     }
 
     async deliveryAccount(params: Dict = {}) {
-        return await this.futuresRequest('v1/account', params, { base: this.getDapiUrl(), type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/account', params);
     }
 
     async deliveryDepth(symbol: string, params: Dict = {}): Promise<OrderBook> {
         params.symbol = symbol;
-        const res = await this.futuresRequest('v1/depth', params, { base: this.getDapiUrl() });
+        const res = await this.publicDeliveryRequest('v1/depth', params);
         return this.parseOrderBook(res, symbol);
     }
 
@@ -4370,7 +4366,7 @@ export default class Binance {
         if (symbol) params.symbol = symbol;
         //let data = await this.promiseRequest( 'v1/ticker/bookTicker', params, {base:dapi} );
         //return data.reduce((out, i) => ((out[i.symbol] = i), out), {}),
-        const data = await this.futuresRequest('v1/ticker/bookTicker', params, { base: this.getDapiUrl() });
+        const data = await this.publicDeliveryRequest('v1/ticker/bookTicker', params);
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
@@ -4394,42 +4390,42 @@ export default class Binance {
 
     async deliveryOrderStatus(symbol: string, params: Dict = {}) { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
-        return await this.futuresRequest('v1/order', params, { base: this.getDapiUrl(), type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/order', params);
     }
 
     async deliveryCancel(symbol: string, params: Dict = {}) { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
-        return await this.futuresRequest('v1/order', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'DELETE' });
+        return await this.privateDeliveryRequest('v1/order', params, 'DELETE');
     }
 
     async deliveryCancelAll(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
-        return await this.futuresRequest('v1/allOpenOrders', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'DELETE' });
+        return await this.privateDeliveryRequest('v1/allOpenOrders', params, 'DELETE');
     }
 
     async deliveryCountdownCancelAll(symbol: string, countdownTime = 0, params: Dict = {}) {
         params.symbol = symbol;
         params.countdownTime = countdownTime;
-        return await this.futuresRequest('v1/countdownCancelAll', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'POST' });
+        return await this.privateDeliveryRequest('v1/countdownCancelAll', params, 'POST');
     }
 
     async deliveryOpenOrders(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/openOrders', params, { base: this.getDapiUrl(), type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/openOrders', params);
     }
 
     async deliveryAllOrders(symbol?: string, params: Dict = {}) { // Get all account orders; active, canceled, or filled.
         if (symbol) params.symbol = symbol;
-        return await this.futuresRequest('v1/allOrders', params, { base: this.getDapiUrl(), type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/allOrders', params);
     }
 
     async deliveryPositionSideDual(params: Dict = {}) {
-        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.getDapiUrl(), type: 'SIGNED' });
+        return await this.privateDeliveryRequest('v1/positionSide/dual', params);
     }
 
     async deliveryChangePositionSideDual(dualSidePosition, params: Dict = {}) {
         params.dualSidePosition = dualSidePosition;
-        return await this.futuresRequest('v1/positionSide/dual', params, { base: this.getDapiUrl(), type: 'SIGNED', method: 'POST' });
+        return await this.privateDeliveryRequest('v1/positionSide/dual', params, 'POST');
     }
 
     //** Margin methods */
@@ -4920,7 +4916,7 @@ export default class Binance {
         };
 
         const getFuturesKlineSnapshot = async (symbol: string, limit = 500) => {
-            const data = await this.futuresRequest('v1/klines', { symbol, interval, limit }, { base: this.getFapiUrl() });
+            const data = await this.futuresRequest('v1/klines', { symbol, interval, limit });
             this.futuresKlineData(symbol, interval, data);
             //this.options.log('/futures klines at ' + this.futuresMeta[symbol][interval].timestamp);
             if (typeof this.futuresKlineQueue[symbol][interval] !== 'undefined') {
@@ -5148,7 +5144,7 @@ export default class Binance {
         };
 
         const getDeliveryKlineSnapshot = async (symbol: string, limit = 500) => {
-            const data = await this.futuresRequest('v1/klines', { symbol, interval, limit }, { base: this.getFapiUrl() });
+            const data = await this.futuresRequest('v1/klines', { symbol, interval, limit });
             this.deliveryKlineData(symbol, interval, data);
             //this.options.log('/delivery klines at ' + this.deliveryMeta[symbol][interval].timestamp);
             if (typeof this.deliveryKlineQueue[symbol][interval] !== 'undefined') {
