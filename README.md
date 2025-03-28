@@ -18,8 +18,6 @@ color=blueviolet 🔵q
 
 
 
-
-
 # Node Binance API
 
 [![telegram](https://patrolavia.github.io/telegram-badge/chat.png)](https://t.me/nodebinanceapi) [![Yearly Downloads](https://img.shields.io/npm/dy/node-binance-api.svg)](https://www.npmjs.com/package/node-binance-api)  [![jaggedsoft on X](https://img.shields.io/twitter/follow/jaggedsoft.svg?style=social)](https://x.com/jaggedsoft)
@@ -56,6 +54,27 @@ https://t.me/nodebinanceapi
 
 **This project is powered by** <a href="https://github.com/ccxt/ccxt"><img src="https://avatars.githubusercontent.com/u/31901609" width=4% height=4%></a>
 
+Actively maintained, typed, and safe SDK for the Binance REST APIs and Websockets. Supports ESM and CJS out of the box.
+
+### Features
+- Spot, Margin, Futures and Delivery API
+- Portfolio Margin API *soon*
+- Testnet support
+- Proxy support (REST and WS)
+- Customizable HTTP headers
+- Customizable request parameters
+- Websocket handling with automatic reconnection
+- RecvWindow and automatic timestamps generation
+- Ability to call any endpoint, even if not supported directly by the library
+- Overridable hostnames (.us, .jp, etc)
+- Verbose mode to debug http requests/responses
+
+### Upgrading to v1.0.0+
+
+The library was fully refactored to use modern and typed JavaScript/Typescript version, using the built-in await/async syntax and unifying some methods' signatures.
+
+**We highly advise you to update from 0.0.X but minor adjustments might be needed.**
+
 
 #### Getting started (ESM)
 ```javascript
@@ -70,7 +89,7 @@ async function run() {
 #### Getting started (CJS)
 ```javascript
 const Binance = require('node-binance-api');
-const binance = new Binance().options({
+const binance = new Binance({
   APIKEY: '<key>',
   APISECRET: '<secret>',
   test: true, // if you want to use the sandbox/testnet
@@ -96,12 +115,12 @@ console.info( await binance.futuresBalance() );
 
 #### Futures Limit Buy
 ```js
-console.info( await binance.futuresBuy( 'BTCUSDT', 0.1, 8222 ) );
+console.info( await binance.futuresBuy( 'LIMIT', 'BTCUSDT', 0.1, 8222 ) );
 ```
 
 #### Futures Limit Sell
 ```js
-console.info( await binance.futuresSell( 'BTCUSDT', 0.5, 11111 ) );
+console.info( await binance.futuresSell( 'LIMIT', 'BTCUSDT', 0.5, 11111 ) );
 ```
 
 #### Futures Market Buy
@@ -197,9 +216,9 @@ console.info( await binance.futuresHistoricalTrades( "XMRUSDT" ) );
 console.info( await binance.futuresLeverageBracket( "LINKUSDT" ) );
 console.info( await binance.futuresIncome() );
 console.info( await binance.futuresCancelAll( "BTCUSDT" ) );
-console.info( await binance.futuresCancel( "BTCUSDT", {orderId: "1025137386"} ) );
+console.info( await binance.futuresCancel( "BTCUSDT", "1025137386" ) );
 console.info( await binance.futuresCountdownCancelAll( "BTCUSDT", 45000 ) );
-console.info( await binance.futuresOrderStatus( "BTCUSDT", {orderId: "1025137386"} ) );
+console.info( await binance.futuresOrderStatus( "BTCUSDT", "1025137386") );
 console.info( await binance.futuresOpenOrders() );
 console.info( await binance.futuresOpenOrders( "BTCUSDT" ) );
 console.info( await binance.futuresAllOrders() );
@@ -207,7 +226,9 @@ console.info( await binance.futuresAllOrders( "BTCUSDT" ) );
 console.info( await binance.futuresUserTrades( "BTCUSDT" ) );
 console.info( await binance.futuresGetDataStream() );
 console.info( await binance.futuresPositionMarginHistory( "TRXUSDT" ) );
-console.info( await binance.promiseRequest( 'v1/time' ) );
+console.info( await binance.futuresPublicRequest( 'v1/time' ) );
+console.info( await binance.spotPublicRequest( 'v1/time' ) ); // call any method by providing the path
+console.info( await binance.privateFuturesRequest('v3/account') // custom futures private call
 // Batch orders, remaining WebSocket streams, and better documentation will be come later
 ```
 
