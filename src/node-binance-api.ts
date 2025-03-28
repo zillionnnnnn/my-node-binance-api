@@ -14,7 +14,7 @@ import zip from 'lodash.zipobject';
 import stringHash from 'string-hash';
 import async from 'async';
 // eslint-disable-next-line
-import { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder, HttpMethod } from './types';
+import { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder, HttpMethod, BookTicker, DailyStats, PremiumIndex, OpenInterest } from './types';
 // export { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, FuturesAccountInfo, FuturesBalance, QueryOrder } from './types';
 
 export interface Dictionary<T> {
@@ -2620,7 +2620,7 @@ export default class Binance {
      * @param {array} data - array of symbols
      * @return {array} - symbols with their current prices
      */
-    priceData(data: any) {
+    priceData(data: any): {[key: string] : number} {
         const prices = {};
         if (Array.isArray(data)) {
             for (const obj of data) {
@@ -2637,15 +2637,13 @@ export default class Binance {
      * @param {array} data - array of symbols
      * @return {object} - symbols with their bids and asks data
      */
-    bookPriceData(data: any) {
+    bookPriceData(data: any): {[key: string] : BookTicker} {
+        if (!Array.isArray(data)) {
+            data = [data];
+        }
         const prices = {};
         for (const obj of data) {
-            prices[obj.symbol] = {
-                bid: obj.bidPrice,
-                bids: obj.bidQty,
-                ask: obj.askPrice,
-                asks: obj.askQty
-            };
+            prices[obj.symbol] = obj;
         }
         return prices;
     }
@@ -3260,8 +3258,9 @@ export default class Binance {
     * @param {string} symbol - the symbol
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async avgPrice(symbol: string) {
-        return await this.publicSpotRequest('v3/avgPrice', { symbol: symbol });
+    async avgPrice(symbol: string, params: Dict = {}) {
+        params.symbol = symbol;
+        return await this.publicSpotRequest('v3/avgPrice', params);
     }
 
     /**
@@ -3270,8 +3269,9 @@ export default class Binance {
     * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#symbol-price-ticker
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async prices(symbol: string) {
-        const data = await this.publicSpotRequest('v3/ticker/price', { symbol: symbol });
+    async prices(symbol?: string, params: Dict = {}): Promise<{ [key: string]: number }> {
+        if (symbol) params.symbol = symbol;
+        const data = await this.publicSpotRequest('v3/ticker/price', params);
         return this.priceData(data);
     }
 
@@ -3281,8 +3281,9 @@ export default class Binance {
     * @param {string} symbol - the symbol
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async bookTickers(symbol: string) {
-        const data = await this.publicSpotRequest('v3/ticker/bookTicker', { symbol: symbol });
+    async bookTickers(symbol?: string, params: Dict = {}): Promise<{ [key: string]: BookTicker }> {
+        if (symbol) params.symbol = symbol;
+        const data = await this.publicSpotRequest('v3/ticker/bookTicker', params);
         return this.bookPriceData(data);
     }
 
@@ -3292,9 +3293,31 @@ export default class Binance {
     * @param {string} symbol - the symbol or symbols
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async prevDay(symbol: string) {
-        const input = symbol ? { symbol: symbol } : {};
-        return await this.publicSpotRequest('v3/ticker/24hr', input);
+    async prevDay(symbol?: string, params: Dict = {}): Promise<DailyStats[] | DailyStats> {
+        if (symbol) params.symbol = symbol;
+        return await this.publicSpotRequest('v3/ticker/24hr', params);
+    }
+
+    /**
+    * Gets the prevday percentage change
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#24hr-ticker-price-change-statistics
+    * @param {string} symbol - the symbol or symbols
+    * @return {promise or undefined} - omitting the callback returns a promise
+    */
+    async ticker24h(symbol?: string, params: Dict = {}): Promise<DailyStats[] | DailyStats> {
+        if (symbol) params.symbol = symbol;
+        return await this.publicSpotRequest('v3/ticker/24hr', params);
+    }
+
+    /**
+    * Gets the prevday percentage change
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#24hr-ticker-price-change-statistics
+    * @param {string} symbol - the symbol or symbols
+    * @return {promise or undefined} - omitting the callback returns a promise
+    */
+    async dailyStats(symbol?: string, params: Dict = {}): Promise<DailyStats[] | DailyStats> {
+        if (symbol) params.symbol = symbol;
+        return await this.publicSpotRequest('v3/ticker/24hr', params);
     }
 
     /**
@@ -3722,13 +3745,15 @@ export default class Binance {
     /**
     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/24hr-Ticker-Price-Change-Statistics
     */
-    async futuresDaily(symbol?: string, params: Dict = {}) {
+    async futuresDaily(symbol?: string, params: Dict = {}): Promise<DailyStats | DailyStats[]> {
         if (symbol) params.symbol = symbol;
-        const data = await this.publicFuturesRequest('v1/ticker/24hr', params);
-        return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
+        return await this.publicFuturesRequest('v1/ticker/24hr', params);
     }
 
-    async futuresOpenInterest(symbol: string, params: Dict = {}) {
+    /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Open-Interest
+     */
+    async futuresOpenInterest(symbol: string, params: Dict = {}): Promise<OpenInterest> {
         params.symbol = symbol;
         return await this.publicFuturesRequest('v1/openInterest', params);
     }
@@ -3745,8 +3770,9 @@ export default class Binance {
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Mark-Price
      */
-    async futuresMarkPrice(symbol?: string) {
-        return await this.publicFuturesRequest('v1/premiumIndex', symbol ? { symbol } : {});
+    async futuresMarkPrice(symbol?: string, params: Dict = {}): Promise<PremiumIndex | PremiumIndex[]> {
+        if (symbol) params.symbol = symbol;
+        return await this.publicFuturesRequest('v1/premiumIndex',params);
     }
 
     /**
@@ -3784,7 +3810,7 @@ export default class Binance {
      * @param params extra parameters to be sent in the request
      * @returns
      */
-    async futuresForceOrders(params: Dict = {}) {
+    async futuresForceOrders(params: Dict = {}): Promise<Order[]> {
         return await this.privateFuturesRequest('v1/forceOrders', params);
     }
     /**
@@ -3961,10 +3987,8 @@ export default class Binance {
      */
     async futuresQuote(symbol?: string, params: Dict = {}) {
         if (symbol) params.symbol = symbol;
-        //let data = await this.promiseRequest( 'v1/ticker/bookTicker', params, {base:fapi} );
-        //return data.reduce((out, i) => ((out[i.symbol] = i), out), {}),
         const data = await this.publicFuturesRequest('v1/ticker/bookTicker', params);
-        return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
+        return this.bookPriceData(data);
     }
 
     /**
