@@ -4590,9 +4590,9 @@ export default class Binance {
      * @param {number} amount - the asset
      * @return {undefined}
      */
-    async mgTransferMarginToMain(asset: string, amount: number) {
+    async mgTransferMarginToMain(asset: string, amount: number, params: Dict = {}) {
         const parameters = Object.assign({ asset: asset, amount: amount, type: 2 });
-        return await this.privateSpotRequest('v1/margin/transfer', parameters, 'POST');
+        return await this.privateSpotRequest('v1/margin/transfer', this.extend(parameters, params), 'POST');
     }
     // /**
     // * Universal Transfer requires API permissions enabled
@@ -4677,14 +4677,14 @@ export default class Binance {
      * @param {string} symbol - symbol for isolated margin
      * @return {undefined}
      */
-    async mgBorrow(asset: string, amount: number, isIsolated = 'FALSE', symbol?: string) {
+    async mgBorrow(asset: string, amount: number, isIsolated = 'FALSE', symbol?: string, params: Dict = {}) {
         const parameters = Object.assign({ asset: asset, amount: amount });
         if (isIsolated === 'TRUE' && !symbol) throw new Error('If "isIsolated" = "TRUE", "symbol" must be sent');
         const isolatedObj = isIsolated === 'TRUE' ? {
             isIsolated,
             symbol
         } : {};
-        return await this.privateSpotRequest('v1/margin/loan', { ...parameters, ...isolatedObj }, 'POST');
+        return await this.privateSpotRequest('v1/margin/loan', this.extend({ ...parameters, ...isolatedObj }, params), 'POST');
     }
 
     /**
@@ -4701,11 +4701,11 @@ export default class Binance {
     /**
      * Margin account repay
      * @param {string} asset - the asset
-     * @param {object} options - additional options
+     * @param {object} params - additional options
      * @return {undefined}
      */
-    async mgQueryRepay(asset: string, options) {
-        const parameters = Object.assign({ asset: asset }, options);
+    async mgQueryRepay(asset: string, params: Dict = {}) {
+        const parameters = Object.assign({ asset: asset }, params);
         return await this.privateSpotRequest('v1/margin/repay', { ...parameters }, 'GET');
     }
 
@@ -4717,14 +4717,14 @@ export default class Binance {
      * @param {string} symbol - symbol for isolated margin
      * @return {undefined}
      */
-    async mgRepay(asset: string, amount: number, isIsolated = 'FALSE', symbol = null) {
+    async mgRepay(asset: string, amount: number, isIsolated = 'FALSE', symbol?: string, params: Dict = {}) {
         const parameters = Object.assign({ asset: asset, amount: amount });
         if (isIsolated === 'TRUE' && !symbol) throw new Error('If "isIsolated" = "TRUE", "symbol" must be sent');
         const isolatedObj = isIsolated === 'TRUE' ? {
             isIsolated,
             symbol
         } : {};
-        return await this.privateSpotRequest('v1/margin/repay', { ...parameters, ...isolatedObj }, 'POST');
+        return await this.privateSpotRequest('v1/margin/repay', this.extend({ ...parameters, ...isolatedObj }, params), 'POST');
     }
 
     /**
@@ -4732,18 +4732,19 @@ export default class Binance {
      * @param {boolean} isIsolated - the callback function
      * @return {undefined}
      */
-    async mgAccount(isIsolated = false) {
+    async mgAccount(isIsolated = false, params: Dict = {}) {
         let endpoint = 'v1/margin';
         endpoint += (isIsolated) ? '/isolated' : '' + '/account';
-        return await this.privateSpotRequest(endpoint, {});
+        return await this.privateSpotRequest(endpoint, params);
     }
     /**
      * Get maximum borrow amount of an asset
      * @param {string} asset - the asset
      * @return {undefined}
      */
-    async maxBorrowable(asset: string) {
-        return await this.privateSpotRequest('v1/margin/maxBorrowable', { asset: asset });
+    async maxBorrowable(asset: string, params: Dict = {}) {
+        params.asset = asset;
+        return await this.privateSpotRequest('v1/margin/maxBorrowable', params);
     }
 
     // // Futures WebSocket Functions:
