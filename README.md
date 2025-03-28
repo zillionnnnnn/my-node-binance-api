@@ -42,7 +42,7 @@ This project is designed to help you make your own projects that interact with t
 #### Installation
 
 ```
-npm install -s node-binance-api
+npm install node-binance-api
 ```
 [![NPM](https://nodei.co/npm/node-binance-api.png?compact=true)](https://npmjs.org/package/node-binance-api)
 <!-- [![npm install node-binance-api](https://nodei.co/npm/node-binance-api.png?mini=true)](https://npmjs.org/package/node-binance-api) -->
