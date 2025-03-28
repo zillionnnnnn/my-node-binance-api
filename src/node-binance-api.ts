@@ -49,6 +49,7 @@ export default class Binance {
     // proxy variables
     httpsProxy: string = undefined;
     socksProxy: string = undefined;
+    nodeFetch: any = undefined;
 
     APIKEY: string = undefined;
     APISECRET: string = undefined;
@@ -296,7 +297,33 @@ export default class Binance {
         if (this.Options.verbose) {
             this.Options.log('HTTP Request:', opt.method, opt.url, reqOptions);
         }
-        const response = await fetch(opt.url, reqOptions);
+
+        // https-proxy
+        const httpsproxy = this.getHttpsProxy();
+        const socksproxy = this.getSocksProxy();
+        if (httpsproxy) {
+            if (this.Options.verbose) this.Options.log('using https proxy: ' + httpsproxy);
+            reqOptions.agent = new HttpsProxyAgent(httpsproxy);
+        } else if (socksproxy) {
+            if (this.Options.verbose) this.Options.log('using socks proxy: ' + socksproxy);
+            reqOptions.agent = new SocksProxyAgent(socksproxy);
+        }
+
+        let fetchImplementation = fetch;
+        // require node-fetch
+        if (reqOptions.agent) {
+            if (!this.nodeFetch) {
+                try {
+                    const module = await import ('node-fetch');
+                    this.nodeFetch = module.default;
+                    fetchImplementation = this.nodeFetch;
+                } catch (e) {
+                    throw new Error('If you want to use proxy, please install it using npm install node-fetch');
+                }
+            }
+        }
+
+        const response = await fetchImplementation(opt.url, reqOptions);
 
         await this.reqHandler(response);
         const json = await response.json();
