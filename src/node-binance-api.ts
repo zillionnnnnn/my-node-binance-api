@@ -10,6 +10,8 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 // @ts-ignore
 import { SocksProxyAgent } from 'socks-proxy-agent';
 // @ts-ignore
+import nodeFetch from 'node-fetch';
+// @ts-ignore
 import zip from 'lodash.zipobject';
 import stringHash from 'string-hash';
 import async from 'async';
@@ -312,15 +314,7 @@ export default class Binance {
         let fetchImplementation = fetch;
         // require node-fetch
         if (reqOptions.agent) {
-            if (!this.nodeFetch) {
-                try {
-                    const module = await import ('node-fetch');
-                    this.nodeFetch = module.default;
-                    fetchImplementation = this.nodeFetch;
-                } catch (e) {
-                    throw new Error('If you want to use proxy, please install it using npm install node-fetch');
-                }
-            }
+            fetchImplementation = nodeFetch;
         }
 
         const response = await fetchImplementation(opt.url, reqOptions);
