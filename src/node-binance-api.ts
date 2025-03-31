@@ -1135,7 +1135,7 @@ export default class Binance {
         ws.on('message', data => {
             try {
                 if (this.Options.verbose) this.Options.log('WebSocket data:', data);
-                callback(JSON.parse(data));
+                callback(JSONbig.parse(data));
             } catch (error) {
                 this.Options.log('Parse error: ' + error.message);
             }
@@ -1188,7 +1188,7 @@ export default class Binance {
             try {
                 if (this.Options.verbose) this.Options.log('CombinedStream: WebSocket data:', data
                 );
-                callback(JSON.parse(data).data);
+                callback(JSONbig.parse(data).data);
             } catch (error) {
                 this.Options.log('CombinedStream: Parse error: ' + error.message);
             }
@@ -1391,7 +1391,7 @@ export default class Binance {
         ws.on('message', data => {
             try {
                 if (this.Options.verbose) this.Options.log('futuresSubscribe: Received data:', data);
-                callback(JSON.parse(data).data);
+                callback(JSONbig.parse(data).data);
             } catch (error) {
                 this.Options.log(`futuresSubscribe: Parse error: ${error.message}`);
             }
@@ -2047,7 +2047,7 @@ export default class Binance {
         ws.on('message', data => {
             try {
                 if (this.Options.verbose) this.Options.log('deliverySubscribeSingle: Received data:', data);
-                callback(JSON.parse(data));
+                callback(JSONbig.parse(data));
             } catch (error) {
                 this.Options.log('Parse error: ' + error.message);
             }
@@ -2103,7 +2103,7 @@ export default class Binance {
         ws.on('message', data => {
             try {
                 if (this.Options.verbose) this.Options.log('deliverySubscribe: Received data:', data);
-                callback(JSON.parse(data).data);
+                callback(JSONbig.parse(data).data);
             } catch (error) {
                 this.Options.log(`deliverySubscribe: Parse error: ${error.message}`);
             }
