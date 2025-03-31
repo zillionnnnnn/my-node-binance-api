@@ -26,7 +26,7 @@
     "static-test": "mocha ./tests/static-tests.mjs",
     "ts-test-live": "mocha ./tests/binance-class-live.test.ts",
     "ts-test-static": "mocha ./tests/binance-class-static.test.ts",
-    "test-cjs": "node ./tests/cjs-test.js",
+    "test-cjs": "node ./tests/cjs-test.cjs",
     "test-debug": "mocha --inspect-brk",
     "lint": "eslint src/",
     "cover": "istanbul cover _mocha --report lcovonly",

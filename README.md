@@ -17,7 +17,6 @@ color=blueviolet 🔵q
 
 
 
-
 # Node Binance API
 
 [![telegram](https://patrolavia.github.io/telegram-badge/chat.png)](https://t.me/nodebinanceapi) [![Yearly Downloads](https://img.shields.io/npm/dy/node-binance-api.svg)](https://www.npmjs.com/package/node-binance-api)  [![jaggedsoft on X](https://img.shields.io/twitter/follow/jaggedsoft.svg?style=social)](https://x.com/jaggedsoft)
@@ -58,7 +57,7 @@ Actively maintained, typed, and safe SDK for the Binance REST APIs and Websocket
 
 ### Features
 - Spot, Margin, Futures and Delivery API
-- Portfolio Margin API *soon*
+- Portfolio Margin API *\*soon*\*
 - Testnet support
 - Proxy support (REST and WS)
 - Customizable HTTP headers
@@ -71,7 +70,7 @@ Actively maintained, typed, and safe SDK for the Binance REST APIs and Websocket
 
 ### Upgrading to v1.0.0+
 
-The library was fully refactored to use modern and typed JavaScript/Typescript version, using the built-in await/async syntax and unifying some methods' signatures.
+The library was fully refactored to use modern and typed JavaScript/Typescript version, using the built-in await/async syntax and unifying some methods' signatures. Some important changes include the removal of callbacks as parameters of REST methods, adaptation of signatures to directly receive some important request values (symbol, orderId, ...), etc.
 
 **We highly advise you to update from 0.0.X but minor adjustments might be needed.**
 
@@ -232,6 +231,39 @@ console.info( await binance.privateFuturesRequest('v3/account') // custom future
 // Batch orders, remaining WebSocket streams, and better documentation will be come later
 ```
 
+### Proxy support
+
+In some specific cases using a proxy is required, for example:
+- Exchange is not available in your location
+- You need to make a large amount of requests without getting blocked
+- ...
+
+This package supports the following proxy types, `httpsProxy`, `proxyUrl` and `socksProxy`
+
+#### httpsProxy
+
+To set a real http(s) proxy for your scripts, you need to have an access to a remote http or https proxy, so calls will be made directly to the target exchange, tunneled through your proxy server:
+
+```Js
+client.httpsProxy = 'http://1.2.3.4:8080/';
+```
+
+#### proxyUrl
+
+This property prepends an url to API requests. It might be useful for simple redirection or bypassing CORS browser restriction.
+
+```Js
+client.proxyUrl = 'YOUR_PROXY_URL';
+```
+
+#### socksProxy
+
+Tou can also use socks proxy with the following format:
+
+```Js
+client.socksProxy = 'socks5://1.2.3.4:8080/';
+```
+
 #### Futures Historical Bulk Data Download API
 
 ##### Get Download ID
@@ -316,6 +348,8 @@ binance.futuresTerminate( 'btcusdt@kline_4h' );
 ```js
 console.log( binance.futuresSubscriptions() );
 ```
+
+
 
 # Delivery API (Futures w/Expiration Date)
 ```
