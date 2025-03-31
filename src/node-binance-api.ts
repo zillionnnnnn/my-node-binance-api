@@ -27,24 +27,25 @@ export type Dict = Dictionary<any>;
 
 export default class Binance {
 
-    base = 'https://api.binance.com/api/';
-    baseTest = 'https://testnet.binance.vision/api/';
-    wapi = 'https://api.binance.com/wapi/';
-    sapi = 'https://api.binance.com/sapi/';
-    fapi = 'https://fapi.binance.com/fapi/';
-    dapi = 'https://dapi.binance.com/dapi/';
-    fapiTest = 'https://testnet.binancefuture.com/fapi/';
-    dapiTest = 'https://testnet.binancefuture.com/dapi/';
-    fstream = 'wss://fstream.binance.com/stream?streams=';
-    fstreamSingle = 'wss://fstream.binance.com/ws/';
-    fstreamSingleTest = 'wss://stream.binancefuture.com/ws/';
-    fstreamTest = 'wss://stream.binancefuture.com/stream?streams=';
-    dstream = 'wss://dstream.binance.com/stream?streams=';
-    dstreamSingle = 'wss://dstream.binance.com/ws/';
-    dstreamSingleTest = 'wss://dstream.binancefuture.com/ws/';
-    dstreamTest = 'wss://dstream.binancefuture.com/stream?streams=';
-    stream = 'wss://stream.binance.com:9443/ws/';
-    combineStream = 'wss://stream.binance.com:9443/stream?streams=';
+    domain = 'com';
+    base = `https://api.binance.${this.domain}/api/`;
+    baseTest = `https://testnet.binance.vision/api/`;
+    wapi = `https://api.binance.${this.domain}/wapi/`;
+    sapi = `https://api.binance.${this.domain}/sapi/`;
+    fapi = `https://fapi.binance.${this.domain}/fapi/`;
+    dapi = `https://dapi.binance.${this.domain}/dapi/`;
+    fapiTest = `https://testnet.binancefuture.com/fapi/`;
+    dapiTest = `https://testnet.binancefuture.com/dapi/`;
+    fstream = `wss://fstream.binance.${this.domain}/stream?streams=`;
+    fstreamSingle = `wss://fstream.binance.${this.domain}/ws/`;
+    fstreamSingleTest = `wss://stream.binancefuture.${this.domain}/ws/`;
+    fstreamTest = `wss://stream.binancefuture.${this.domain}/stream?streams=`;
+    dstream = `wss://dstream.binance.${this.domain}/stream?streams=`;
+    dstreamSingle = `wss://dstream.binance.${this.domain}/ws/`;
+    dstreamSingleTest = `wss://dstream.binancefuture.${this.domain}/ws/`;
+    dstreamTest = `wss://dstream.binancefuture.${this.domain}/stream?streams=`;
+    stream = `wss://stream.binance.${this.domain}:9443/ws/`;
+    combineStream = `wss://stream.binance.${this.domain}:9443/stream?streams=`;
 
     verbose = false;
 
@@ -166,6 +167,7 @@ export default class Binance {
         if (this.Options.APISECRET) this.APISECRET = this.Options.APISECRET;
         if (this.Options.test) this.test = true;
         if (this.Options.headers) this.headers = this.Options.Headers;
+        if (this.Options.domain) this.domain = this.Options.domain;
     }
 
     async setOptions(opt = {}): Promise<Binance> {

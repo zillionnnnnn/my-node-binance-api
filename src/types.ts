@@ -132,6 +132,7 @@ export interface IConstructorArgs {
     hedgeMode: boolean;
     httpsProxy: string;
     socksProxy: string;
+    domain: string;
     headers: Record<string, any>;
     // eslint-disable-next-line
     log: (...args: any[]) => void;
