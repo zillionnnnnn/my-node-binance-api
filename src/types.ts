@@ -160,6 +160,31 @@ export interface IConstructorArgs {
     timeOffset: number;
 }
 
+export interface IWebsocketsMethods {
+  // deprecated, using it for backward compatibility
+  /* eslint-disable */
+  userData(call_updates_callback?: Callback, balance_callback?: Callback, subscribedCallback?: Callback, list_statusCallback?: Callback);
+  userMarginData(call_updates_callback?: Callback, balance_callback?: Callback, executionCallback?: Callback, subscribedCallback?: Callback, list_statusCallback?: Callback);
+  depthCacheStaggered(symbols :string |string[], callback?: Callback, limit?: number, stagger?: number);
+  userFutureData(all_updates_callback?: Callback, margin_callCallback?: Callback, account_updateCallback?: Callback, order_updateCallback?: Callback, subscribedCallback?: Callback);
+  userDeliveryData(all_updates_callback?: Callback, margin_callCallback?: Callback, account_updateCallback?: Callback, order_updateCallback?: Callback, subscribedCallback?: Callback): any;
+  subscribeCombined(url: string, callback: Callback, reconnect?: Callback, opened_callback?: Callback);
+  subscribe(endpoint: string, callback: Callback, reconnect?: Callback, opened_callback?: Callback);
+  subscriptions(...args: any): any;
+  terminate(endpoint: string): any;
+  depth(...args: any): any;
+  depthCache(symbols: string[] | string, callback?: Callback, limit?: number): any;
+  clearDepthCache(symbols: string | string[]): any;
+  depthCacheStaggered(symbols: string[] | string, callback: Callback, limit?: number, stagger?: number)
+  aggTrades(symbols: string | string[], callback: Callback): any;
+  trades(symbols: string | string[], callback: Callback): string;
+  chart(symbols: string | string[], interval: Interval, callback?: Callback, limit?: number)
+  candlesticks(symbols: string | string[], interval: Interval, callback: Callback)
+  miniTicker(callback: Callback): string;
+  bookTickers(symbol: string, callback: Callback): string;
+  prevDay(symbols: string | string[], callback?: Callback, singleCallback?: Callback)
+}
+
 export interface FundingRate {
     symbol: string
     fundingRate: string
@@ -394,9 +419,9 @@ export interface Ticker {
   }
 
 // export {
-//     _interval as interval,
-//     _symbol as symbol,
-//     _callback as callback,
+//     Interval as interval,
+//    string as symbol,
+//     Callback as callback,
 //     IConstructorArgs
 // }
 

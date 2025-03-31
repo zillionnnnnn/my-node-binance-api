@@ -16,7 +16,7 @@ import zip from 'lodash.zipobject';
 import stringHash from 'string-hash';
 import async from 'async';
 // eslint-disable-next-line
-import { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder, HttpMethod, BookTicker, DailyStats, PremiumIndex, OpenInterest } from './types';
+import { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder, HttpMethod, BookTicker, DailyStats, PremiumIndex, OpenInterest, IWebsocketsMethods } from './types';
 // export { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, FuturesAccountInfo, FuturesBalance, QueryOrder } from './types';
 
 export interface Dictionary<T> {
@@ -96,6 +96,28 @@ export default class Binance {
     klineQueue: Dict = {};
     ohlc: Dict = {};
     info: Dict = {};
+
+    websockets: IWebsocketsMethods = { // deprecated structure, keeping it for backwards compatibility
+        userData: this.userData,
+        userMarginData: this.userMarginData,
+        depthCacheStaggered: this.depthCacheStaggered,
+        userFutureData: this.userFutureData,
+        userDeliveryData: this.userDeliveryData,
+        subscribeCombined: this.subscribeCombined,
+        subscribe: this.subscribe,
+        subscriptions:  () => this.subscriptions,
+        terminate: this.terminate,
+        depth: this.depth,
+        depthCache: this.depthCacheStream,
+        clearDepthCache: this.clearDepthCache,
+        aggTrades: this.aggTrades,
+        trades: this.tradesStream,
+        chart: this.chart,
+        candlesticks: this.candlesticks,
+        miniTicker: this.miniTicker,
+        bookTickers: this.bookTickersStream,
+        prevDay: this.prevDay,
+    };
 
     default_options = {
         recvWindow: 5000,
@@ -5914,7 +5936,7 @@ export default class Binance {
      * @param {boolean} singleCallback - avoid call one callback for each symbol in data array
      * @return {string} the websocket endpoint
      */
-    prevDayStream(symbols: string[] | string, callback: Callback, singleCallback: Callback) {
+    prevDayStream(symbols: string[] | string, callback?: Callback, singleCallback?: Callback) {
         const reconnect = () => {
             if (this.Options.reconnect) this.prevDayStream(symbols, callback, singleCallback);
         };
@@ -5953,5 +5975,5 @@ export default class Binance {
 }
 
 export {
-    Binance, Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder, HttpMethod, BookTicker, DailyStats, PremiumIndex, OpenInterest
+    Binance
 };

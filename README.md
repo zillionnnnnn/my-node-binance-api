@@ -62,6 +62,7 @@ Actively maintained, typed, and safe SDK for the Binance REST APIs and Websocket
 - Proxy support (REST and WS)
 - Customizable HTTP headers
 - Customizable request parameters
+- RSA/ECDSA support *\*soon*\*
 - Websocket handling with automatic reconnection
 - RecvWindow and automatic timestamps generation
 - Ability to call any endpoint, even if not supported directly by the library
@@ -226,8 +227,8 @@ console.info( await binance.futuresUserTrades( "BTCUSDT" ) );
 console.info( await binance.futuresGetDataStream() );
 console.info( await binance.futuresPositionMarginHistory( "TRXUSDT" ) );
 console.info( await binance.futuresPublicRequest( 'v1/time' ) );
-console.info( await binance.spotPublicRequest( 'v1/time' ) ); // call any method by providing the path
-console.info( await binance.privateFuturesRequest('v3/account') // custom futures private call
+console.info( await binance.spotPublicRequest( 'v1/time')); // call any method by providing the path
+console.info( await binance.privateFuturesRequest('v3/account')); // custom futures private call
 // Batch orders, remaining WebSocket streams, and better documentation will be come later
 ```
 
