@@ -1,7 +1,7 @@
 {
   "name": "node-binance-api",
   "version": "0.13.5",
-  "description": "Binance API for node https://github.com/jaggedsoft/node-binance-api",
+  "description": "Binance API for node https://github.com/ccxt/node-binance-api",
   "typings": "./dist/node-binance-api.d.ts",
   "type": "module",
   "exports": {
@@ -39,11 +39,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ccxt/node-binance-api"
+    "url": "https://github.com/ccxt/node-binance-api.git"
   },
   "keywords": [
     "binance",
-    "api"
+    "api",
+    "trading",
+    "crypto"
   ],
   "author": "Jon Eyrick <info@liquidity.ltd> (https://darkpool.ventures)",
   "license": "MIT",
