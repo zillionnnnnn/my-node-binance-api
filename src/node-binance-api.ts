@@ -284,6 +284,12 @@ export default class Binance {
         }
 
         if (response && response.status !== 200) {
+            // let parsedResponse = '';
+            // try {
+            //     parsedResponse = await response.json();
+            // } catch (e) {
+            //     parsedResponse = await response.text();
+            // }
             const error = new Error(await response.text());
             // error.code = response.status;
             // error.url = response.url;
@@ -751,7 +757,7 @@ export default class Binance {
     * @param {string} orderid - the orderid to cancel
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async cancel(symbol: string, orderid: string, params: Dict = {}): Promise<CancelOrder> {
+    async cancel(symbol: string, orderid: number | string, params: Dict = {}): Promise<CancelOrder> {
         return await this.privateSpotRequest('v3/order', this.extend({ symbol: symbol, orderId: orderid }, params), 'DELETE');
     }
 
@@ -763,7 +769,7 @@ export default class Binance {
 * @param {object} flags - any additional flags
 * @return {promise or undefined} - omitting the callback returns a promise
 */
-    async orderStatus(symbol: string, orderid?: string, flags = {}) {
+    async orderStatus(symbol: string, orderid?: number | string, flags = {}) {
         let parameters = Object.assign({ symbol: symbol }, flags);
         if (orderid) {
             parameters = Object.assign({ orderId: orderid }, parameters);
@@ -788,33 +794,33 @@ export default class Binance {
     * @param {string} symbol - the symbol to cancel all orders for
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async cancelAll(symbol: string, params: Dict = {}) {
+    async cancelAllOrders(symbol: string, params: Dict = {}) {
         return await this.privateSpotRequest('v3/openOrders', this.extend({ symbol }, params), 'DELETE');
     }
 
-    /**
-    * Cancels all orders of a given symbol
-    * @param {string} symbol - the symbol to cancel all orders for
-    * @return {promise or undefined} - omitting the callback returns a promise
-    */
-    async cancelOrders(symbol: string, params: Dict = {}) {
-        const json = await this.privateSpotRequest('v3/openOrders', this.extend({ symbol: symbol }, params), 'DELETE');
-        // if (json.length === 0) {
-        //     return callback.call(this, 'No orders present for this symbol', {}, symbol);
-        // }
-        // if (Object.keys(json).length === 0) {
-        //     return callback.call(this, 'No orders present for this symbol', {}, symbol);
-        // }
-        // for (let obj of json) {
-        //     let quantity = obj.origQty - obj.executedQty;
-        //     this.options.log('cancel order: ' + obj.side + ' ' + symbol + ' ' + quantity + ' @ ' + obj.price + ' #' + obj.orderId);
-        //     signedRequest(this.getSpotUrl() + 'v3/order', { symbol: symbol, orderId: obj.orderId }, function (error, data) {
-        //         return callback.call(this, error, data, symbol);
-        //     }, 'DELETE');
-        // }
-        return json; // to do: check this logic of cancelling remaining orders manually
+    // /**
+    // * Cancels all orders of a given symbol
+    // * @param {string} symbol - the symbol to cancel all orders for
+    // * @return {promise or undefined} - omitting the callback returns a promise
+    // */
+    // async cancelOrders(symbol: string, params: Dict = {}) {
+    //     const json = await this.privateSpotRequest('v3/openOrders', this.extend({ symbol: symbol }, params), 'DELETE');
+    //     // if (json.length === 0) {
+    //     //     return callback.call(this, 'No orders present for this symbol', {}, symbol);
+    //     // }
+    //     // if (Object.keys(json).length === 0) {
+    //     //     return callback.call(this, 'No orders present for this symbol', {}, symbol);
+    //     // }
+    //     // for (let obj of json) {
+    //     //     let quantity = obj.origQty - obj.executedQty;
+    //     //     this.options.log('cancel order: ' + obj.side + ' ' + symbol + ' ' + quantity + ' @ ' + obj.price + ' #' + obj.orderId);
+    //     //     signedRequest(this.getSpotUrl() + 'v3/order', { symbol: symbol, orderId: obj.orderId }, function (error, data) {
+    //     //         return callback.call(this, error, data, symbol);
+    //     //     }, 'DELETE');
+    //     // }
+    //     return json; // to do: check this logic of cancelling remaining orders manually
 
-    }
+    // }
 
     /**
     * Gets all order of a given symbol
@@ -4127,7 +4133,7 @@ export default class Binance {
      * @param params extra parameters to be sent in the request
      * @returns
      */
-    async futuresCancel(symbol: string, orderId?: string, params: Dict = {}): Promise<CancelOrder> { // Either orderId or origClientOrderId must be sent
+    async futuresCancel(symbol: string, orderId?: number | string, params: Dict = {}): Promise<CancelOrder> { // Either orderId or origClientOrderId must be sent
         params.symbol = symbol;
         if (orderId) params.orderId = orderId;
         return await this.privateFuturesRequest('v1/order', params, 'DELETE');
@@ -4579,7 +4585,7 @@ export default class Binance {
      * @param {string} orderid - the orderid to cancel
      * @return {undefined}
      */
-    async mgCancel(symbol: string, orderid: string, isIsolated = 'FALSE'): Promise<CancelOrder> {
+    async mgCancel(symbol: string, orderid: number | string, isIsolated = 'FALSE'): Promise<CancelOrder> {
         return await this.privateSpotRequest('v1/margin/order', { symbol: symbol, orderId: orderid, isIsolated }, 'DELETE');
     }
 
@@ -4601,7 +4607,7 @@ export default class Binance {
      * @param {object} flags - any additional flags
      * @return {undefined}
      */
-    async mgOrderStatus(symbol: string, orderid: string, flags = {}): Promise<Order> {
+    async mgOrderStatus(symbol: string, orderid: number | string, flags = {}): Promise<Order> {
         const parameters = Object.assign({ symbol: symbol, orderId: orderid }, flags);
         return await this.privateSpotRequest('v1/margin/order', parameters);
     }
