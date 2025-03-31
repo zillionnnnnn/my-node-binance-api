@@ -2404,6 +2404,7 @@ export default class Binance {
      */
     userDataHandler(data: any) {
         const type = data.e;
+        this.Options.all_updates_callback(data);
         if (type === 'outboundAccountInfo') {
             // XXX: Deprecated in 2020-09-08
         } else if (type === 'executionReport') {
@@ -2444,6 +2445,7 @@ export default class Binance {
      */
     userFutureDataHandler(data: any) {
         const type = data.e;
+        this.Options.futures_all_updates_callback(data);
         if (type === 'MARGIN_CALL') {
             this.Options.future_margin_call_callback(this.fUserDataMarginConvertData(data));
         } else if (type === 'ACCOUNT_UPDATE') {
@@ -2458,8 +2460,6 @@ export default class Binance {
             if (this.Options.future_account_config_update_callback) {
                 this.Options.future_account_config_update_callback(this.fUserConfigDataAccountUpdateConvertData(data));
             }
-        } else {
-            this.Options.log('Unexpected userFutureData: ' + type);
         }
     }
 
@@ -5229,14 +5229,15 @@ export default class Binance {
 
     /**
      * Userdata websockets function
+     * @param {function} all_updates_callback
      * @param {function} execution_callback - optional execution callback
      * @param {function} subscribed_callback - subscription callback
      * @param {function} list_status_callback - status callback
      * @return {undefined}
      */
-    async userData(callback: Callback, execution_callback?: Callback, subscribed_callback?: Callback, list_status_callback?: Callback) {
+    async userData(all_updates_callback: Function, balance_callback?: Callback, execution_callback?: Callback, subscribed_callback?: Callback, list_status_callback?: Callback) {
         const reconnect = () => {
-            if (this.Options.reconnect) this.userData(callback, execution_callback, subscribed_callback);
+            if (this.Options.reconnect) this.userData(all_updates_callback, balance_callback, execution_callback, subscribed_callback);
         };
         const response = await this.apiRequest(this.getSpotUrl() + 'v3/userDataStream', {}, 'POST');
         this.Options.listenKey = response.listenKey;
@@ -5250,8 +5251,9 @@ export default class Binance {
                 setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
             }
         }, 60 * 30 * 1000); // 30 minute keepalive
-        this.Options.balance_callback = callback;
-        this.Options.execution_callback = execution_callback ? execution_callback : callback;//This change is required to listen for Orders
+        this.Options.all_updates_callback = all_updates_callback;
+        this.Options.balance_callback = balance_callback;
+        this.Options.execution_callback = execution_callback ? execution_callback : balance_callback;//This change is required to listen for Orders
         this.Options.list_status_callback = list_status_callback;
         const subscription = this.subscribe(this.Options.listenKey, this.userDataHandler, reconnect);
         if (subscribed_callback) subscribed_callback(subscription.endpoint);
@@ -5290,16 +5292,17 @@ export default class Binance {
 
     /**
      * Future Userdata websockets function
+     * @param {function} all_updates_callback
      * @param {function} margin_call_callback
      * @param {function} account_update_callback
      * @param {function} order_update_callback
      * @param {Function} subscribed_callback - subscription callback
      */
-    async userFutureData(margin_call_callback, account_update_callback?: Callback, order_update_callback?: Callback, subscribed_callback?: Callback, account_config_update_callback?: Callback) {
+    async userFutureData(all_updates_callback?: Callback, margin_call_callback?: Callback, account_update_callback?: Callback, order_update_callback?: Callback, subscribed_callback?: Callback, account_config_update_callback?: Callback) {
         const url = (this.Options.test) ? this.fapiTest : this.fapi;
 
         const reconnect = () => {
-            if (this.Options.reconnect) this.userFutureData(margin_call_callback, account_update_callback, order_update_callback, subscribed_callback);
+            if (this.Options.reconnect) this.userFutureData(all_updates_callback, margin_call_callback, account_update_callback, order_update_callback, subscribed_callback);
         };
 
         const response = await this.apiRequest(url + 'v1/listenKey', {}, 'POST');
@@ -5312,6 +5315,7 @@ export default class Binance {
                 setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
             }
         }, 60 * 30 * 1000); // 30 minute keepalive
+        this.Options.futures_all_updates_callback = all_updates_callback;
         this.Options.future_margin_call_callback = margin_call_callback;
         this.Options.future_account_update_callback = account_update_callback;
         this.Options.future_account_config_update_callback = account_config_update_callback;

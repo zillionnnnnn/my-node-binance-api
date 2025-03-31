@@ -334,6 +334,38 @@ export interface Bid {
     quantity: string
 }
 
+export interface BookTicker {
+    symbol: string
+    bidPrice: string
+    bidQty: string
+    askPrice: string
+    askQty: string
+}
+
+export interface DailyStats {
+  symbol: string
+  priceChange: string
+  priceChangePercent: string
+  weightedAvgPrice: string
+  prevClosePrice: string
+  lastPrice: string
+  lastQty: string
+  bidPrice: string
+  bidQty: string
+  askPrice: string
+  askQty: string
+  openPrice: string
+  highPrice: string
+  lowPrice: string
+  volume: string
+  quoteVolume: string
+  openTime: number
+  closeTime: number
+  firstId: number // First tradeId
+  lastId: number // Last tradeId
+  count: number // Trade count
+}
+
 export interface Ticker {
     eventType: string
     eventTime: number
@@ -488,3 +520,19 @@ export interface QueryOrder {
     type: OrderType
     updateTime: number
   }
+
+export interface PremiumIndex {
+    symbol: string
+    markPrice: string
+    indexPrice: string
+    lastFundingRate: string
+    nextFundingTime: number
+    estimatedSettlePrice: string
+    time: number
+}
+
+export interface OpenInterest {
+  openInterest: string
+  symbol: string
+  time: number
+}
