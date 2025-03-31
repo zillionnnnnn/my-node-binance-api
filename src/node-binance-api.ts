@@ -48,6 +48,7 @@ export default class Binance {
 
     futuresListenKeyKeepAlive: number = 60 * 30 * 1000; // 30 minutes
     spotListenKeyKeepAlive: number = 60 * 30 * 1000; // 30 minutes
+    heartBeatInterval: number = 30000; // 30 seconds
 
     // proxy variables
     httpsProxy: string = undefined;
@@ -940,7 +941,7 @@ export default class Binance {
     handleSocketOpen(opened_callback: Callback) {
         this.isAlive = true;
         if (Object.keys(this.subscriptions).length === 0) {
-            this.socketHeartbeatInterval = setInterval(this.socketHeartbeat, 30000);
+            this.socketHeartbeatInterval = setInterval(this.socketHeartbeat, this.heartBeatInterval);
         }
         this.subscriptions[this.endpoint] = this;
         if (typeof opened_callback === 'function') opened_callback(this.endpoint);
@@ -1149,7 +1150,7 @@ export default class Binance {
     handleFuturesSocketOpen(openCallback: Callback) {
         this.isAlive = true;
         if (Object.keys(this.futuresSubscriptions).length === 0) {
-            this.socketHeartbeatInterval = setInterval(this.futuresSocketHeartbeat, 30000);
+            this.socketHeartbeatInterval = setInterval(this.futuresSocketHeartbeat, this.heartBeatInterval);
         }
         this.futuresSubscriptions[this.endpoint] = this;
         if (typeof openCallback === 'function') openCallback(this.endpoint);
@@ -5638,7 +5639,7 @@ export default class Binance {
     * @param {function} callback - callback function
     * @return {string} the websocket endpoint
     */
-    tradesStream(symbols: string[], callback: Callback) {
+    tradesStream(symbols: string[] | string, callback: Callback) {
         const reconnect = () => {
             if (this.Options.reconnect) this.tradesStream(symbols, callback);
         };
