@@ -737,6 +737,22 @@ export default class Binance {
     }
 
     /**
+* Creates a spot limit order
+* @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-trade
+* @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#test-new-order-trade
+* @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-list---oco-trade
+* @param {string} side - the side of the order (BUY or SELL)
+* @param {string} symbol - the symbol to buy
+* @param {numeric} quantity - the quantity required
+* @param {numeric} price - the price to pay for each unit
+* @param {object} params - additional buy order flags
+* @return {promise or undefined} - omitting the callback returns a promise
+*/
+    async limitOrder(side: OrderSide, symbol: string, quantity: number, price: number, params: Dict = {}) {
+        return await this.order('LIMIT', side, symbol, quantity, price, params);
+    }
+
+    /**
 * Creates a market buy order using the cost instead of the quantity (eg: 100usd instead of 0.01btc)
 * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-trade
 * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#test-new-order-trade
@@ -2521,7 +2537,7 @@ export default class Binance {
     userFutureDataHandler(data: any) {
         const type = data.e;
 
-        if (this.Options.futures_all_updates_callback)  this.Options.futures_all_updates_callback(data);
+        if (this.Options.futures_all_updates_callback) this.Options.futures_all_updates_callback(data);
 
         if (type === 'MARGIN_CALL') {
             this.Options.future_margin_call_callback(this.fUserDataMarginConvertData(data));
@@ -2697,7 +2713,7 @@ export default class Binance {
      * @param {array} data - array of symbols
      * @return {array} - symbols with their current prices
      */
-    priceData(data: any): {[key: string] : number} {
+    priceData(data: any): { [key: string]: number } {
         const prices = {};
         if (Array.isArray(data)) {
             for (const obj of data) {
@@ -2714,7 +2730,7 @@ export default class Binance {
      * @param {array} data - array of symbols
      * @return {object} - symbols with their bids and asks data
      */
-    bookPriceData(data: any): {[key: string] : BookTicker} {
+    bookPriceData(data: any): { [key: string]: BookTicker } {
         if (!Array.isArray(data)) {
             data = [data];
         }
@@ -3814,7 +3830,7 @@ export default class Binance {
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Symbol-Price-Ticker-v2
      *
      */
-    async futuresPrices(symbol?: string, params: Dict = {}):  Promise<{ [key: string]: number }> {
+    async futuresPrices(symbol?: string, params: Dict = {}): Promise<{ [key: string]: number }> {
         if (symbol) params.symbol = symbol;
         const data = await this.publicFuturesRequest('v2/ticker/price', params);
         return this.priceData(data);
@@ -3850,7 +3866,7 @@ export default class Binance {
      */
     async futuresMarkPrice(symbol?: string, params: Dict = {}): Promise<PremiumIndex | PremiumIndex[]> {
         if (symbol) params.symbol = symbol;
-        return await this.publicFuturesRequest('v1/premiumIndex',params);
+        return await this.publicFuturesRequest('v1/premiumIndex', params);
     }
 
     /**
@@ -4113,6 +4129,19 @@ export default class Binance {
     }
 
     /**
+     * @description futures limit order
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
+     * @param symbol
+     * @param quantity
+     * @param price
+     * @param params extra parameters to be sent in the request
+     * @returns
+     */
+    async futuresLimitOrder(side: OrderSide, symbol: string, quantity: number, price: number, params: Dict = {}) {
+        return await this.futuresOrder('LIMIT', side, symbol, quantity, price, params);
+    }
+
+    /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
      * @param symbol symbol if the market
      * @param quantity
@@ -4335,7 +4364,7 @@ export default class Binance {
         return symbol ? data : data.reduce((out, i) => ((out[i.symbol] = i), out), {});
     }
 
-    async deliveryOpenInterest(symbol: string,  params: Dict = {}) {
+    async deliveryOpenInterest(symbol: string, params: Dict = {}) {
         params.symbol = symbol;
         const res = await this.publicDeliveryRequest('v1/openInterest', params);
         return res;

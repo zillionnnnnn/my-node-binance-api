@@ -33,7 +33,5 @@ jobs:
       run: npm run static-test
     - name: Live Tests (TS ESM)
       run: npm run ts-test-live
-    - name: Live Tests
-      run: npm run test
     - name: CJS test
       run: npm run test-cjs
