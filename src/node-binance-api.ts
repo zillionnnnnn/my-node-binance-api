@@ -4133,6 +4133,7 @@ export default class Binance {
     /**
      * @description futures limit order
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/New-Order
+     * @param side
      * @param symbol
      * @param quantity
      * @param price
