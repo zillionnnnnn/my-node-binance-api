@@ -2,8 +2,7 @@
   "name": "node-binance-api",
   "version": "0.13.5",
   "description": "Binance API for node https://github.com/jaggedsoft/node-binance-api",
-  "main": "node-binance-api.js",
-  "typings": "node-binance-api.d.ts",
+  "typings": "./dist/node-binance-api.d.ts",
   "type": "module",
   "exports": {
     ".": {
@@ -41,7 +40,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/jaggedsoft/node-binance-api.git"
+    "url": "https://github.com/ccxt/node-binance-api"
   },
   "keywords": [
     "binance",
@@ -50,9 +49,9 @@
   "author": "Jon Eyrick <info@liquidity.ltd> (https://darkpool.ventures)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jaggedsoft/node-binance-api/issues"
+    "url": "https://github.com/ccxt/node-binance-api/issues"
   },
-  "homepage": "https://github.com/jaggedsoft/node-binance-api#readme",
+  "homepage": "https://github.com/ccxt/node-binance-api",
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.3",
     "@rollup/plugin-json": "^6.1.0",
