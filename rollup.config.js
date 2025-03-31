@@ -10,7 +10,7 @@ export default [
     input: "./dist/node-binance-api.js",
     output: [
       {
-        dir: "./dist/cjs/",
+        file: "./dist/cjs/node-binance-api.cjs",
         format: "cjs",
       }
     ],
