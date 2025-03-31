@@ -46,6 +46,9 @@ export default class Binance {
 
     verbose = false;
 
+    futuresListenKeyKeepAlive: number = 60 * 30 * 1000; // 30 minutes
+    spotListenKeyKeepAlive: number = 60 * 30 * 1000; // 30 minutes
+
     // proxy variables
     httpsProxy: string = undefined;
     socksProxy: string = undefined;
@@ -2425,6 +2428,9 @@ export default class Binance {
      */
     userMarginDataHandler(data: any) {
         const type = data.e;
+
+        if (this.Options.margin_all_updates_callback) this.Options.all_updates_callback(data);
+
         if (type === 'outboundAccountInfo') {
             // XXX: Deprecated in 2020-09-08
         } else if (type === 'executionReport') {
@@ -2433,8 +2439,6 @@ export default class Binance {
             if (this.Options.margin_list_status_callback) this.Options.margin_list_status_callback(data);
         } else if (type === 'outboundAccountPosition' || type === 'balanceUpdate') {
             this.Options.margin_balance_callback(data);
-        } else {
-            this.Options.log('Unexpected userMarginData: ' + type);
         }
     }
 
@@ -2445,7 +2449,9 @@ export default class Binance {
      */
     userFutureDataHandler(data: any) {
         const type = data.e;
-        this.Options.futures_all_updates_callback(data);
+
+        if (this.Options.futures_all_updates_callback)  this.Options.futures_all_updates_callback(data);
+
         if (type === 'MARGIN_CALL') {
             this.Options.future_margin_call_callback(this.fUserDataMarginConvertData(data));
         } else if (type === 'ACCOUNT_UPDATE') {
@@ -5235,59 +5241,65 @@ export default class Binance {
      * @param {function} list_status_callback - status callback
      * @return {undefined}
      */
-    async userData(all_updates_callback: Function, balance_callback?: Callback, execution_callback?: Callback, subscribed_callback?: Callback, list_status_callback?: Callback) {
+    userData(all_updates_callback?: Function, balance_callback?: Callback, execution_callback?: Callback, subscribed_callback?: Callback, list_status_callback?: Callback) {
         const reconnect = () => {
             if (this.Options.reconnect) this.userData(all_updates_callback, balance_callback, execution_callback, subscribed_callback);
         };
-        const response = await this.apiRequest(this.getSpotUrl() + 'v3/userDataStream', {}, 'POST');
-        this.Options.listenKey = response.listenKey;
-        setTimeout(async function userDataKeepAlive() { // keepalive
-            try {
-                await this.apiRequest(this.getSpotUrl() + 'v3/userDataStream?listenKey=' + this.options.listenKey, {}, function (err: any) {
-                    if (err) setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
-                    else setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
-                }, 'PUT');
-            } catch (error) {
-                setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
-            }
-        }, 60 * 30 * 1000); // 30 minute keepalive
-        this.Options.all_updates_callback = all_updates_callback;
-        this.Options.balance_callback = balance_callback;
-        this.Options.execution_callback = execution_callback ? execution_callback : balance_callback;//This change is required to listen for Orders
-        this.Options.list_status_callback = list_status_callback;
-        const subscription = this.subscribe(this.Options.listenKey, this.userDataHandler, reconnect);
-        if (subscribed_callback) subscribed_callback(subscription.endpoint);
+        this.apiRequest(this.getSpotUrl() + 'v3/userDataStream', {}, 'POST').then((response: any) => {
+            this.Options.listenKey = response.listenKey;
+            const keepAlive = this.spotListenKeyKeepAlive;
+            const self = this;
+            setTimeout(async function userDataKeepAlive() { // keepalive
+                try {
+                    await self.apiRequest(self.getSpotUrl() + 'v3/userDataStream?listenKey=' + self.Options.listenKey, {}, 'PUT');
+                    setTimeout(userDataKeepAlive, keepAlive); // 30 minute keepalive
+                } catch (error) {
+                    setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
+                }
+            }, keepAlive); // 30 minute keepalive
+            this.Options.all_updates_callback = all_updates_callback;
+            this.Options.balance_callback = balance_callback;
+            this.Options.execution_callback = execution_callback ? execution_callback : balance_callback;//This change is required to listen for Orders
+            this.Options.list_status_callback = list_status_callback;
+            const subscription = this.subscribe(this.Options.listenKey, this.userDataHandler, reconnect);
+            if (subscribed_callback) subscribed_callback(subscription.endpoint);
+        });
     }
 
     /**
      * Margin Userdata websockets function
+     * @param {function} all_updates_callback
      * @param {function} execution_callback - optional execution callback
      * @param {function} subscribed_callback - subscription callback
      * @param {function} list_status_callback - status callback
      * @return {undefined}
      */
-    async userMarginData(callback: Callback, execution_callback?: Callback, subscribed_callback?: Callback, list_status_callback?: Callback) {
+    userMarginData(all_updates_callback?: Callback, balance_callback?: Callback, execution_callback?: Callback, subscribed_callback?: Callback, list_status_callback?: Callback) {
         const reconnect = () => {
-            if (this.Options.reconnect) this.userMarginData(callback, execution_callback, subscribed_callback);
+            if (this.Options.reconnect) this.userMarginData(balance_callback, execution_callback, subscribed_callback);
         };
-        const response = await this.apiRequest(this.sapi + 'v1/userDataStream', {}, 'POST');
-        this.Options.listenMarginKey = response.listenKey;
-        const url = this.sapi + 'v1/userDataStream?listenKey=' + this.Options.listenMarginKey;
-        const apiRequest = this.apiRequest;
-        setTimeout(async function userDataKeepAlive() { // keepalive
-            try {
-                await apiRequest(url, {}, 'PUT');
-                // if (err) setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
-                setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
-            } catch (error) {
-                setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
-            }
-        }, 60 * 30 * 1000); // 30 minute keepalive
-        this.Options.margin_balance_callback = callback;
-        this.Options.margin_execution_callback = execution_callback;
-        this.Options.margin_list_status_callback = list_status_callback;
-        const subscription = this.subscribe(this.Options.listenMarginKey, this.userMarginDataHandler, reconnect);
-        if (subscribed_callback) subscribed_callback(subscription.endpoint);
+        this.apiRequest(this.sapi + 'v1/userDataStream', {}, 'POST').then((response: any) => {
+            this.Options.listenMarginKey = response.listenKey;
+
+            const url = this.sapi + 'v1/userDataStream?listenKey=' + this.Options.listenMarginKey;
+            const apiRequest = this.apiRequest;
+            const keepAlive = this.spotListenKeyKeepAlive;
+            setTimeout(async function userDataKeepAlive() { // keepalive
+                try {
+                    await apiRequest(url, {}, 'PUT');
+                    // if (err) setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
+                    setTimeout(userDataKeepAlive, keepAlive); // 30 minute keepalive
+                } catch (error) {
+                    setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
+                }
+            }, keepAlive); // 30 minute keepalive
+            this.Options.margin_all_updates_callback = all_updates_callback;
+            this.Options.margin_balance_callback = balance_callback;
+            this.Options.margin_execution_callback = execution_callback;
+            this.Options.margin_list_status_callback = list_status_callback;
+            const subscription = this.subscribe(this.Options.listenMarginKey, this.userMarginDataHandler, reconnect);
+            if (subscribed_callback) subscribed_callback(subscription.endpoint);
+        });
     }
 
     /**
@@ -5298,30 +5310,37 @@ export default class Binance {
      * @param {function} order_update_callback
      * @param {Function} subscribed_callback - subscription callback
      */
-    async userFutureData(all_updates_callback?: Callback, margin_call_callback?: Callback, account_update_callback?: Callback, order_update_callback?: Callback, subscribed_callback?: Callback, account_config_update_callback?: Callback) {
+    userFutureData(all_updates_callback?: Callback, margin_call_callback?: Callback, account_update_callback?: Callback, order_update_callback?: Callback, subscribed_callback?: Callback, account_config_update_callback?: Callback) {
         const url = (this.Options.test) ? this.fapiTest : this.fapi;
 
         const reconnect = () => {
             if (this.Options.reconnect) this.userFutureData(all_updates_callback, margin_call_callback, account_update_callback, order_update_callback, subscribed_callback);
         };
 
-        const response = await this.apiRequest(url + 'v1/listenKey', {}, 'POST');
-        this.Options.listenFutureKey = response.listenKey;
-        setTimeout(async function userDataKeepAlive() { // keepalive
-            try {
-                await this.apiRequest(url + 'v1/listenKey?listenKey=' + this.options.listenFutureKey, {}, 'PUT');
-                setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
-            } catch (error) {
-                setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
-            }
-        }, 60 * 30 * 1000); // 30 minute keepalive
-        this.Options.futures_all_updates_callback = all_updates_callback;
-        this.Options.future_margin_call_callback = margin_call_callback;
-        this.Options.future_account_update_callback = account_update_callback;
-        this.Options.future_account_config_update_callback = account_config_update_callback;
-        this.Options.future_order_update_callback = order_update_callback;
-        const subscription = this.futuresSubscribe(this.Options.listenFutureKey, this.userFutureDataHandler, { reconnect });
-        if (subscribed_callback) subscribed_callback(subscription.endpoint);
+        // const response = await this.apiRequest(url + 'v1/listenKey', {}, 'POST');
+        this.apiRequest(url + 'v1/listenKey', {}, 'POST').then((response: any) => {
+            this.Options.listenFutureKey = response.listenKey;
+            const self = this;
+            const keepAlive = this.futuresListenKeyKeepAlive;
+            setTimeout(async function userDataKeepAlive() { // keepalive
+                try {
+                    await self.apiRequest(url + 'v1/listenKey?listenKey=' + self.Options.listenFutureKey, {}, 'PUT');
+                    setTimeout(userDataKeepAlive, keepAlive); // 30 minute keepalive
+                } catch (error) {
+                    setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
+                }
+            }, keepAlive); // 30 minute keepalive
+            this.Options.futures_all_updates_callback = all_updates_callback;
+            this.Options.future_margin_call_callback = margin_call_callback;
+            this.Options.future_account_update_callback = account_update_callback;
+            this.Options.future_account_config_update_callback = account_config_update_callback;
+            this.Options.future_order_update_callback = order_update_callback;
+            const subscription = this.futuresSubscribe(this.Options.listenFutureKey, this.userFutureDataHandler, { reconnect });
+            if (subscribed_callback) subscribed_callback(subscription.endpoint);
+
+        });
+        // const response = await this.apiRequest(url + 'v1/listenKey', {}, 'POST');
+
     }
 
     /**
@@ -5331,7 +5350,7 @@ export default class Binance {
    * @param {function} order_update_callback
    * @param {Function} subscribed_callback - subscription callback
    */
-    async userDeliveryData(
+    userDeliveryData(
         margin_call_callback: Callback,
         account_update_callback?: Callback,
         order_update_callback?: Callback,
@@ -5349,37 +5368,41 @@ export default class Binance {
                 );
         };
 
-        const response = await this.apiRequest(url + "v1/listenKey", {}, "POST");
-        this.Options.listenDeliveryKey = response.listenKey;
-        const getDeliveryKey = () => this.Options.listenDeliveryKey;
-        const apiRequest = this.apiRequest.bind(this);
-        setTimeout(async function userDataKeepAlive() {
-            // keepalive
-            try {
-                await apiRequest(
-                    url +
-                    "v1/listenKey?listenKey=" +
-                    getDeliveryKey(),
-                    {},
-                    "PUT"
-                );
-                // function (err: any) {
-                //     if (err) setTimeout(userDataKeepAlive, 60000);
-                //     // retry in 1 minute
-                setTimeout(userDataKeepAlive, 60 * 30 * 1000); // 30 minute keepalive
-            } catch (error) {
-                setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
-            }
-        }, 60 * 30 * 1000); // 30 minute keepalive
-        this.Options.delivery_margin_call_callback = margin_call_callback;
-        this.Options.delivery_account_update_callback = account_update_callback;
-        this.Options.delivery_order_update_callback = order_update_callback;
-        const subscription = this.deliverySubscribe(
-            this.Options.listenDeliveryKey,
-            this.userDeliveryDataHandler,
-            { reconnect }
-        );
-        if (subscribed_callback) subscribed_callback(subscription.endpoint);
+        this.apiRequest(url + "v1/listenKey", {}, "POST").then((response: any) => {
+            this.Options.listenDeliveryKey = response.listenKey;
+            const getDeliveryKey = () => this.Options.listenDeliveryKey;
+            const self = this;
+            const keepAlive = this.futuresListenKeyKeepAlive;
+            setTimeout(async function userDataKeepAlive() {
+                // keepalive
+                try {
+                    await self.apiRequest(
+                        url +
+                        "v1/listenKey?listenKey=" +
+                        getDeliveryKey(),
+                        {},
+                        "PUT"
+                    );
+                    // function (err: any) {
+                    //     if (err) setTimeout(userDataKeepAlive, 60000);
+                    //     // retry in 1 minute
+                    setTimeout(userDataKeepAlive, keepAlive); // 30 minute keepalive
+                } catch (error) {
+                    setTimeout(userDataKeepAlive, 60000); // retry in 1 minute
+                }
+            }, keepAlive); // 30 minute keepalive
+            this.Options.delivery_margin_call_callback = margin_call_callback;
+            this.Options.delivery_account_update_callback = account_update_callback;
+            this.Options.delivery_order_update_callback = order_update_callback;
+            const subscription = this.deliverySubscribe(
+                this.Options.listenDeliveryKey,
+                this.userDeliveryDataHandler,
+                { reconnect }
+            );
+            if (subscribed_callback) subscribed_callback(subscription.endpoint);
+
+        });
+
         // }
     }
 
