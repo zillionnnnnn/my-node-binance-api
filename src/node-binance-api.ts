@@ -1092,8 +1092,8 @@ export default class Binance {
             this.Options.log('CombinedStream: Subscribed to [' + ws.endpoint + '] ' + queryParams);
         }
         ws.on('open', this.handleSocketOpen.bind(this, opened_callback));
-        ws.on('pong', this.handleSocketHeartbeat);
-        ws.on('error', this.handleSocketError);
+        ws.on('pong', this.handleSocketHeartbeat.bind(this));
+        ws.on('error', this.handleSocketError.bind(this));
         ws.on('close', this.handleSocketClose.bind(this, reconnect));
         ws.on('message', data => {
             try {
@@ -1240,8 +1240,8 @@ export default class Binance {
         ws.endpoint = endpoint;
         ws.isAlive = false;
         ws.on('open', this.handleFuturesSocketOpen.bind(this, params.openCallback));
-        ws.on('pong', this.handleFuturesSocketHeartbeat);
-        ws.on('error', this.handleFuturesSocketError);
+        ws.on('pong', this.handleFuturesSocketHeartbeat.bind(this));
+        ws.on('error', this.handleFuturesSocketError.bind(this));
         ws.on('close', this.handleFuturesSocketClose.bind(this, params.reconnect));
         ws.on('message', data => {
             try {
@@ -1296,8 +1296,8 @@ export default class Binance {
             this.Options.log(`futuresSubscribe: Subscribed to [${ws.endpoint}] ${queryParams}`);
         }
         ws.on('open', this.handleFuturesSocketOpen.bind(this, params.openCallback));
-        ws.on('pong', this.handleFuturesSocketHeartbeat);
-        ws.on('error', this.handleFuturesSocketError);
+        ws.on('pong', this.handleFuturesSocketHeartbeat.bind(this));
+        ws.on('error', this.handleFuturesSocketError.bind(this));
         ws.on('close', this.handleFuturesSocketClose.bind(this, params.reconnect));
         ws.on('message', data => {
             try {
@@ -1951,10 +1951,10 @@ export default class Binance {
         ws.reconnect = this.Options.reconnect;
         ws.endpoint = endpoint;
         ws.isAlive = false;
-        ws.on('open', this.handleDeliverySocketOpen.bind(ws, params.openCallback));
-        ws.on('pong', this.handleDeliverySocketHeartbeat);
-        ws.on('error', this.handleDeliverySocketError);
-        ws.on('close', this.handleDeliverySocketClose.bind(ws, params.reconnect));
+        ws.on('open', this.handleDeliverySocketOpen.bind(this, params.openCallback));
+        ws.on('pong', this.handleDeliverySocketHeartbeat.bind(this));
+        ws.on('error', this.handleDeliverySocketError.bind(this));
+        ws.on('close', this.handleDeliverySocketClose.bind(this, params.reconnect));
         ws.on('message', data => {
             try {
                 if (this.Options.verbose) this.Options.log('deliverySubscribeSingle: Received data:', data);
@@ -2007,10 +2007,10 @@ export default class Binance {
         if (this.Options.verbose) {
             this.Options.log(`deliverySubscribe: Subscribed to [${ws.endpoint}] ${queryParams}`);
         }
-        ws.on('open', this.handleDeliverySocketOpen.bind(ws, params.openCallback));
-        ws.on('pong', this.handleDeliverySocketHeartbeat);
-        ws.on('error', this.handleDeliverySocketError);
-        ws.on('close', this.handleDeliverySocketClose.bind(ws, params.reconnect));
+        ws.on('open', this.handleDeliverySocketOpen.bind(this, params.openCallback));
+        ws.on('pong', this.handleDeliverySocketHeartbeat.bind(this));
+        ws.on('error', this.handleDeliverySocketError.bind(this));
+        ws.on('close', this.handleDeliverySocketClose.bind(this, params.reconnect));
         ws.on('message', data => {
             try {
                 if (this.Options.verbose) this.Options.log('deliverySubscribe: Received data:', data);
