@@ -737,6 +737,21 @@ export default class Binance {
     }
 
     /**
+* Creates a market buy order using the cost instead of the quantity (eg: 100usd instead of 0.01btc)
+* @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-trade
+* @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#test-new-order-trade
+* @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-list---oco-trade
+* @param {string} symbol - the symbol to buy
+* @param {numeric} quantity - the quantity required
+* @param {object} params - additional buy order flags
+* @return {promise or undefined} - omitting the callback returns a promise
+*/
+    async marketBuyWithCost(symbol: string, cost: number, params: Dict = {}) {
+        params.quoteOrderQty = cost;
+        return await this.order('MARKET', 'BUY', symbol, 0, 0, params);
+    }
+
+    /**
     * Creates a market sell order
     * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-trade
     * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#test-new-order-trade
@@ -748,6 +763,21 @@ export default class Binance {
     */
     async marketSell(symbol: string, quantity: number, params: Dict = {}) {
         return await this.order('MARKET', 'SELL', symbol, quantity, 0, params);
+    }
+
+    /**
+    * Creates a market sell order using the cost instead of the quantity (eg: 100usd instead of 0.01btc)
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-trade
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#test-new-order-trade
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-list---oco-trade
+    * @param {string} symbol - the symbol to sell
+    * @param {numeric} quantity - the quantity required
+    * @param {object} flags - additional buy order flags
+    * @return {promise or undefined} - omitting the callback returns a promise
+    */
+    async marketSellWithCost(symbol: string, cost: number, params: Dict = {}) {
+        params.quoteOrderQty = cost;
+        return await this.order('MARKET', 'SELL', symbol, 0, 0, params);
     }
 
     /**
@@ -2674,7 +2704,7 @@ export default class Binance {
                 prices[obj.symbol] = obj.price;
             }
         } else { // Single price returned
-            prices[data.symbol] = data.price;
+            prices[data.symbol] = parseFloat(data.price);
         }
         return prices;
     }
@@ -3784,9 +3814,10 @@ export default class Binance {
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Symbol-Price-Ticker-v2
      *
      */
-    async futuresPrices(params: Dict = {}) {
+    async futuresPrices(symbol?: string, params: Dict = {}):  Promise<{ [key: string]: number }> {
+        if (symbol) params.symbol = symbol;
         const data = await this.publicFuturesRequest('v2/ticker/price', params);
-        return Array.isArray(data) ? data.reduce((out, i) => ((out[i.symbol] = i.price), out), {}) : data;
+        return this.priceData(data);
     }
 
     /**
