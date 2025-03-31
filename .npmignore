@@ -1,0 +1,13 @@
+# Initally ignore all files
+*
+
+# Files to include
+!package.json
+!package-lock.json
+!LICENSE.txt
+!README.md
+
+# Folders to include
+!src/**/*
+!dist/**/*
+

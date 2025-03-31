@@ -35,3 +35,5 @@ jobs:
       run: npm run ts-test-live
     - name: CJS test
       run: npm run test-cjs
+    - name: Package test
+      run: npm run package-test

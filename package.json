@@ -34,6 +34,7 @@
     "codacy": "cat ./coverage/lcov.info | codacy-coverage -v",
     "codecov": "codecov",
     "bundle-cjs": "mkdir -p dist/cjs && rollup -c rollup.config.js",
+    "package-test": "./tests/package.sh",
     "publishPackage": "sh publish.sh && git push && git push --tags && npm publish",
     "rollup-plugin-execute": "^1.1.1"
   },
