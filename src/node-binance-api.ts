@@ -4993,7 +4993,7 @@ export default class Binance {
             const symbol = symbols as string;
             subscription = this.futuresSubscribeSingle(symbol.toLowerCase() + '@aggTrade', cleanCallback, { reconnect });
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5009,7 +5009,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@markPrice` : '!markPrice@arr';
         const subscription = this.futuresSubscribeSingle(endpoint + speed, data => callback(this.fMarkPriceConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5024,7 +5024,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@forceOrder` : '!forceOrder@arr';
         const subscription = this.futuresSubscribeSingle(endpoint, data => callback(this.fLiquidationConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5039,7 +5039,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@ticker` : '!ticker@arr';
         const subscription = this.futuresSubscribeSingle(endpoint, data => callback(this.fTickerConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5054,7 +5054,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@miniTicker` : '!miniTicker@arr';
         const subscription = this.futuresSubscribeSingle(endpoint, data => callback(this.fMiniTickerConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5069,7 +5069,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@bookTicker` : '!bookTicker';
         const subscription = this.futuresSubscribeSingle(endpoint, data => callback(this.fBookTickerConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5134,7 +5134,7 @@ export default class Binance {
             subscription = this.futuresSubscribeSingle(symbol.toLowerCase() + '@kline_' + interval, handleFuturesKlineStream, { reconnect });
             getFuturesKlineSnapshot(symbol, limit);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5157,7 +5157,7 @@ export default class Binance {
             const symbol = symbols.toLowerCase();
             subscription = this.futuresSubscribeSingle(symbol + '@kline_' + interval, callback, { reconnect });
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     // Delivery WebSocket Functions:
@@ -5221,7 +5221,7 @@ export default class Binance {
             const symbol = symbols;
             subscription = this.deliverySubscribeSingle(symbol.toLowerCase() + '@aggTrade', cleanCallback, { reconnect });
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5237,7 +5237,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@markPrice` : '!markPrice@arr';
         const subscription = this.deliverySubscribeSingle(endpoint + speed, data => callback(this.dMarkPriceConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5252,7 +5252,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@forceOrder` : '!forceOrder@arr';
         const subscription = this.deliverySubscribeSingle(endpoint, data => callback(this.dLiquidationConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5267,7 +5267,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@ticker` : '!ticker@arr';
         const subscription = this.deliverySubscribeSingle(endpoint, data => callback(this.dTickerConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5282,7 +5282,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@miniTicker` : '!miniTicker@arr';
         const subscription = this.deliverySubscribeSingle(endpoint, data => callback(this.dMiniTickerConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5297,7 +5297,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@bookTicker` : '!bookTicker';
         const subscription = this.deliverySubscribeSingle(endpoint, data => callback(this.dBookTickerConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5362,7 +5362,7 @@ export default class Binance {
             subscription = this.deliverySubscribeSingle(symbol.toLowerCase() + '@kline_' + interval, handleDeliveryKlineStream, reconnect);
             getDeliveryKlineSnapshot(symbol, limit);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5385,7 +5385,7 @@ export default class Binance {
             const symbol = symbols.toLowerCase();
             subscription = this.deliverySubscribeSingle(symbol + '@kline_' + interval, callback, { reconnect });
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5622,7 +5622,7 @@ export default class Binance {
             const symbol = symbols;
             subscription = this.subscribe(symbol.toLowerCase() + '@depth@100ms', callback, reconnect);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5725,7 +5725,7 @@ export default class Binance {
             });
             assignEndpointIdToContext(symbol, subscription.endpoint);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5784,7 +5784,7 @@ export default class Binance {
             const symbol = symbols;
             subscription = this.subscribe(symbol.toLowerCase() + '@aggTrade', callback, reconnect);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5809,7 +5809,7 @@ export default class Binance {
             const symbol = symbols as string;
             subscription = this.subscribe(symbol.toLowerCase() + '@trade', callback, reconnect);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5884,7 +5884,7 @@ export default class Binance {
             subscription = this.subscribe(symbol.toLowerCase() + '@kline_' + interval, handleKlineStreamData, reconnect);
             getSymbolKlineSnapshot(symbol, limit);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5913,7 +5913,7 @@ export default class Binance {
             const symbol = symbols.toLowerCase();
             subscription = this.subscribe(symbol + '@kline_' + interval, callback, reconnect);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5940,7 +5940,7 @@ export default class Binance {
             }
             callback(markets);
         }, reconnect);
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5955,7 +5955,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@bookTicker` : '!bookTicker';
         const subscription = this.subscribe(endpoint, data => callback(this.fBookTickerConvertData(data)), reconnect);
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5999,6 +5999,6 @@ export default class Binance {
                 }
             }, reconnect);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 }
