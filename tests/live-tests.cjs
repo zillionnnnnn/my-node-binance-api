@@ -20,7 +20,7 @@ const TIMEOUT = 10000;
 const chai = require( 'chai' );
 const assert = chai.assert;
 const path = require( 'path' );
-const Binance = require( path.resolve( __dirname, '../node-binance-api.js' ) );
+const Binance = require( path.resolve( __dirname, '../dist/cjs/node-binance-api.js' ) );
 const binance = new Binance().options( {
     APIKEY: 'X4BHNSimXOK6RKs2FcKqExquJtHjMxz5hWqF0BBeVnfa5bKFMk7X0wtkfEz0cPrJ',
     APISECRET: 'x8gLihunpNq0d46F2q0TWJmeCDahX5LMXSlv3lSFNbMI3rujSOpTDKdhbcmPSf2i',

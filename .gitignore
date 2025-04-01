@@ -36,6 +36,8 @@
 ehthumbs.db
 Thumbs.db
 
+dist/
+
 # Secrets #
 ###########
 .secret

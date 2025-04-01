@@ -23,7 +23,21 @@ jobs:
         cache: 'npm'
     - name: Install npm dependencies
       run: npm i --include=dev
-    - name: Static Tests
+    - name: Lint
+      run: npm run lint
+    - name: Build
+      run: npm run build
+    - name: Static Tests (TS ESM)
+      run: npm run ts-test-static
+    - name: Static Tests (JS CJS)
       run: npm run static-test
-    - name: Live Tests
-      run: npm run test
+    - name: Live Tests (TS ESM)
+      run: npm run ts-test-live
+    - name: Ws Live Tests (spot)
+      run: npm run ws-tests-spot
+    - name: Ws Live Tests (futures)
+      run: npm run ws-tests-futures
+    - name: CJS test
+      run: npm run test-cjs
+    - name: Package test
+      run: npm run package-test

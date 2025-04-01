@@ -1,12 +1,12 @@
 const path = require( 'path' );
 const chai = require( 'chai' );
 const assert = chai.assert;
-const Binance = require( path.resolve( __dirname, '../node-binance-api.js' ) );
+const Binance = require( path.resolve( __dirname, '../dist/cjs/node-binance-api.cjs' ) );
 
 const apiKey = 'XXXXXXXXXXXXXXXX'
 const apiSecret = 'YYYYYYYYYYYYYYYYYYYYYY'
 
-const binanceWithoutNew = Binance().options({
+const binanceWithoutNew = new Binance().options({
     APIKEY: apiKey,
     APISECRET: apiSecret,
 })
