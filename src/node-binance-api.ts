@@ -664,8 +664,8 @@ export default class Binance {
         const APISECRET = this.Options.APISECRET || this.APISECRET;
         let signature = '';
         if (APISECRET.includes ('PRIVATE KEY')) {
-            // if less than safe 150 length, then it can't be RSA key
-            if (APISECRET.length < 150) {
+            // if less than the below length, then it can't be RSA key
+            if (APISECRET.length < 500) {
                 const privateKey = new Uint8Array (this.unarmorKey (APISECRET).slice (16));
                 const encodedQuery = new TextEncoder().encode(query);
                 const signatureInit = ed25519.sign (encodedQuery, privateKey);
