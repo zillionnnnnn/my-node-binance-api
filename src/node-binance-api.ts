@@ -1053,8 +1053,8 @@ export default class Binance {
         if (Object.keys(this.subscriptions).length === 0) {
             this.socketHeartbeatInterval = setInterval(this.socketHeartbeat, this.heartBeatInterval);
         }
-        this.subscriptions[wsBind.endpoint] = wsBind;
-        if (typeof opened_callback === 'function') opened_callback(wsBind.endpoint);
+        this.subscriptions[wsBind.url] = wsBind;
+        if (typeof opened_callback === 'function') opened_callback(wsBind.url);
     }
 
     /**
@@ -1065,16 +1065,16 @@ export default class Binance {
      * @return {undefined}
      */
     handleSocketClose(wsBind, reconnect: Function, code, reason: string) {
-        delete this.subscriptions[wsBind.endpoint];
+        delete this.subscriptions[wsBind.url];
         if (this.subscriptions && Object.keys(this.subscriptions).length === 0) {
             clearInterval(this.socketHeartbeatInterval);
         }
-        this.Options.log('WebSocket closed: ' + wsBind.endpoint +
+        this.Options.log('WebSocket closed: ' + wsBind.url +
             (code ? ' (' + code + ')' : '') +
             (reason ? ' ' + reason : ''));
         if (this.Options.reconnect && wsBind.reconnect && reconnect) {
-            if (wsBind.endpoint && wsBind.endpoint.length === 60) this.Options.log('Account data WebSocket reconnecting...');
-            else this.Options.log('WebSocket reconnecting: ' + wsBind.endpoint + '...');
+            if (wsBind.url && wsBind.url.length === 60) this.Options.log('Account data WebSocket reconnecting...');
+            else this.Options.log('WebSocket reconnecting: ' + wsBind.url + '...');
             try {
                 reconnect();
             } catch (error) {
@@ -1091,7 +1091,7 @@ export default class Binance {
     handleSocketError(wsBind, error) {
         /* Errors ultimately result in a `close` event.
          see: https://github.com/websockets/ws/blob/828194044bf247af852b31c49e2800d557fedeff/lib/websocket.js#L126 */
-        this.Options.log('WebSocket error: ' + wsBind.endpoint +
+        this.Options.log('WebSocket error: ' + wsBind.url +
             (error.code ? ' (' + error.code + ')' : '') +
             (error.message ? ' ' + error.message : ''));
     }
@@ -1262,8 +1262,8 @@ export default class Binance {
         if (Object.keys(this.futuresSubscriptions).length === 0) {
             this.socketHeartbeatInterval = setInterval(this.futuresSocketHeartbeat, this.heartBeatInterval);
         }
-        this.futuresSubscriptions[wsBind.endpoint] = wsBind;
-        if (typeof openCallback === 'function') openCallback(wsBind.endpoint);
+        this.futuresSubscriptions[wsBind.url] = wsBind;
+        if (typeof openCallback === 'function') openCallback(wsBind.url);
     }
 
     /**
@@ -1274,16 +1274,16 @@ export default class Binance {
      * @return {undefined}
      */
     handleFuturesSocketClose(wsBind, reconnect, code, reason) {
-        delete this.futuresSubscriptions[wsBind.endpoint];
+        delete this.futuresSubscriptions[wsBind.url];
         if (this.futuresSubscriptions && Object.keys(this.futuresSubscriptions).length === 0) {
             clearInterval(this.socketHeartbeatInterval);
         }
-        this.Options.log('Futures WebSocket closed: ' + wsBind.endpoint +
+        this.Options.log('Futures WebSocket closed: ' + wsBind.url +
             (code ? ' (' + code + ')' : '') +
             (reason ? ' ' + reason : ''));
         if (this.Options.reconnect && wsBind.reconnect && reconnect) {
-            if (wsBind.endpoint && wsBind.endpoint.length === 60) this.Options.log('Futures account data WebSocket reconnecting...');
-            else this.Options.log('Futures WebSocket reconnecting: ' + wsBind.endpoint + '...');
+            if (wsBind.url && wsBind.url.length === 60) this.Options.log('Futures account data WebSocket reconnecting...');
+            else this.Options.log('Futures WebSocket reconnecting: ' + wsBind.url + '...');
             try {
                 reconnect();
             } catch (error) {
@@ -1298,7 +1298,7 @@ export default class Binance {
      * @return {undefined}
      */
     handleFuturesSocketError(wsBind, error) {
-        this.Options.log('Futures WebSocket error: ' + wsBind.endpoint +
+        this.Options.log('Futures WebSocket error: ' + wsBind.url +
             (error.code ? ' (' + error.code + ')' : '') +
             (error.message ? ' ' + error.message : ''));
     }
@@ -1976,8 +1976,8 @@ export default class Binance {
         if (Object.keys(this.deliverySubscriptions).length === 0) {
             this.socketHeartbeatInterval = setInterval(this.deliverySocketHeartbeat, 30000);
         }
-        this.deliverySubscriptions[wsBind.endpoint] = this;
-        if (typeof openCallback === 'function') openCallback(wsBind.endpoint);
+        this.deliverySubscriptions[wsBind.url] = this;
+        if (typeof openCallback === 'function') openCallback(wsBind.url);
     }
 
     /**
@@ -1988,16 +1988,16 @@ export default class Binance {
      * @return {undefined}
      */
     handleDeliverySocketClose(wsBind, reconnect, code, reason) {
-        delete this.deliverySubscriptions[wsBind.endpoint];
+        delete this.deliverySubscriptions[wsBind.url];
         if (this.deliverySubscriptions && Object.keys(this.deliverySubscriptions).length === 0) {
             clearInterval(this.socketHeartbeatInterval);
         }
-        this.Options.log('Delivery WebSocket closed: ' + wsBind.endpoint +
+        this.Options.log('Delivery WebSocket closed: ' + wsBind.url +
             (code ? ' (' + code + ')' : '') +
             (reason ? ' ' + reason : ''));
         if (this.Options.reconnect && wsBind.reconnect && reconnect) {
-            if (wsBind.endpoint && wsBind.endpoint.length === 60) this.Options.log('Delivery account data WebSocket reconnecting...');
-            else this.Options.log('Delivery WebSocket reconnecting: ' + wsBind.endpoint + '...');
+            if (wsBind.url && wsBind.url.length === 60) this.Options.log('Delivery account data WebSocket reconnecting...');
+            else this.Options.log('Delivery WebSocket reconnecting: ' + wsBind.url + '...');
             try {
                 reconnect();
             } catch (error) {
@@ -2012,7 +2012,7 @@ export default class Binance {
      * @return {undefined}
      */
     handleDeliverySocketError(wsBind, error) {
-        this.Options.log('Delivery WebSocket error: ' + wsBind.endpoint +
+        this.Options.log('Delivery WebSocket error: ' + wsBind.url +
             (error.code ? ' (' + error.code + ')' : '') +
             (error.message ? ' ' + error.message : ''));
     }
