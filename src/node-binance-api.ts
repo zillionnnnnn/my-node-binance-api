@@ -1,7 +1,7 @@
 
 import WebSocket from 'ws';
 // import request from 'request';
-import crypto from 'crypto';
+import crypto, { createSign } from 'crypto';
 import file from 'fs';
 import url from 'url';
 import JSONbig from 'json-bigint';
@@ -663,11 +663,17 @@ export default class Binance {
         const APISECRET = this.Options.APISECRET || this.APISECRET;
         let signature = '';
         if (APISECRET.includes ('PRIVATE KEY')) {
-            const privateKey = new Uint8Array (this.unarmorKey (APISECRET).slice (16));
-            const encodedQuery = new TextEncoder().encode(query);
-            const signatureInit = ed25519.sign (encodedQuery, privateKey);
-            signature = base64.encode (signatureInit);
-            signature = encodeURIComponent (signature);
+            // if less than safe 150 length, then it can't be RSA key
+            if (APISECRET.length < 150) {
+                const privateKey = new Uint8Array (this.unarmorKey (APISECRET).slice (16));
+                const encodedQuery = new TextEncoder().encode(query);
+                const signatureInit = ed25519.sign (encodedQuery, privateKey);
+                signature = base64.encode (signatureInit);
+            } else {
+                const signed = createSign('RSA-SHA256').update(query);
+                signature = signed.sign(APISECRET, 'base64');
+                signature = encodeURIComponent (signature);
+            }
         } else {
             signature = crypto.createHmac('sha256', this.Options.APISECRET).update(query).digest('hex'); // set the HMAC hash header
         }
