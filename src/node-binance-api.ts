@@ -508,7 +508,7 @@ export default class Binance {
                 data.timestamp += this.timeOffset;
             }
             query = this.makeQueryString(data);
-            data.signature = crypto.createHmac('sha256', this.APISECRET).update(query).digest('hex'); // HMAC hash header
+            data.signature = this.generateSignature(query);
             opt.url = `${url}?${query}&signature=${data.signature}`;
         }
         (opt as any).qs = data;
