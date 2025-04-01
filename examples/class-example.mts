@@ -1,4 +1,4 @@
-import Binance from "../node-binance-api-class.mjs"
+import Binance from "../src/node-binance-api.js"
 
 
 async function main() {
