@@ -645,12 +645,27 @@ export default class Binance {
         }
     }
 
+    unarmorKey(a:string):number[] {
+        const m = /-----BEGIN [^-]+-----\n([A-Za-z0-9+\/=\s]+)\n-----END [^-]+-----|begin-base64[^\n]+\n([A-Za-z0-9+\/=\s]+)====/.exec(a);
+        if (m) {
+            if (m[1]) {
+                a = m[1];
+            } else if (m[2]) {
+                a = m[2];
+            } else {
+                throw new Error("RegExp out of sync");
+            }
+        }
+        return base64.decode(a);
+    }
+
     generateSignature(query: string) {
         const APISECRET = this.Options.APISECRET || this.APISECRET;
         let signature = '';
         if (APISECRET.includes ('PRIVATE KEY')) {
+            const privateKey = new Uint8Array (this.unarmorKey (APISECRET).slice (16));
             const encodedQuery = new TextEncoder().encode(query);
-            const signatureInit = ed25519.sign (encodedQuery, APISECRET);
+            const signatureInit = ed25519.sign (encodedQuery, privateKey);
             signature = base64.encode (signatureInit);
             signature = encodeURIComponent (signature);
         } else {
