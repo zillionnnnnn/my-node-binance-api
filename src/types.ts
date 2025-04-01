@@ -171,7 +171,11 @@ export interface IWebsocketsMethods {
   subscribeCombined(url: string, callback: Callback, reconnect?: Callback, opened_callback?: Callback);
   subscribe(endpoint: string, callback: Callback, reconnect?: Callback, opened_callback?: Callback);
   subscriptions(...args: any): any;
+  futuresSubcriptions(...args: any): any;
+  deliverySubcriptions(...args: any): any;
   terminate(endpoint: string): any;
+  futuresTerminate(endpoint: string, reconnect?: boolean)
+  deliveryTerminate(endpoint: string, reconnect?: boolean)
   depth(...args: any): any;
   depthCache(symbols: string[] | string, callback?: Callback, limit?: number): any;
   clearDepthCache(symbols: string | string[]): any;

@@ -133,6 +133,10 @@ export default class Binance {
         deliveryBookTicker: this.deliveryBookTickerStream.bind(this),
         deliveryChart: this.deliveryChart.bind(this),
         deliveryLiquidation: this.deliveryLiquidationStream.bind(this),
+        futuresSubcriptions: () => this.getFuturesSubscriptions.bind(this),
+        deliverySubcriptions: () => this.getDeliverySubscriptions.bind(this),
+        futuresTerminate: this.futuresTerminate.bind(this),
+        deliveryTerminate: this.deliveryTerminate.bind(this),
     };
 
     default_options = {
