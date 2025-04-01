@@ -12,6 +12,11 @@ import { SocksProxyAgent } from 'socks-proxy-agent';
 // @ts-ignore
 import nodeFetch from 'node-fetch';
 // @ts-ignore
+import { ed25519 } from '@noble/curves/ed25519';
+// @ts-ignore
+import { base64 } from '@scure/base';
+
+// @ts-ignore
 import zip from 'lodash.zipobject';
 import stringHash from 'string-hash';
 import async from 'async';
@@ -615,7 +620,9 @@ export default class Binance {
 
         if (!data.recvWindow) data.recvWindow = this.Options.recvWindow;
         const query = method === 'POST' && noDataInSignature ? '' : this.makeQueryString(data);
-        const signature = crypto.createHmac('sha256', this.Options.APISECRET).update(query).digest('hex'); // set the HMAC hash header
+
+        const signature = this.generateSignature(query);
+        
         if (method === 'POST') {
             const opt = this.reqObjPOST(
                 url,
@@ -636,6 +643,20 @@ export default class Binance {
             const reqGet = await this.proxyRequest(opt);
             return reqGet;
         }
+    }
+
+    generateSignature(query: string) {
+        const APISECRET = this.Options.APISECRET || this.APISECRET;
+        let signature = '';
+        if (APISECRET.includes ('PRIVATE KEY')) {
+            const encodedQuery = new TextEncoder().encode(query);
+            const signatureInit = ed25519.sign (encodedQuery, APISECRET);
+            signature = base64.encode (signatureInit);
+            signature = encodeURIComponent (signature);
+        } else {
+            signature = crypto.createHmac('sha256', this.Options.APISECRET).update(query).digest('hex'); // set the HMAC hash header
+        }
+        return signature;
     }
 
     // --- ENDPOINTS --- //
