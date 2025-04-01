@@ -646,6 +646,7 @@ export default class Binance {
     }
 
     unarmorKey(a:string):number[] {
+        // eslint-disable-next-line no-useless-escape
         const m = /-----BEGIN [^-]+-----\n([A-Za-z0-9+\/=\s]+)\n-----END [^-]+-----|begin-base64[^\n]+\n([A-Za-z0-9+\/=\s]+)====/.exec(a);
         if (m) {
             if (m[1]) {
