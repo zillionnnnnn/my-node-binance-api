@@ -281,19 +281,28 @@ describe('Limit buy Order', function () {
 
 describe('MarketSell', function () {
     it('Attempt to buy LTC at market price', async function () {
-        let quantity = 0.5;
-        const res = await binance.marketSell('LTCUSDT', quantity)
-        assert(res['orderId'] !== undefined)
+
+        try {
+            let quantity = 0.5;
+            const res = await binance.marketSell('LTCUSDT', quantity)
+            assert(res['orderId'] !== undefined)
+        } catch (e) {
+            assert(e.toString().includes('{"code":-2010,"msg":"Account has insufficient balance for requested action."}'));
+        }
 
     }).timeout(TIMEOUT);
 });
 
 describe('Futures MarketBuy', function () {
     it('futures Attempt to buy ETH at market price', async function () {
-        let quantity = 0.1;
-        const res = await futuresBinance.futuresMarketBuy('ETHUSDT', quantity)
-        assert(res['orderId'] !== undefined)
-        futuresOrderId = res['orderId'];
+        try {
+            let quantity = 0.1;
+            const res = await futuresBinance.futuresMarketBuy('ETHUSDT', quantity)
+            assert(res['orderId'] !== undefined)
+            futuresOrderId = res['orderId'];
+        } catch (e) {
+            assert(e.toString().includes('{"code":-2010,"msg":"Account has insufficient balance for requested action."}'));
+        }
 
     }).timeout(TIMEOUT);
 });
