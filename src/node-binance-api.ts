@@ -6002,7 +6002,3 @@ export default class Binance {
         return (subscription as any).endpoint;
     }
 }
-
-export {
-    Binance
-};
