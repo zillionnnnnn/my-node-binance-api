@@ -45,7 +45,9 @@ export default class Binance {
     dstreamSingleTest = `wss://dstream.binancefuture.${this.domain}/ws/`;
     dstreamTest = `wss://dstream.binancefuture.${this.domain}/stream?streams=`;
     stream = `wss://stream.binance.${this.domain}:9443/ws/`;
+    streamTest = `wss://testnet.binance.vision/ws/`;
     combineStream = `wss://stream.binance.${this.domain}:9443/stream?streams=`;
+    combineStreamTest = `wss://testnet.binance.vision:9443/stream?streams=`;
 
     verbose = false;
 
@@ -239,6 +241,16 @@ export default class Binance {
     getDapiUrl() {
         if (this.Options.test) return this.dapiTest;
         return this.dapi;
+    }
+
+    getCombineStreamUrl() {
+        if (this.Options.test) return this.combineStreamTest;
+        return this.combineStream;
+    }
+
+    getStreamUrl() {
+        if (this.Options.test) return this.streamTest;
+        return this.stream;
     }
 
     uuid22(a?: any) {
@@ -1156,14 +1168,14 @@ export default class Binance {
                 host: this.parseProxy(socksproxy)[1],
                 port: this.parseProxy(socksproxy)[2]
             });
-            ws = new WebSocket(this.stream + endpoint, { agent: agent });
+            ws = new WebSocket(this.getStreamUrl() + endpoint, { agent: agent });
         } else if (httpsproxy) {
             const config = url.parse(httpsproxy);
             const agent = new HttpsProxyAgent(config);
             if (this.Options.verbose) this.Options.log('using proxy server ' + agent);
-            ws = new WebSocket(this.stream + endpoint, { agent: agent });
+            ws = new WebSocket(this.getStreamUrl() + endpoint, { agent: agent });
         } else {
-            ws = new WebSocket(this.stream + endpoint);
+            ws = new WebSocket(this.getStreamUrl() + endpoint);
         }
 
         if (this.Options.verbose) this.Options.log('Subscribed to ' + endpoint);
@@ -1206,14 +1218,14 @@ export default class Binance {
                 host: this.parseProxy(socksproxy)[1],
                 port: this.parseProxy(socksproxy)[2]
             });
-            ws = new WebSocket(this.combineStream + queryParams, { agent: agent });
+            ws = new WebSocket(this.getCombineStreamUrl() + queryParams, { agent: agent });
         } else if (httpsproxy) {
             if (this.Options.verbose) this.Options.log('using proxy server ' + httpsproxy);
             const config = url.parse(httpsproxy);
             const agent = new HttpsProxyAgent(config);
-            ws = new WebSocket(this.combineStream + queryParams, { agent: agent });
+            ws = new WebSocket(this.getCombineStreamUrl() + queryParams, { agent: agent });
         } else {
-            ws = new WebSocket(this.combineStream + queryParams);
+            ws = new WebSocket(this.getCombineStreamUrl() + queryParams);
         }
 
         ws.reconnect = this.Options.reconnect;
