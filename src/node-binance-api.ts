@@ -116,7 +116,23 @@ export default class Binance {
         candlesticks: this.candlesticksStream.bind(this),
         miniTicker: this.miniTicker.bind(this),
         bookTickers: this.bookTickersStream.bind(this),
-        prevDay: this.prevDay.bind(this),
+        prevDay: this.prevDayStream.bind(this),
+        futuresCandlesticks: this.futuresCandlesticksStream.bind(this),
+        futuresTicker: this.futuresTickerStream.bind(this),
+        futuresMiniTicker: this.futuresMiniTickerStream.bind(this),
+        futuresAggTrades: this.futuresAggTradeStream.bind(this),
+        futuresMarkPrice: this.futuresMarkPriceStream.bind(this),
+        futuresLiquidation: this.futuresLiquidationStream.bind(this),
+        futuresBookTicker: this.futuresBookTickerStream.bind(this),
+        futuresChart: this.futuresChart.bind(this),
+        deliveryAggTrade: this.deliveryAggTradeStream.bind(this),
+        deliveryCandlesticks: this.deliveryCandlesticks.bind(this),
+        deliveryTicker: this.deliveryTickerStream.bind(this),
+        deliveryMiniTicker: this.deliveryMiniTickerStream.bind(this),
+        deliveryMarkPrice: this.deliveryMarkPriceStream.bind(this),
+        deliveryBookTicker: this.deliveryBookTickerStream.bind(this),
+        deliveryChart: this.deliveryChart.bind(this),
+        deliveryLiquidation: this.deliveryLiquidationStream.bind(this),
     };
 
     default_options = {
@@ -3886,6 +3902,15 @@ export default class Binance {
     }
 
     /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data
+    */
+    async futuresCandlesticks(symbol: string, interval: Interval = "30m", params: Dict = {}): Promise<Candle[]> {
+        params.symbol = symbol;
+        params.interval = interval;
+        return await this.publicFuturesRequest('v1/klines', params);
+    }
+
+    /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Mark-Price
      */
     async futuresMarkPrice(symbol?: string, params: Dict = {}): Promise<PremiumIndex | PremiumIndex[]> {
@@ -5115,9 +5140,9 @@ export default class Binance {
      * @param {function} callback - callback function
      * @return {string} the websocket endpoint
      */
-    futuresCandlesticks(symbols: string[] | string, interval: Interval, callback: Callback) {
+    futuresCandlesticksStream(symbols: string[] | string, interval: Interval, callback: Callback) {
         const reconnect = () => {
-            if (this.Options.reconnect) this.futuresCandlesticks(symbols, interval, callback);
+            if (this.Options.reconnect) this.futuresCandlesticksStream(symbols, interval, callback);
         };
         let subscription;
         if (Array.isArray(symbols)) {
@@ -5647,7 +5672,7 @@ export default class Binance {
 
         const updateSymbolDepthCache = json => {
             // Get previous store symbol
-            const symbol = json.symb;
+            const symbol = json.symbol;
             // Initialize depth cache from snapshot
             this.depthCache[symbol] = this.depthData(json);
             // Prepare depth cache context
@@ -5936,7 +5961,7 @@ export default class Binance {
      * @param {boolean} singleCallback - avoid call one callback for each symbol in data array
      * @return {string} the websocket endpoint
      */
-    prevDayStream(symbols: string[] | string, callback?: Callback, singleCallback?: Callback) {
+    prevDayStream(symbols: string[] | string | undefined, callback?: Callback, singleCallback?: Callback) {
         const reconnect = () => {
             if (this.Options.reconnect) this.prevDayStream(symbols, callback, singleCallback);
         };
