@@ -11,6 +11,8 @@
     }
   },
   "dependencies": {
+    "@noble/curves": "^1.8.1",
+    "@scure/base": "^1.2.4",
     "https-proxy-agent": "^7.0.0",
     "json-bigint": "^1.0.0",
     "lodash.zipobject": "^4.1.3",
