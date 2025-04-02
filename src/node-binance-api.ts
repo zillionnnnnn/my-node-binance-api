@@ -645,7 +645,7 @@ export default class Binance {
         }
     }
 
-    generateSignature(query: string) {
+    generateSignature(query: string, encode = true) {
         const secret = this.APISECRET || this.PRIVATEKEY;
         let signature = '';
         if (secret.includes ('PRIVATE KEY')) {
@@ -653,14 +653,16 @@ export default class Binance {
             let keyObject: crypto.KeyObject;
             try {
                 const privateKeyObj: crypto.PrivateKeyInput = { key: secret };
-                keyObject = crypto.createPrivateKey(privateKeyObj);
 
                 if (this.PRIVATEKEYPASSWORD) {
                     privateKeyObj.passphrase = this.PRIVATEKEYPASSWORD;
                 }
-            } catch {
+
+                keyObject = crypto.createPrivateKey(privateKeyObj);
+
+            } catch (e){
                 throw new Error(
-                    'Invalid private key. Please provide a valid RSA or ED25519 private key.'
+                    'Invalid private key. Please provide a valid RSA or ED25519 private key. ' + e.toString()
                 );
             }
 
@@ -669,7 +671,8 @@ export default class Binance {
                 signature = crypto
                     .sign('RSA-SHA256', Buffer.from(query), keyObject)
                     .toString('base64');
-                signature = encodeURIComponent (signature);
+                if (encode) signature = encodeURIComponent (signature);
+                return signature;
             } else {
                 // Ed25519 key
                 signature = crypto.sign(null, Buffer.from(query), keyObject).toString('base64');

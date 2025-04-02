@@ -27,6 +27,8 @@ jobs:
       run: npm run lint
     - name: Build
       run: npm run build
+    - name: Crypto Tests
+      run: npm run crypto-tests
     - name: Static Tests (TS ESM)
       run: npm run ts-test-static
     - name: Static Tests (JS CJS)
