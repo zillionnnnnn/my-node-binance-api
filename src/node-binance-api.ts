@@ -66,6 +66,7 @@ export default class Binance {
 
     APIKEY: string = undefined;
     APISECRET: string = undefined;
+    PRIVATEKEY: string = undefined;
     test = false;
 
     timeOffset: number = 0;
@@ -661,19 +662,21 @@ export default class Binance {
     }
 
     generateSignature(query: string) {
-        const APISECRET = this.Options.APISECRET || this.APISECRET;
+        const secret = this.APISECRET || this.PRIVATEKEY;
         let signature = '';
-        if (APISECRET.includes ('PRIVATE KEY')) {
+        if (secret.includes ('PRIVATE KEY')) {
             // if less than the below length, then it can't be RSA key
-            if (APISECRET.length < 500) {
-                const privateKey = new Uint8Array (this.unarmorKey (APISECRET).slice (16));
+            if (secret.length > 120) {
+                // RSA key
+                const signed = createSign('RSA-SHA256').update(query);
+                signature = signed.sign(secret, 'base64');
+                signature = encodeURIComponent (signature);
+            } else {
+                // Ed25519 key
+                const privateKey = new Uint8Array (base64.decode (secret).slice (16));
                 const encodedQuery = new TextEncoder().encode(query);
                 const signatureInit = ed25519.sign (encodedQuery, privateKey);
                 signature = base64.encode (signatureInit);
-            } else {
-                const signed = createSign('RSA-SHA256').update(query);
-                signature = signed.sign(APISECRET, 'base64');
-                signature = encodeURIComponent (signature);
             }
         } else {
             signature = crypto.createHmac('sha256', this.Options.APISECRET).update(query).digest('hex'); // set the HMAC hash header

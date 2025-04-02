@@ -125,6 +125,7 @@ export type Callback = (...args: any) => any;
 export interface IConstructorArgs {
     APIKEY: string;
     APISECRET: string;
+    PRIVATEKEY: string; // when using RSA/EDCSA keys
     recvWindow: number;
     useServerTime: boolean;
     reconnect: boolean;
