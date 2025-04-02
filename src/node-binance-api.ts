@@ -619,7 +619,7 @@ export default class Binance {
         const query = method === 'POST' && noDataInSignature ? '' : this.makeQueryString(data);
 
         const signature = this.generateSignature(query);
-        
+    
         if (method === 'POST') {
             const opt = this.reqObjPOST(
                 url,
@@ -659,17 +659,12 @@ export default class Binance {
 
             if (secret.length > 120) {
                 // RSA key
-                // const signed = createSign('RSA-SHA256').update(query);
                 signature = crypto
                     .sign('RSA-SHA256', Buffer.from(query), keyObject)
                     .toString('base64');
                 signature = encodeURIComponent (signature);
             } else {
                 // Ed25519 key
-                // const privateKey = new Uint8Array (base64.decode (secret).slice (16));
-                // const encodedQuery = new TextEncoder().encode(query);
-                // const signatureInit = ed25519.sign (encodedQuery, privateKey);
-                // signature = base64.encode (signatureInit);
                 signature = crypto.sign(null, Buffer.from(query), keyObject).toString('base64');
             }
         } else {
