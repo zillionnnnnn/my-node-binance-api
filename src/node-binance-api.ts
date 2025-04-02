@@ -1,7 +1,7 @@
 
 import WebSocket from 'ws';
 // import request from 'request';
-import crypto, { createSign } from 'crypto';
+import crypto from 'crypto';
 import file from 'fs';
 import url from 'url';
 import JSONbig from 'json-bigint';
@@ -11,10 +11,6 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 // @ts-ignore
 import nodeFetch from 'node-fetch';
-// @ts-ignore
-import { ed25519 } from '@noble/curves/ed25519';
-// @ts-ignore
-import { base64 } from '@scure/base';
 
 // @ts-ignore
 import zip from 'lodash.zipobject';
@@ -646,37 +642,35 @@ export default class Binance {
         }
     }
 
-    unarmorKey(a:string):number[] {
-        // eslint-disable-next-line no-useless-escape
-        const m = /-----BEGIN [^-]+-----\n([A-Za-z0-9+\/=\s]+)\n-----END [^-]+-----|begin-base64[^\n]+\n([A-Za-z0-9+\/=\s]+)====/.exec(a);
-        if (m) {
-            if (m[1]) {
-                a = m[1];
-            } else if (m[2]) {
-                a = m[2];
-            } else {
-                throw new Error("RegExp out of sync");
-            }
-        }
-        return base64.decode(a);
-    }
-
     generateSignature(query: string) {
         const secret = this.APISECRET || this.PRIVATEKEY;
         let signature = '';
         if (secret.includes ('PRIVATE KEY')) {
             // if less than the below length, then it can't be RSA key
+            let keyObject: crypto.KeyObject;
+            try {
+                const privateKeyObj: crypto.PrivateKeyInput = { key: secret };
+                keyObject = crypto.createPrivateKey(privateKeyObj);
+            } catch {
+                throw new Error(
+                    'Invalid private key. Please provide a valid RSA or ED25519 private key.'
+                );
+            }
+
             if (secret.length > 120) {
                 // RSA key
-                const signed = createSign('RSA-SHA256').update(query);
-                signature = signed.sign(secret, 'base64');
+                // const signed = createSign('RSA-SHA256').update(query);
+                signature = crypto
+                    .sign('RSA-SHA256', Buffer.from(query), keyObject)
+                    .toString('base64');
                 signature = encodeURIComponent (signature);
             } else {
                 // Ed25519 key
-                const privateKey = new Uint8Array (base64.decode (secret).slice (16));
-                const encodedQuery = new TextEncoder().encode(query);
-                const signatureInit = ed25519.sign (encodedQuery, privateKey);
-                signature = base64.encode (signatureInit);
+                // const privateKey = new Uint8Array (base64.decode (secret).slice (16));
+                // const encodedQuery = new TextEncoder().encode(query);
+                // const signatureInit = ed25519.sign (encodedQuery, privateKey);
+                // signature = base64.encode (signatureInit);
+                signature = crypto.sign(null, Buffer.from(query), keyObject).toString('base64');
             }
         } else {
             signature = crypto.createHmac('sha256', this.Options.APISECRET).update(query).digest('hex'); // set the HMAC hash header
