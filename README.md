@@ -57,12 +57,12 @@ Actively maintained, typed, and safe SDK for the Binance REST APIs and Websocket
 
 ### Features
 - Spot, Margin, Futures and Delivery API
-- Portfolio Margin API *\*soon*\*
 - Testnet support
 - Proxy support (REST and WS)
 - Customizable HTTP headers
 - Customizable request parameters
-- RSA/ECDSA support *\*soon*\*
+- RSA/ECDSA support
+- Portfolio Margin API *\*soon*\*
 - Websocket handling with automatic reconnection
 - RecvWindow and automatic timestamps generation
 - Ability to call any endpoint, even if not supported directly by the library

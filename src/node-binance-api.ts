@@ -11,6 +11,7 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 // @ts-ignore
 import nodeFetch from 'node-fetch';
+
 // @ts-ignore
 import zip from 'lodash.zipobject';
 import stringHash from 'string-hash';
@@ -63,6 +64,8 @@ export default class Binance {
 
     APIKEY: string = undefined;
     APISECRET: string = undefined;
+    PRIVATEKEY: string = undefined;
+    PRIVATEKEYPASSWORD: string = undefined;
     test = false;
 
     timeOffset: number = 0;
@@ -209,6 +212,8 @@ export default class Binance {
 
         if (this.Options.APIKEY) this.APIKEY = this.Options.APIKEY;
         if (this.Options.APISECRET) this.APISECRET = this.Options.APISECRET;
+        if (this.Options.PRIVATEKEY) this.PRIVATEKEY = this.Options.PRIVATEKEY;
+        if (this.Options.PRIVATEKEYPASSWORD) this.PRIVATEKEYPASSWORD = this.Options.PRIVATEKEYPASSWORD;
         if (this.Options.test) this.test = true;
         if (this.Options.headers) this.headers = this.Options.Headers;
         if (this.Options.domain) this.domain = this.Options.domain;
@@ -535,7 +540,7 @@ export default class Binance {
                 data.timestamp += this.timeOffset;
             }
             query = this.makeQueryString(data);
-            data.signature = crypto.createHmac('sha256', this.APISECRET).update(query).digest('hex'); // HMAC hash header
+            data.signature = this.generateSignature(query);
             opt.url = `${url}?${query}&signature=${data.signature}`;
         }
         (opt as any).qs = data;
@@ -647,7 +652,9 @@ export default class Binance {
 
         if (!data.recvWindow) data.recvWindow = this.Options.recvWindow;
         const query = method === 'POST' && noDataInSignature ? '' : this.makeQueryString(data);
-        const signature = crypto.createHmac('sha256', this.Options.APISECRET).update(query).digest('hex'); // set the HMAC hash header
+
+        const signature = this.generateSignature(query);
+    
         if (method === 'POST') {
             const opt = this.reqObjPOST(
                 url,
@@ -668,6 +675,44 @@ export default class Binance {
             const reqGet = await this.proxyRequest(opt);
             return reqGet;
         }
+    }
+
+    generateSignature(query: string, encode = true) {
+        const secret = this.APISECRET || this.PRIVATEKEY;
+        let signature = '';
+        if (secret.includes ('PRIVATE KEY')) {
+            // if less than the below length, then it can't be RSA key
+            let keyObject: crypto.KeyObject;
+            try {
+                const privateKeyObj: crypto.PrivateKeyInput = { key: secret };
+
+                if (this.PRIVATEKEYPASSWORD) {
+                    privateKeyObj.passphrase = this.PRIVATEKEYPASSWORD;
+                }
+
+                keyObject = crypto.createPrivateKey(privateKeyObj);
+
+            } catch (e){
+                throw new Error(
+                    'Invalid private key. Please provide a valid RSA or ED25519 private key. ' + e.toString()
+                );
+            }
+
+            if (secret.length > 120) {
+                // RSA key
+                signature = crypto
+                    .sign('RSA-SHA256', Buffer.from(query), keyObject)
+                    .toString('base64');
+                if (encode) signature = encodeURIComponent (signature);
+                return signature;
+            } else {
+                // Ed25519 key
+                signature = crypto.sign(null, Buffer.from(query), keyObject).toString('base64');
+            }
+        } else {
+            signature = crypto.createHmac('sha256', this.Options.APISECRET).update(query).digest('hex'); // set the HMAC hash header
+        }
+        return signature;
     }
 
     // --- ENDPOINTS --- //
