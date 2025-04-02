@@ -71,9 +71,10 @@ Actively maintained, typed, and safe SDK for the Binance REST APIs and Websocket
 
 ### Upgrading to v1.0.0+
 
-The library was fully refactored to use modern and typed JavaScript/Typescript version, using the built-in await/async syntax and unifying some methods' signatures. Some important changes include the removal of callbacks as parameters of REST methods, adaptation of signatures to directly receive some important request values (symbol, orderId, ...), etc.
-
 **We highly advise you to update from 0.0.X but minor adjustments might be needed.**
+
+The library was fully refactored to use a modern and typed JavaScript/Typescript version, using the built-in await/async syntax and unifying some methods' signatures.
+Some important changes include the removal of callbacks as parameters of REST methods, adaptation of signatures to directly receive some important request values (symbol, orderId, ...), among others.
 
 
 #### Getting started (ESM)
