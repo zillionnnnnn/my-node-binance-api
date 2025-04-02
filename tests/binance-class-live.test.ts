@@ -266,10 +266,14 @@ describe('MarketBuy/Sell WithCost', function () {
 describe('Limit buy Order', function () {
     it('Attempt to buy ETH', async function () {
         if (ethusdtPrice !== 0) {
-            let quantity = 0.5;
-            const res = await binance.order('LIMIT', 'BUY', 'ETHUSDT', quantity, Math.round(ethusdtPrice * 0.8))
-            assert(res['orderId'] !== undefined)
-            spotOrderId = res['orderId'];
+            try {
+                let quantity = 0.1;
+                const res = await binance.order('LIMIT', 'BUY', 'ETHUSDT', quantity, Math.round(ethusdtPrice * 0.8))
+                assert(res['orderId'] !== undefined)
+                spotOrderId = res['orderId'];
+            } catch (e) {
+                assert(e.toString().includes('{"code":-2010,"msg":"Account has insufficient balance for requested action."}'));
+            }
         }
 
     }).timeout(TIMEOUT);
@@ -297,7 +301,7 @@ describe('Futures MarketBuy', function () {
 describe('Futures Limit buy Order', function () {
     it('Attempt to buy ETH', async function () {
         if (ethusdtPrice !== 0) {
-            let quantity = 0.5;
+            let quantity = 0.1;
             const res = await futuresBinance.futuresOrder('LIMIT', 'BUY', 'ETHUSDT', quantity, Math.round(ethusdtPrice * 0.8))
             assert(res['orderId'] !== undefined)
             futuresOrderId = res['orderId'];

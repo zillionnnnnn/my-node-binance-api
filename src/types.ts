@@ -173,7 +173,11 @@ export interface IWebsocketsMethods {
   subscribeCombined(url: string, callback: Callback, reconnect?: Callback, opened_callback?: Callback);
   subscribe(endpoint: string, callback: Callback, reconnect?: Callback, opened_callback?: Callback);
   subscriptions(...args: any): any;
+  futuresSubcriptions(...args: any): any;
+  deliverySubcriptions(...args: any): any;
   terminate(endpoint: string): any;
+  futuresTerminate(endpoint: string, reconnect?: boolean)
+  deliveryTerminate(endpoint: string, reconnect?: boolean)
   depth(...args: any): any;
   depthCache(symbols: string[] | string, callback?: Callback, limit?: number): any;
   clearDepthCache(symbols: string | string[]): any;
@@ -184,7 +188,24 @@ export interface IWebsocketsMethods {
   candlesticks(symbols: string | string[], interval: Interval, callback: Callback)
   miniTicker(callback: Callback): string;
   bookTickers(symbol: string, callback: Callback): string;
-  prevDay(symbols: string | string[], callback?: Callback, singleCallback?: Callback)
+  prevDay(symbols: string | string[] | undefined, callback?: Callback, singleCallback?: Callback)
+  futuresCandlesticks(symbols: string[] | string, interval: Interval, callback: Callback)
+  futuresTicker(symbol?: string,  callback?: Callback)
+  futuresMiniTicker(symbol?: string, callback?: Callback)
+  futuresAggTrades(symbols: string[] | string, callback: Callback)
+  futuresMarkPrice(symbol?: string, callback?: Callback, speed?: string)
+  futuresLiquidation(symbol?: string, callback?: Callback)
+  futuresTicker(symbol?: string, callback?: Callback)
+  futuresBookTicker(symbol?: string, callback?: Callback)
+  futuresChart(symbols: string[] | string, interval: Interval, callback: Callback, limit?: number)
+  deliveryAggTrade(symbols: string[] | string, callback: Callback)
+  deliveryMarkPrice(symbol?: string, callback?: Callback, speed?: string)
+  deliveryLiquidation(symbol?: string, callback?: Callback)
+  deliveryTicker(symbol?: string, callback?: Callback)
+  deliveryMiniTicker(symbol?: string, callback?: Callback)
+  deliveryBookTicker(symbol?: string, callback?: Callback)
+  deliveryChart(symbols: string[] | string, interval: Interval, callback: Callback, limit?: number)
+  deliveryCandlesticks(symbols: string[] | string, interval: Interval, callback: Callback)
 }
 
 export interface FundingRate {

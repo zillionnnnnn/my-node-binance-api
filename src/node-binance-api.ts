@@ -46,7 +46,9 @@ export default class Binance {
     dstreamSingleTest = `wss://dstream.binancefuture.${this.domain}/ws/`;
     dstreamTest = `wss://dstream.binancefuture.${this.domain}/stream?streams=`;
     stream = `wss://stream.binance.${this.domain}:9443/ws/`;
+    streamTest = `wss://testnet.binance.vision/ws/`;
     combineStream = `wss://stream.binance.${this.domain}:9443/stream?streams=`;
+    combineStreamTest = `wss://testnet.binance.vision/stream?streams=`;
 
     verbose = false;
 
@@ -76,7 +78,7 @@ export default class Binance {
     // Websockets Options
     isAlive = false;
     socketHeartbeatInterval: any = null;
-    endpoint: string = ""; // endpoint for WS?
+    // endpoint: string = ""; // endpoint for WS?
     reconnect = true;
 
     headers: Dict = {};
@@ -101,25 +103,45 @@ export default class Binance {
     info: Dict = {};
 
     websockets: IWebsocketsMethods = { // deprecated structure, keeping it for backwards compatibility
-        userData: this.userData,
-        userMarginData: this.userMarginData,
-        depthCacheStaggered: this.depthCacheStaggered,
-        userFutureData: this.userFutureData,
-        userDeliveryData: this.userDeliveryData,
-        subscribeCombined: this.subscribeCombined,
-        subscribe: this.subscribe,
-        subscriptions:  () => this.subscriptions,
-        terminate: this.terminate,
-        depth: this.depth,
-        depthCache: this.depthCacheStream,
-        clearDepthCache: this.clearDepthCache,
-        aggTrades: this.aggTrades,
-        trades: this.tradesStream,
-        chart: this.chart,
-        candlesticks: this.candlesticks,
-        miniTicker: this.miniTicker,
-        bookTickers: this.bookTickersStream,
-        prevDay: this.prevDay,
+        userData: this.userData.bind(this),
+        userMarginData: this.userMarginData.bind(this),
+        depthCacheStaggered: this.depthCacheStaggered.bind(this),
+        userFutureData: this.userFutureData.bind(this),
+        userDeliveryData: this.userDeliveryData.bind(this),
+        subscribeCombined: this.subscribeCombined.bind(this),
+        subscribe: this.subscribe.bind(this),
+        subscriptions:  () => this.getSubscriptions.bind(this),
+        terminate: this.terminate.bind(this),
+        depth: this.depthStream.bind(this),
+        depthCache: this.depthCacheStream.bind(this),
+        clearDepthCache: this.clearDepthCache.bind(this),
+        aggTrades: this.aggTradesStream.bind(this),
+        trades: this.tradesStream.bind(this),
+        chart: this.chart.bind(this),
+        candlesticks: this.candlesticksStream.bind(this),
+        miniTicker: this.miniTicker.bind(this),
+        bookTickers: this.bookTickersStream.bind(this),
+        prevDay: this.prevDayStream.bind(this),
+        futuresCandlesticks: this.futuresCandlesticksStream.bind(this),
+        futuresTicker: this.futuresTickerStream.bind(this),
+        futuresMiniTicker: this.futuresMiniTickerStream.bind(this),
+        futuresAggTrades: this.futuresAggTradeStream.bind(this),
+        futuresMarkPrice: this.futuresMarkPriceStream.bind(this),
+        futuresLiquidation: this.futuresLiquidationStream.bind(this),
+        futuresBookTicker: this.futuresBookTickerStream.bind(this),
+        futuresChart: this.futuresChart.bind(this),
+        deliveryAggTrade: this.deliveryAggTradeStream.bind(this),
+        deliveryCandlesticks: this.deliveryCandlesticks.bind(this),
+        deliveryTicker: this.deliveryTickerStream.bind(this),
+        deliveryMiniTicker: this.deliveryMiniTickerStream.bind(this),
+        deliveryMarkPrice: this.deliveryMarkPriceStream.bind(this),
+        deliveryBookTicker: this.deliveryBookTickerStream.bind(this),
+        deliveryChart: this.deliveryChart.bind(this),
+        deliveryLiquidation: this.deliveryLiquidationStream.bind(this),
+        futuresSubcriptions: () => this.getFuturesSubscriptions.bind(this),
+        deliverySubcriptions: () => this.getDeliverySubscriptions.bind(this),
+        futuresTerminate: this.futuresTerminate.bind(this),
+        deliveryTerminate: this.deliveryTerminate.bind(this),
     };
 
     default_options = {
@@ -224,6 +246,16 @@ export default class Binance {
     getDapiUrl() {
         if (this.Options.test) return this.dapiTest;
         return this.dapi;
+    }
+
+    getCombineStreamUrl() {
+        if (this.Options.test) return this.combineStreamTest;
+        return this.combineStream;
+    }
+
+    getStreamUrl() {
+        if (this.Options.test) return this.streamTest;
+        return this.stream;
     }
 
     uuid22(a?: any) {
@@ -1093,13 +1125,13 @@ export default class Binance {
      * @param {function} opened_callback - a callback function
      * @return {undefined}
      */
-    handleSocketOpen(opened_callback: Callback) {
-        this.isAlive = true;
+    handleSocketOpen(wsBind, opened_callback: Callback) {
+        wsBind.isAlive = true;
         if (Object.keys(this.subscriptions).length === 0) {
             this.socketHeartbeatInterval = setInterval(this.socketHeartbeat, this.heartBeatInterval);
         }
-        this.subscriptions[this.endpoint] = this;
-        if (typeof opened_callback === 'function') opened_callback(this.endpoint);
+        this.subscriptions[wsBind.url] = wsBind;
+        if (typeof opened_callback === 'function') opened_callback(wsBind.url);
     }
 
     /**
@@ -1109,17 +1141,17 @@ export default class Binance {
      * @param {string} reason - string with the response
      * @return {undefined}
      */
-    handleSocketClose(reconnect: Function, code, reason: string) {
-        delete this.subscriptions[this.endpoint];
+    handleSocketClose(wsBind, reconnect: Function, code, reason: string) {
+        delete this.subscriptions[wsBind.url];
         if (this.subscriptions && Object.keys(this.subscriptions).length === 0) {
             clearInterval(this.socketHeartbeatInterval);
         }
-        this.Options.log('WebSocket closed: ' + this.endpoint +
+        this.Options.log('WebSocket closed: ' + wsBind.url +
             (code ? ' (' + code + ')' : '') +
             (reason ? ' ' + reason : ''));
-        if (this.Options.reconnect && this.reconnect && reconnect) {
-            if (this.endpoint && this.endpoint.length === 60) this.Options.log('Account data WebSocket reconnecting...');
-            else this.Options.log('WebSocket reconnecting: ' + this.endpoint + '...');
+        if (this.Options.reconnect && wsBind.reconnect && reconnect) {
+            if (wsBind.url && wsBind.url.length === 60) this.Options.log('Account data WebSocket reconnecting...');
+            else this.Options.log('WebSocket reconnecting: ' + wsBind.url + '...');
             try {
                 reconnect();
             } catch (error) {
@@ -1133,10 +1165,10 @@ export default class Binance {
  * @param {object} error - error object message
  * @return {undefined}
  */
-    handleSocketError(error) {
+    handleSocketError(wsBind, error) {
         /* Errors ultimately result in a `close` event.
          see: https://github.com/websockets/ws/blob/828194044bf247af852b31c49e2800d557fedeff/lib/websocket.js#L126 */
-        this.Options.log('WebSocket error: ' + this.endpoint +
+        this.Options.log('WebSocket error: ' + wsBind.url +
             (error.code ? ' (' + error.code + ')' : '') +
             (error.message ? ' ' + error.message : ''));
     }
@@ -1145,8 +1177,8 @@ export default class Binance {
      * Called on each socket heartbeat
      * @return {undefined}
      */
-    handleSocketHeartbeat() {
-        this.isAlive = true;
+    handleSocketHeartbeat(wsBind) {
+        wsBind.isAlive = true;
     }
 
     // ----- WS ENDPOINTS ----- //
@@ -1181,24 +1213,24 @@ export default class Binance {
                 host: this.parseProxy(socksproxy)[1],
                 port: this.parseProxy(socksproxy)[2]
             });
-            ws = new WebSocket(this.stream + endpoint, { agent: agent });
+            ws = new WebSocket(this.getStreamUrl() + endpoint, { agent: agent });
         } else if (httpsproxy) {
             const config = url.parse(httpsproxy);
             const agent = new HttpsProxyAgent(config);
             if (this.Options.verbose) this.Options.log('using proxy server ' + agent);
-            ws = new WebSocket(this.stream + endpoint, { agent: agent });
+            ws = new WebSocket(this.getStreamUrl() + endpoint, { agent: agent });
         } else {
-            ws = new WebSocket(this.stream + endpoint);
+            ws = new WebSocket(this.getStreamUrl() + endpoint);
         }
 
         if (this.Options.verbose) this.Options.log('Subscribed to ' + endpoint);
         ws.reconnect = this.Options.reconnect;
         ws.endpoint = endpoint;
         ws.isAlive = false;
-        ws.on('open', this.handleSocketOpen.bind(this, opened_callback));
-        ws.on('pong', this.handleSocketHeartbeat.bind(this));
-        ws.on('error', this.handleSocketError.bind(this));
-        ws.on('close', this.handleSocketClose.bind(this, reconnect));
+        ws.on('open', this.handleSocketOpen.bind(this, ws, opened_callback));
+        ws.on('pong', this.handleSocketHeartbeat.bind(this, ws));
+        ws.on('error', this.handleSocketError.bind(this, ws));
+        ws.on('close', this.handleSocketClose.bind(this, ws, reconnect));
         ws.on('message', data => {
             try {
                 if (this.Options.verbose) this.Options.log('WebSocket data:', data);
@@ -1231,14 +1263,14 @@ export default class Binance {
                 host: this.parseProxy(socksproxy)[1],
                 port: this.parseProxy(socksproxy)[2]
             });
-            ws = new WebSocket(this.combineStream + queryParams, { agent: agent });
+            ws = new WebSocket(this.getCombineStreamUrl() + queryParams, { agent: agent });
         } else if (httpsproxy) {
             if (this.Options.verbose) this.Options.log('using proxy server ' + httpsproxy);
             const config = url.parse(httpsproxy);
             const agent = new HttpsProxyAgent(config);
-            ws = new WebSocket(this.combineStream + queryParams, { agent: agent });
+            ws = new WebSocket(this.getCombineStreamUrl() + queryParams, { agent: agent });
         } else {
-            ws = new WebSocket(this.combineStream + queryParams);
+            ws = new WebSocket(this.getCombineStreamUrl() + queryParams);
         }
 
         ws.reconnect = this.Options.reconnect;
@@ -1247,10 +1279,10 @@ export default class Binance {
         if (this.Options.verbose) {
             this.Options.log('CombinedStream: Subscribed to [' + ws.endpoint + '] ' + queryParams);
         }
-        ws.on('open', this.handleSocketOpen.bind(this, opened_callback));
-        ws.on('pong', this.handleSocketHeartbeat.bind(this));
-        ws.on('error', this.handleSocketError.bind(this));
-        ws.on('close', this.handleSocketClose.bind(this, reconnect));
+        ws.on('open', this.handleSocketOpen.bind(this, ws, opened_callback));
+        ws.on('pong', this.handleSocketHeartbeat.bind(this, ws));
+        ws.on('error', this.handleSocketError.bind(this, ws));
+        ws.on('close', this.handleSocketClose.bind(this, ws, reconnect));
         ws.on('message', data => {
             try {
                 if (this.Options.verbose) this.Options.log('CombinedStream: WebSocket data:', data
@@ -1302,13 +1334,13 @@ export default class Binance {
      * @param {function} openCallback - a callback function
      * @return {undefined}
      */
-    handleFuturesSocketOpen(openCallback: Callback) {
-        this.isAlive = true;
+    handleFuturesSocketOpen(wsBind: any, openCallback: Callback) {
+        wsBind.isAlive = true;
         if (Object.keys(this.futuresSubscriptions).length === 0) {
             this.socketHeartbeatInterval = setInterval(this.futuresSocketHeartbeat, this.heartBeatInterval);
         }
-        this.futuresSubscriptions[this.endpoint] = this;
-        if (typeof openCallback === 'function') openCallback(this.endpoint);
+        this.futuresSubscriptions[wsBind.url] = wsBind;
+        if (typeof openCallback === 'function') openCallback(wsBind.url);
     }
 
     /**
@@ -1318,17 +1350,17 @@ export default class Binance {
      * @param {string} reason - string with the response
      * @return {undefined}
      */
-    handleFuturesSocketClose(reconnect, code, reason) {
-        delete this.futuresSubscriptions[this.endpoint];
+    handleFuturesSocketClose(wsBind, reconnect, code, reason) {
+        delete this.futuresSubscriptions[wsBind.url];
         if (this.futuresSubscriptions && Object.keys(this.futuresSubscriptions).length === 0) {
             clearInterval(this.socketHeartbeatInterval);
         }
-        this.Options.log('Futures WebSocket closed: ' + this.endpoint +
+        this.Options.log('Futures WebSocket closed: ' + wsBind.url +
             (code ? ' (' + code + ')' : '') +
             (reason ? ' ' + reason : ''));
-        if (this.Options.reconnect && this.reconnect && reconnect) {
-            if (this.endpoint && this.endpoint.length === 60) this.Options.log('Futures account data WebSocket reconnecting...');
-            else this.Options.log('Futures WebSocket reconnecting: ' + this.endpoint + '...');
+        if (this.Options.reconnect && wsBind.reconnect && reconnect) {
+            if (wsBind.url && wsBind.url.length === 60) this.Options.log('Futures account data WebSocket reconnecting...');
+            else this.Options.log('Futures WebSocket reconnecting: ' + wsBind.url + '...');
             try {
                 reconnect();
             } catch (error) {
@@ -1342,8 +1374,8 @@ export default class Binance {
      * @param {object} error - error object message
      * @return {undefined}
      */
-    handleFuturesSocketError(error) {
-        this.Options.log('Futures WebSocket error: ' + this.endpoint +
+    handleFuturesSocketError(wsBind, error) {
+        this.Options.log('Futures WebSocket error: ' + wsBind.url +
             (error.code ? ' (' + error.code + ')' : '') +
             (error.message ? ' ' + error.message : ''));
     }
@@ -1352,8 +1384,8 @@ export default class Binance {
      * Called on each futures socket heartbeat
      * @return {undefined}
      */
-    handleFuturesSocketHeartbeat() {
-        this.isAlive = true;
+    handleFuturesSocketHeartbeat(wsBind) {
+        wsBind.isAlive = true;
     }
 
     /**
@@ -1395,10 +1427,10 @@ export default class Binance {
         ws.reconnect = this.Options.reconnect;
         ws.endpoint = endpoint;
         ws.isAlive = false;
-        ws.on('open', this.handleFuturesSocketOpen.bind(this, params.openCallback));
-        ws.on('pong', this.handleFuturesSocketHeartbeat.bind(this));
-        ws.on('error', this.handleFuturesSocketError.bind(this));
-        ws.on('close', this.handleFuturesSocketClose.bind(this, params.reconnect));
+        ws.on('open', this.handleFuturesSocketOpen.bind(this, ws, params.openCallback));
+        ws.on('pong', this.handleFuturesSocketHeartbeat.bind(this, ws));
+        ws.on('error', this.handleFuturesSocketError.bind(this, ws));
+        ws.on('close', this.handleFuturesSocketClose.bind(this, ws, params.reconnect));
         ws.on('message', data => {
             try {
                 if (this.Options.verbose) this.Options.log('futuresSubscribeSingle: Received data:', data);
@@ -1451,10 +1483,10 @@ export default class Binance {
         if (this.Options.verbose) {
             this.Options.log(`futuresSubscribe: Subscribed to [${ws.endpoint}] ${queryParams}`);
         }
-        ws.on('open', this.handleFuturesSocketOpen.bind(this, params.openCallback));
-        ws.on('pong', this.handleFuturesSocketHeartbeat.bind(this));
-        ws.on('error', this.handleFuturesSocketError.bind(this));
-        ws.on('close', this.handleFuturesSocketClose.bind(this, params.reconnect));
+        ws.on('open', this.handleFuturesSocketOpen.bind(this, ws, params.openCallback));
+        ws.on('pong', this.handleFuturesSocketHeartbeat.bind(this, ws));
+        ws.on('error', this.handleFuturesSocketError.bind(this, ws));
+        ws.on('close', this.handleFuturesSocketClose.bind(this, ws, params.reconnect));
         ws.on('message', data => {
             try {
                 if (this.Options.verbose) this.Options.log('futuresSubscribe: Received data:', data);
@@ -2016,13 +2048,13 @@ export default class Binance {
      * @param {function} openCallback - a callback function
      * @return {undefined}
      */
-    handleDeliverySocketOpen(openCallback: Callback) {
+    handleDeliverySocketOpen(wsBind, openCallback: Callback) {
         this.isAlive = true;
         if (Object.keys(this.deliverySubscriptions).length === 0) {
             this.socketHeartbeatInterval = setInterval(this.deliverySocketHeartbeat, 30000);
         }
-        this.deliverySubscriptions[this.endpoint] = this;
-        if (typeof openCallback === 'function') openCallback(this.endpoint);
+        this.deliverySubscriptions[wsBind.url] = this;
+        if (typeof openCallback === 'function') openCallback(wsBind.url);
     }
 
     /**
@@ -2032,17 +2064,17 @@ export default class Binance {
      * @param {string} reason - string with the response
      * @return {undefined}
      */
-    handleDeliverySocketClose(reconnect, code, reason) {
-        delete this.deliverySubscriptions[this.endpoint];
+    handleDeliverySocketClose(wsBind, reconnect, code, reason) {
+        delete this.deliverySubscriptions[wsBind.url];
         if (this.deliverySubscriptions && Object.keys(this.deliverySubscriptions).length === 0) {
             clearInterval(this.socketHeartbeatInterval);
         }
-        this.Options.log('Delivery WebSocket closed: ' + this.endpoint +
+        this.Options.log('Delivery WebSocket closed: ' + wsBind.url +
             (code ? ' (' + code + ')' : '') +
             (reason ? ' ' + reason : ''));
-        if (this.Options.reconnect && this.reconnect && reconnect) {
-            if (this.endpoint && this.endpoint.length === 60) this.Options.log('Delivery account data WebSocket reconnecting...');
-            else this.Options.log('Delivery WebSocket reconnecting: ' + this.endpoint + '...');
+        if (this.Options.reconnect && wsBind.reconnect && reconnect) {
+            if (wsBind.url && wsBind.url.length === 60) this.Options.log('Delivery account data WebSocket reconnecting...');
+            else this.Options.log('Delivery WebSocket reconnecting: ' + wsBind.url + '...');
             try {
                 reconnect();
             } catch (error) {
@@ -2056,8 +2088,8 @@ export default class Binance {
      * @param {object} error - error object message
      * @return {undefined}
      */
-    handleDeliverySocketError(error) {
-        this.Options.log('Delivery WebSocket error: ' + this.endpoint +
+    handleDeliverySocketError(wsBind, error) {
+        this.Options.log('Delivery WebSocket error: ' + wsBind.url +
             (error.code ? ' (' + error.code + ')' : '') +
             (error.message ? ' ' + error.message : ''));
     }
@@ -2107,10 +2139,10 @@ export default class Binance {
         ws.reconnect = this.Options.reconnect;
         ws.endpoint = endpoint;
         ws.isAlive = false;
-        ws.on('open', this.handleDeliverySocketOpen.bind(this, params.openCallback));
-        ws.on('pong', this.handleDeliverySocketHeartbeat.bind(this));
-        ws.on('error', this.handleDeliverySocketError.bind(this));
-        ws.on('close', this.handleDeliverySocketClose.bind(this, params.reconnect));
+        ws.on('open', this.handleDeliverySocketOpen.bind(this, ws, params.openCallback));
+        ws.on('pong', this.handleDeliverySocketHeartbeat.bind(this, ws));
+        ws.on('error', this.handleDeliverySocketError.bind(this, ws));
+        ws.on('close', this.handleDeliverySocketClose.bind(this, ws, params.reconnect));
         ws.on('message', data => {
             try {
                 if (this.Options.verbose) this.Options.log('deliverySubscribeSingle: Received data:', data);
@@ -2163,10 +2195,10 @@ export default class Binance {
         if (this.Options.verbose) {
             this.Options.log(`deliverySubscribe: Subscribed to [${ws.endpoint}] ${queryParams}`);
         }
-        ws.on('open', this.handleDeliverySocketOpen.bind(this, params.openCallback));
-        ws.on('pong', this.handleDeliverySocketHeartbeat.bind(this));
-        ws.on('error', this.handleDeliverySocketError.bind(this));
-        ws.on('close', this.handleDeliverySocketClose.bind(this, params.reconnect));
+        ws.on('open', this.handleDeliverySocketOpen.bind(this, ws,params.openCallback));
+        ws.on('pong', this.handleDeliverySocketHeartbeat.bind(this, ws));
+        ws.on('error', this.handleDeliverySocketError.bind(this, ws));
+        ws.on('close', this.handleDeliverySocketClose.bind(this, ws, params.reconnect));
         ws.on('message', data => {
             try {
                 if (this.Options.verbose) this.Options.log('deliverySubscribe: Received data:', data);
@@ -3931,6 +3963,15 @@ export default class Binance {
     }
 
     /**
+     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data
+    */
+    async futuresCandlesticks(symbol: string, interval: Interval = "30m", params: Dict = {}): Promise<Candle[]> {
+        params.symbol = symbol;
+        params.interval = interval;
+        return await this.publicFuturesRequest('v1/klines', params);
+    }
+
+    /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Mark-Price
      */
     async futuresMarkPrice(symbol?: string, params: Dict = {}): Promise<PremiumIndex | PremiumIndex[]> {
@@ -5009,7 +5050,7 @@ export default class Binance {
             const symbol = symbols as string;
             subscription = this.futuresSubscribeSingle(symbol.toLowerCase() + '@aggTrade', cleanCallback, { reconnect });
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5025,7 +5066,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@markPrice` : '!markPrice@arr';
         const subscription = this.futuresSubscribeSingle(endpoint + speed, data => callback(this.fMarkPriceConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5040,7 +5081,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@forceOrder` : '!forceOrder@arr';
         const subscription = this.futuresSubscribeSingle(endpoint, data => callback(this.fLiquidationConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5055,7 +5096,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@ticker` : '!ticker@arr';
         const subscription = this.futuresSubscribeSingle(endpoint, data => callback(this.fTickerConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5070,7 +5111,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@miniTicker` : '!miniTicker@arr';
         const subscription = this.futuresSubscribeSingle(endpoint, data => callback(this.fMiniTickerConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5085,7 +5126,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@bookTicker` : '!bookTicker';
         const subscription = this.futuresSubscribeSingle(endpoint, data => callback(this.fBookTickerConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5150,7 +5191,7 @@ export default class Binance {
             subscription = this.futuresSubscribeSingle(symbol.toLowerCase() + '@kline_' + interval, handleFuturesKlineStream, { reconnect });
             getFuturesKlineSnapshot(symbol, limit);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5160,9 +5201,9 @@ export default class Binance {
      * @param {function} callback - callback function
      * @return {string} the websocket endpoint
      */
-    futuresCandlesticks(symbols: string[] | string, interval: Interval, callback: Callback) {
+    futuresCandlesticksStream(symbols: string[] | string, interval: Interval, callback: Callback) {
         const reconnect = () => {
-            if (this.Options.reconnect) this.futuresCandlesticks(symbols, interval, callback);
+            if (this.Options.reconnect) this.futuresCandlesticksStream(symbols, interval, callback);
         };
         let subscription;
         if (Array.isArray(symbols)) {
@@ -5173,7 +5214,7 @@ export default class Binance {
             const symbol = symbols.toLowerCase();
             subscription = this.futuresSubscribeSingle(symbol + '@kline_' + interval, callback, { reconnect });
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     // Delivery WebSocket Functions:
@@ -5237,7 +5278,7 @@ export default class Binance {
             const symbol = symbols;
             subscription = this.deliverySubscribeSingle(symbol.toLowerCase() + '@aggTrade', cleanCallback, { reconnect });
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5253,7 +5294,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@markPrice` : '!markPrice@arr';
         const subscription = this.deliverySubscribeSingle(endpoint + speed, data => callback(this.dMarkPriceConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5268,7 +5309,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@forceOrder` : '!forceOrder@arr';
         const subscription = this.deliverySubscribeSingle(endpoint, data => callback(this.dLiquidationConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5283,7 +5324,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@ticker` : '!ticker@arr';
         const subscription = this.deliverySubscribeSingle(endpoint, data => callback(this.dTickerConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5298,7 +5339,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@miniTicker` : '!miniTicker@arr';
         const subscription = this.deliverySubscribeSingle(endpoint, data => callback(this.dMiniTickerConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5313,7 +5354,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@bookTicker` : '!bookTicker';
         const subscription = this.deliverySubscribeSingle(endpoint, data => callback(this.dBookTickerConvertData(data)), { reconnect });
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5378,7 +5419,7 @@ export default class Binance {
             subscription = this.deliverySubscribeSingle(symbol.toLowerCase() + '@kline_' + interval, handleDeliveryKlineStream, reconnect);
             getDeliveryKlineSnapshot(symbol, limit);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5401,7 +5442,7 @@ export default class Binance {
             const symbol = symbols.toLowerCase();
             subscription = this.deliverySubscribeSingle(symbol + '@kline_' + interval, callback, { reconnect });
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5638,7 +5679,7 @@ export default class Binance {
             const symbol = symbols;
             subscription = this.subscribe(symbol.toLowerCase() + '@depth@100ms', callback, reconnect);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5692,7 +5733,7 @@ export default class Binance {
 
         const updateSymbolDepthCache = json => {
             // Get previous store symbol
-            const symbol = json.symb;
+            const symbol = json.symbol;
             // Initialize depth cache from snapshot
             this.depthCache[symbol] = this.depthData(json);
             // Prepare depth cache context
@@ -5741,7 +5782,7 @@ export default class Binance {
             });
             assignEndpointIdToContext(symbol, subscription.endpoint);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5800,7 +5841,7 @@ export default class Binance {
             const symbol = symbols;
             subscription = this.subscribe(symbol.toLowerCase() + '@aggTrade', callback, reconnect);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5825,7 +5866,7 @@ export default class Binance {
             const symbol = symbols as string;
             subscription = this.subscribe(symbol.toLowerCase() + '@trade', callback, reconnect);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5900,7 +5941,7 @@ export default class Binance {
             subscription = this.subscribe(symbol.toLowerCase() + '@kline_' + interval, handleKlineStreamData, reconnect);
             getSymbolKlineSnapshot(symbol, limit);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5929,7 +5970,7 @@ export default class Binance {
             const symbol = symbols.toLowerCase();
             subscription = this.subscribe(symbol + '@kline_' + interval, callback, reconnect);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5956,7 +5997,7 @@ export default class Binance {
             }
             callback(markets);
         }, reconnect);
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5971,7 +6012,7 @@ export default class Binance {
         };
         const endpoint = symbol ? `${symbol.toLowerCase()}@bookTicker` : '!bookTicker';
         const subscription = this.subscribe(endpoint, data => callback(this.fBookTickerConvertData(data)), reconnect);
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 
     /**
@@ -5981,7 +6022,7 @@ export default class Binance {
      * @param {boolean} singleCallback - avoid call one callback for each symbol in data array
      * @return {string} the websocket endpoint
      */
-    prevDayStream(symbols: string[] | string, callback?: Callback, singleCallback?: Callback) {
+    prevDayStream(symbols: string[] | string | undefined, callback?: Callback, singleCallback?: Callback) {
         const reconnect = () => {
             if (this.Options.reconnect) this.prevDayStream(symbols, callback, singleCallback);
         };
@@ -6015,10 +6056,6 @@ export default class Binance {
                 }
             }, reconnect);
         }
-        return (subscription as any).endpoint;
+        return (subscription as any).url;
     }
 }
-
-export {
-    Binance
-};

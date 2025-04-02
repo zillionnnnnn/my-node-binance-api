@@ -29,6 +29,8 @@
     "test-cjs": "node ./tests/cjs-test.cjs",
     "crypto-tests": "mocha ./tests/crypto.test.ts",
     "ws-tests": "mocha ./tests/binance-class-ws.test.ts",
+    "ws-tests-spot": "mocha ./tests/binance-ws-spot.test.ts --exit",
+    "ws-tests-futures": "mocha ./tests/binance-ws-futures.test.ts --exit",
     "test-debug": "mocha --inspect-brk",
     "lint": "eslint src/",
     "cover": "istanbul cover _mocha --report lcovonly",
