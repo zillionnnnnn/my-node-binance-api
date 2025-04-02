@@ -126,6 +126,7 @@ export interface IConstructorArgs {
     APIKEY: string;
     APISECRET: string;
     PRIVATEKEY: string; // when using RSA/EDCSA keys
+    PRIVATEKEYPASSWORD: string; // when using RSA/EDCSA keys
     recvWindow: number;
     useServerTime: boolean;
     reconnect: boolean;

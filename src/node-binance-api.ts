@@ -63,6 +63,7 @@ export default class Binance {
     APIKEY: string = undefined;
     APISECRET: string = undefined;
     PRIVATEKEY: string = undefined;
+    PRIVATEKEYPASSWORD: string = undefined;
     test = false;
 
     timeOffset: number = 0;
@@ -189,6 +190,8 @@ export default class Binance {
 
         if (this.Options.APIKEY) this.APIKEY = this.Options.APIKEY;
         if (this.Options.APISECRET) this.APISECRET = this.Options.APISECRET;
+        if (this.Options.PRIVATEKEY) this.PRIVATEKEY = this.Options.PRIVATEKEY;
+        if (this.Options.PRIVATEKEYPASSWORD) this.PRIVATEKEYPASSWORD = this.Options.PRIVATEKEYPASSWORD;
         if (this.Options.test) this.test = true;
         if (this.Options.headers) this.headers = this.Options.Headers;
         if (this.Options.domain) this.domain = this.Options.domain;
@@ -651,6 +654,10 @@ export default class Binance {
             try {
                 const privateKeyObj: crypto.PrivateKeyInput = { key: secret };
                 keyObject = crypto.createPrivateKey(privateKeyObj);
+
+                if (this.PRIVATEKEYPASSWORD) {
+                    privateKeyObj.passphrase = this.PRIVATEKEYPASSWORD;
+                }
             } catch {
                 throw new Error(
                     'Invalid private key. Please provide a valid RSA or ED25519 private key.'
