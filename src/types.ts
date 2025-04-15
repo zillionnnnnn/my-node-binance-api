@@ -52,9 +52,9 @@ export interface Candle {
     close: string
     volume: string
     closeTime: number
-    quoteVolume: string
+    quoteVolume?: string
     trades: number
-    baseAssetVolume: string
+    baseAssetVolume?: string
     quoteAssetVolume: string
   }
 
