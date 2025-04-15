@@ -258,7 +258,7 @@ export interface AggregatedTrade {
     lastId: number
     timestamp: number
     isBuyerMaker: boolean
-    wasBestPrice: boolean
+    wasBestPrice?: boolean
 }
 
 export interface Trade {

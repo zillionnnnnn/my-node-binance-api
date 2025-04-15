@@ -3718,6 +3718,25 @@ export default class Binance {
         return await this.publicSpotRequest('v3/ping', {});
     }
 
+    parseAggTrades(symbol: string, trades: any[]): AggregatedTrade[] {
+        const parsedTrades: AggregatedTrade[] = [];
+        for (const trade of trades) {
+            const aggT: AggregatedTrade = {
+                aggId: trade.a,
+                symbol: symbol,
+                price: trade.p,
+                quantity: trade.q,
+                firstId: trade.f,
+                lastId: trade.l,
+                timestamp: trade.T,
+                isBuyerMaker: trade.m,
+            };
+            if (trade.M) aggT.wasBestPrice = trade.M;
+            parsedTrades.push(aggT);
+        }
+        return parsedTrades;
+    }
+
     /**
     * Get agg trades for given symbol
     * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#compressedaggregate-trades-list
@@ -3727,7 +3746,8 @@ export default class Binance {
     */
     async aggTrades(symbol: string, params: Dict = {}): Promise<AggregatedTrade[]> { //fromId startTime endTime limit
         const parameters = Object.assign({ symbol }, params);
-        return await this.publicSpotRequest('v3/aggTrades', parameters);
+        const res = await this.publicSpotRequest('v3/aggTrades', parameters);
+        return this.parseAggTrades(symbol, res);
     }
 
     /**
