@@ -5803,10 +5803,11 @@ export default class Binance {
             }
         };
 
-        const getSymbolDepthSnapshot = async (symbol: string, cb: Function) => {
+        const getSymbolDepthSnapshot = async (symbol: string) => {
             const json = await this.publicSpotRequest('v3/depth', { symbol: symbol, limit: limit });
             json.symbol = symbol;
-            cb(null, json);
+            // cb(null, json);
+            return json;
         };
 
         const updateSymbolDepthCache = json => {
@@ -5842,12 +5843,13 @@ export default class Binance {
             const streams = symbols.map(function (symbol) {
                 return symbol.toLowerCase() + `@depth@100ms`;
             });
+            const mapLimit = this.mapLimit.bind(this);
             subscription = this.subscribeCombined(streams, handleDepthStreamData, reconnect, function () {
                 // async.mapLimit(symbols, 50, getSymbolDepthSnapshot, (err, results) => {
                 //     if (err) throw err;
                 //     results.forEach(updateSymbolDepthCache);
                 // });
-                this.mapLimit(symbols, 50, getSymbolDepthSnapshot)
+                mapLimit(symbols, 50, getSymbolDepthSnapshot)
                     .then(results => {
                         results.forEach(updateSymbolDepthCache);
                     })
@@ -5859,12 +5861,13 @@ export default class Binance {
         } else {
             const symbol = symbols;
             symbolDepthInit(symbol);
+            const mapLimit = this.mapLimit.bind(this);
             subscription = this.subscribe(symbol.toLowerCase() + `@depth@100ms`, handleDepthStreamData, reconnect, function () {
                 // async.mapLimit([symbol], 1, getSymbolDepthSnapshot, (err, results) => {
                 //     if (err) throw err;
                 //     results.forEach(updateSymbolDepthCache);
                 // });
-                this.mapLimit([symbol], 1, getSymbolDepthSnapshot)
+                mapLimit([symbol], 1, getSymbolDepthSnapshot)
                     .then(results => {
                         results.forEach(updateSymbolDepthCache);
                     })
