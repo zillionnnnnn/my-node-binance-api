@@ -15,7 +15,6 @@ import nodeFetch from 'node-fetch';
 // @ts-ignore
 import zip from 'lodash.zipobject';
 import stringHash from 'string-hash';
-import async from 'async';
 // eslint-disable-next-line
 import { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder, HttpMethod, BookTicker, DailyStats, PremiumIndex, OpenInterest, IWebsocketsMethods } from './types';
 // export { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, FuturesAccountInfo, FuturesBalance, QueryOrder } from './types';
@@ -5682,6 +5681,21 @@ export default class Binance {
         return (subscription as any).url;
     }
 
+    async mapLimit(array, limit, asyncFn) {
+        const results = [];
+        let i = 0;
+
+        const workers = new Array(limit).fill(0).map(async () => {
+            while (i < array.length) {
+                const currentIndex = i++;
+                const result = await asyncFn(array[currentIndex]);
+                results[currentIndex] = result;
+            }
+        });
+        await Promise.all(workers);
+        return results;
+    }
+
     /**
      * Websocket depth cache
      * @param {array/string} symbols - an array or string of symbols to query
@@ -5765,20 +5779,35 @@ export default class Binance {
                 return symbol.toLowerCase() + `@depth@100ms`;
             });
             subscription = this.subscribeCombined(streams, handleDepthStreamData, reconnect, function () {
-                async.mapLimit(symbols, 50, getSymbolDepthSnapshot, (err, results) => {
-                    if (err) throw err;
-                    results.forEach(updateSymbolDepthCache);
-                });
+                // async.mapLimit(symbols, 50, getSymbolDepthSnapshot, (err, results) => {
+                //     if (err) throw err;
+                //     results.forEach(updateSymbolDepthCache);
+                // });
+                this.mapLimit(symbols, 50, getSymbolDepthSnapshot)
+                    .then(results => {
+                        results.forEach(updateSymbolDepthCache);
+                    })
+                    .catch(err => {
+                        throw err;
+                    });
             });
             symbols.forEach(s => assignEndpointIdToContext(s, subscription.endpoint));
         } else {
             const symbol = symbols;
             symbolDepthInit(symbol);
             subscription = this.subscribe(symbol.toLowerCase() + `@depth@100ms`, handleDepthStreamData, reconnect, function () {
-                async.mapLimit([symbol], 1, getSymbolDepthSnapshot, (err, results) => {
-                    if (err) throw err;
-                    results.forEach(updateSymbolDepthCache);
-                });
+                // async.mapLimit([symbol], 1, getSymbolDepthSnapshot, (err, results) => {
+                //     if (err) throw err;
+                //     results.forEach(updateSymbolDepthCache);
+                // });
+                this.mapLimit([symbol], 1, getSymbolDepthSnapshot)
+                    .then(results => {
+                        results.forEach(updateSymbolDepthCache);
+                    })
+                    .catch(err => {
+                        throw err;
+                    });
+
             });
             assignEndpointIdToContext(symbol, subscription.endpoint);
         }
