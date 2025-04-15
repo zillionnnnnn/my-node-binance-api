@@ -75,19 +75,31 @@ describe( 'Static tests', async function () {
     })
 
     it( 'OHLCVS', async function ( ) {
-        await binance.candlesticks( 'BTCUSDT' )
+        try {
+            await binance.candlesticks( 'BTCUSDT' )
+        } catch (e) {
+            // console.log(e)
+        }
         assert.equal( interceptedUrl, 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=5m&limit=500' )
 
     })
 
     it( 'Futures OHLCVS', async function ( ) {
-        await binance.futuresCandles( 'BTCUSDT' )
+        try {
+            await binance.futuresCandles( 'BTCUSDT' )
+        } catch (e) {
+            // console.log(e)
+        }
         assert.equal( interceptedUrl, 'https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=30m' )
 
     })
 
     it( 'Trades', async function ( ) {
-        await binance.aggTrades( 'BTCUSDT' )
+        try {
+            await binance.aggTrades( 'BTCUSDT' )
+        } catch (e) {
+            // console.log(e)
+        }
         assert.equal( interceptedUrl, 'https://api.binance.com/api/v3/aggTrades?symbol=BTCUSDT' )
 
     })

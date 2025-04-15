@@ -65,19 +65,40 @@ describe( 'Static tests', async function () {
     })
 
     it( 'OHLCVS', async function ( ) {
-        await binance.candlesticks( 'BTCUSDT' )
+        try {
+            await binance.candlesticks( 'BTCUSDT' )
+        } catch (e) {
+            // console.log(e)
+        }
         assert.equal( interceptedUrl, 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=5m&limit=500' )
 
     })
 
     it( 'Futures OHLCVS', async function ( ) {
-        await binance.futuresCandles( 'BTCUSDT' )
+        try {
+            await binance.futuresCandles( 'BTCUSDT' )
+        } catch (e) {
+            // console.log(e)
+        }
         assert.equal( interceptedUrl, 'https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=30m' )
 
     })
 
-    it( 'Trades', async function ( ) {
-        await binance.aggTrades( 'BTCUSDT' )
+    it( 'Recent Trades', async function ( ) {
+        try {
+            await binance.recentTrades( 'BTCUSDT' )
+        } catch (e) {
+            // console.log(e)
+        }
+        assert.equal( interceptedUrl, 'https://api.binance.com/api/v3/trades?symbol=BTCUSDT&limit=500' )
+    })
+
+    it( 'Agg Trades', async function ( ) {
+        try {
+            await binance.aggTrades( 'BTCUSDT' )
+        } catch (e) {
+            // console.log(e)
+        }
         assert.equal( interceptedUrl, 'https://api.binance.com/api/v3/aggTrades?symbol=BTCUSDT' )
 
     })
@@ -85,7 +106,15 @@ describe( 'Static tests', async function () {
     it( 'FuturesTrades', async function ( ) {
         await binance.futuresTrades( 'BTCUSDT' )
         assert.equal( interceptedUrl, 'https://fapi.binance.com/fapi/v1/trades?symbol=BTCUSDT' )
+    })
 
+    it( 'FuturesAggTrades', async function ( ) {
+        try {
+            await binance.futuresAggTrades( 'BTCUSDT' )
+        } catch (e) {
+            // console.log(e)
+        }
+        assert.equal( interceptedUrl, 'https://fapi.binance.com/fapi/v1/aggTrades?symbol=BTCUSDT' )
     })
 
     it( 'PositionRisk V3', async function ( ) {

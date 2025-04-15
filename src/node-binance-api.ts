@@ -3718,6 +3718,25 @@ export default class Binance {
         return await this.publicSpotRequest('v3/ping', {});
     }
 
+    parseAggTrades(symbol: string, trades: any[]): AggregatedTrade[] {
+        const parsedTrades: AggregatedTrade[] = [];
+        for (const trade of trades) {
+            const aggT: AggregatedTrade = {
+                aggId: trade.a,
+                symbol: symbol,
+                price: trade.p,
+                quantity: trade.q,
+                firstId: trade.f,
+                lastId: trade.l,
+                timestamp: trade.T,
+                isBuyerMaker: trade.m,
+            };
+            if (trade.M) aggT.wasBestPrice = trade.M;
+            parsedTrades.push(aggT);
+        }
+        return parsedTrades;
+    }
+
     /**
     * Get agg trades for given symbol
     * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#compressedaggregate-trades-list
@@ -3727,7 +3746,8 @@ export default class Binance {
     */
     async aggTrades(symbol: string, params: Dict = {}): Promise<AggregatedTrade[]> { //fromId startTime endTime limit
         const parameters = Object.assign({ symbol }, params);
-        return await this.publicSpotRequest('v3/aggTrades', parameters);
+        const res = await this.publicSpotRequest('v3/aggTrades', parameters);
+        return this.parseAggTrades(symbol, res);
     }
 
     /**
@@ -3809,7 +3829,8 @@ export default class Binance {
     async candlesticks(symbol: string, interval: Interval = '5m', params: Dict = {}): Promise<Candle[]> {
         if (!params.limit) params.limit = 500;
         params = Object.assign({ symbol: symbol, interval: interval }, params);
-        return await this.publicSpotRequest('v3/klines', params);
+        const res =  await this.publicSpotRequest('v3/klines', params);
+        return this.parseCandles(res);
     }
 
     /**
@@ -3823,6 +3844,42 @@ export default class Binance {
     */
     async candles(symbol: string, interval: Interval = '5m', params: Dict = {}): Promise<Candle[]> {
         return await this.candlesticks(symbol, interval, params); // make name consistent with futures
+    }
+
+    parseCandles(candles: any[]): Candle[] {
+        const res: Candle[] = [];
+        // spot
+        // [
+        //     [
+        //       1499040000000,      // Open time
+        //       "0.01634790",       // Open
+        //       "0.80000000",       // High
+        //       "0.01575800",       // Low
+        //       "0.01577100",       // Close
+        //       "148976.11427815",  // Volume
+        //       1499644799999,      // Close time
+        //       "2434.19055334",    // Quote asset volume
+        //       308,                // Number of trades
+        //       "1756.87402397",    // Taker buy base asset volume
+        //       "28.46694368",      // Taker buy quote asset volume
+        //       "17928899.62484339" // Ignore.
+        //     ]
+        // ]
+        for (const rawCandle of candles) {
+            const candle: Candle = {
+                openTime: rawCandle[0],
+                open: rawCandle[1],
+                high: rawCandle[2],
+                low: rawCandle[3],
+                close: rawCandle[4],
+                volume: rawCandle[5],
+                closeTime: rawCandle[6],
+                quoteAssetVolume: rawCandle[7],
+                trades: rawCandle[8],
+            };
+            res.push(candle);
+        }
+        return res;
     }
 
     // /**
@@ -3958,16 +4015,15 @@ export default class Binance {
     async futuresCandles(symbol: string, interval: Interval = "30m", params: Dict = {}): Promise<Candle[]> {
         params.symbol = symbol;
         params.interval = interval;
-        return await this.publicFuturesRequest('v1/klines', params);
+        const res =  await this.publicFuturesRequest('v1/klines', params);
+        return this.parseCandles(res);
     }
 
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data
     */
     async futuresCandlesticks(symbol: string, interval: Interval = "30m", params: Dict = {}): Promise<Candle[]> {
-        params.symbol = symbol;
-        params.interval = interval;
-        return await this.publicFuturesRequest('v1/klines', params);
+        return await this.futuresCandles(symbol, interval, params); // make name consistent with spot
     }
 
     /**
@@ -4480,10 +4536,18 @@ export default class Binance {
         return res;
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/coin-margined-futures/market-data/rest-api/Kline-Candlestick-Data
+     * @param symbol 
+     * @param interval
+     * @param params
+     * @returns
+     */
     async deliveryCandles(symbol: string, interval: Interval = "30m", params: Dict = {}): Promise<Candle[]> {
         params.symbol = symbol;
         params.interval = interval;
-        return await this.publicDeliveryRequest('v1/klines', params);
+        const res =  await this.publicDeliveryRequest('v1/klines', params);
+        return this.parseCandles(res);
     }
 
     async deliveryContinuousKlines(pair: string, contractType = "CURRENT_QUARTER", interval: Interval = "30m", params: Dict = {}) {
@@ -5739,10 +5803,11 @@ export default class Binance {
             }
         };
 
-        const getSymbolDepthSnapshot = async (symbol: string, cb: Function) => {
+        const getSymbolDepthSnapshot = async (symbol: string) => {
             const json = await this.publicSpotRequest('v3/depth', { symbol: symbol, limit: limit });
             json.symbol = symbol;
-            cb(null, json);
+            // cb(null, json);
+            return json;
         };
 
         const updateSymbolDepthCache = json => {
@@ -5778,12 +5843,13 @@ export default class Binance {
             const streams = symbols.map(function (symbol) {
                 return symbol.toLowerCase() + `@depth@100ms`;
             });
+            const mapLimit = this.mapLimit.bind(this);
             subscription = this.subscribeCombined(streams, handleDepthStreamData, reconnect, function () {
                 // async.mapLimit(symbols, 50, getSymbolDepthSnapshot, (err, results) => {
                 //     if (err) throw err;
                 //     results.forEach(updateSymbolDepthCache);
                 // });
-                this.mapLimit(symbols, 50, getSymbolDepthSnapshot)
+                mapLimit(symbols, 50, getSymbolDepthSnapshot)
                     .then(results => {
                         results.forEach(updateSymbolDepthCache);
                     })
@@ -5795,12 +5861,13 @@ export default class Binance {
         } else {
             const symbol = symbols;
             symbolDepthInit(symbol);
+            const mapLimit = this.mapLimit.bind(this);
             subscription = this.subscribe(symbol.toLowerCase() + `@depth@100ms`, handleDepthStreamData, reconnect, function () {
                 // async.mapLimit([symbol], 1, getSymbolDepthSnapshot, (err, results) => {
                 //     if (err) throw err;
                 //     results.forEach(updateSymbolDepthCache);
                 // });
-                this.mapLimit([symbol], 1, getSymbolDepthSnapshot)
+                mapLimit([symbol], 1, getSymbolDepthSnapshot)
                     .then(results => {
                         results.forEach(updateSymbolDepthCache);
                     })

@@ -52,9 +52,9 @@ export interface Candle {
     close: string
     volume: string
     closeTime: number
-    quoteVolume: string
+    quoteVolume?: string
     trades: number
-    baseAssetVolume: string
+    baseAssetVolume?: string
     quoteAssetVolume: string
   }
 
@@ -258,7 +258,7 @@ export interface AggregatedTrade {
     lastId: number
     timestamp: number
     isBuyerMaker: boolean
-    wasBestPrice: boolean
+    wasBestPrice?: boolean
 }
 
 export interface Trade {
