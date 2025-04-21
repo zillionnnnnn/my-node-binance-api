@@ -266,6 +266,27 @@ describe( 'Static tests', async function () {
         assert(obj.newClientOrderId.startsWith(SPOT_PREFIX))
     })
 
+    it( 'spot open orders', async function ( ) {
+        await binance.openOrders( 'LTCUSDT')
+        assert.isTrue( interceptedUrl.startsWith('https://api.binance.com/api/v3/openOrders' ))
+    })
+
+    it( 'margin open orders', async function ( ) {
+        await binance.mgOpenOrders( 'LTCUSDT')
+        assert.isTrue( interceptedUrl.startsWith('https://api.binance.com/sapi/v1/margin/openOrders' ))
+    })
+
+    it( 'Margin MarketBuy order', async function ( ) {
+        await binance.mgMarketBuy( 'LTCUSDT', 0.5)
+        assert.equal( interceptedUrl, 'https://api.binance.com/sapi/v1/margin/order' )
+        const obj = urlToObject( interceptedBody )
+        assert.equal( obj.symbol, 'LTCUSDT' )
+        assert.equal( obj.side, 'BUY' )
+        assert.equal( obj.type, 'MARKET' )
+        assert.equal( obj.quantity, 0.5 )
+        assert(obj.newClientOrderId.startsWith(SPOT_PREFIX))
+    })
+
     it( 'spot order with custom clientorderId', async function ( ) {
         await binance.order( 'LIMIT', 'BUY', 'LTCUSDT', 0.5, 100, {'newClientOrderId': 'myid'})
         assert.equal( interceptedUrl, 'https://api.binance.com/api/v3/order' )
