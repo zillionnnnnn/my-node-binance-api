@@ -237,6 +237,10 @@ export default class Binance {
         return this.base;
     }
 
+    getSapiUrl(){
+        return this.sapi;
+    }
+
     getFapiUrl() {
         if (this.Options.test) return this.fapiTest;
         return this.fapi;
@@ -623,7 +627,7 @@ export default class Binance {
     }
 
     /**
-     * Create a signed spot/margin request
+     * Create a signed spot request
      * @param {string} path - url path
      * @param {object} data - The data to send
      * @param {string} method - the http method
@@ -632,6 +636,10 @@ export default class Binance {
      */
     async privateSpotRequest(path: string, data: Dict = {}, method: HttpMethod = 'GET', noDataInSignature = false) {
         return await this.signedRequest/**/(this.getSpotUrl() + path, data, method, noDataInSignature);
+    }
+
+    async privateSapiRequest(path: string, data: Dict = {}, method: HttpMethod = 'GET', noDataInSignature = false) {
+        return await this.signedRequest/**/(this.getSapiUrl() + path, data, method, noDataInSignature);
     }
 
     /**
@@ -1029,7 +1037,7 @@ export default class Binance {
             request.stopPrice = params.stopPrice;
             if (request.type === 'LIMIT') throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
         }
-        return await this.privateSpotRequest(endpoint, this.extend(request, params), 'POST');
+        return await this.privateSapiRequest(endpoint, this.extend(request, params), 'POST');
     }
 
     // Futures internal functions
@@ -4820,7 +4828,7 @@ export default class Binance {
      * @return {undefined}
      */
     async mgCancel(symbol: string, orderid: number | string, isIsolated = 'FALSE'): Promise<CancelOrder> {
-        return await this.privateSpotRequest('v1/margin/order', { symbol: symbol, orderId: orderid, isIsolated }, 'DELETE');
+        return await this.privateSapiRequest('v1/margin/order', { symbol: symbol, orderId: orderid, isIsolated }, 'DELETE');
     }
 
     /**
@@ -4831,7 +4839,7 @@ export default class Binance {
     */
     async mgAllOrders(symbol: string, params: Dict = {}): Promise<Order[]> {
         const parameters = Object.assign({ symbol: symbol }, params);
-        return await this.privateSpotRequest('v1/margin/allOrders', parameters);
+        return await this.privateSapiRequest('v1/margin/allOrders', parameters);
     }
 
     /**
@@ -4843,7 +4851,7 @@ export default class Binance {
      */
     async mgOrderStatus(symbol: string, orderid: number | string, flags = {}): Promise<Order> {
         const parameters = Object.assign({ symbol: symbol, orderId: orderid }, flags);
-        return await this.privateSpotRequest('v1/margin/order', parameters);
+        return await this.privateSapiRequest('v1/margin/order', parameters);
     }
 
     /**
@@ -4853,7 +4861,7 @@ export default class Binance {
      */
     async mgOpenOrders(symbol?: string, params: Dict = {}): Promise<Order[]> {
         if (symbol) params.symbol = symbol;
-        return await this.privateSpotRequest('v1/margin/openOrders', params);
+        return await this.privateSapiRequest('v1/margin/openOrders', params);
     }
 
     /**
@@ -4874,7 +4882,7 @@ export default class Binance {
         //         }, 'DELETE');
         //     }
         // }); // to do check this
-        return await this.privateSpotRequest('v1/margin/openOrders', this.extend({ symbol: symbol }, params), 'DELETE');
+        return await this.privateSapiRequest('v1/margin/openOrders', this.extend({ symbol: symbol }, params), 'DELETE');
     }
 
     /**
@@ -4886,7 +4894,7 @@ export default class Binance {
      */
     async mgTransferMainToMargin(asset: string, amount: number, params: Dict = {}) {
         params = this.extend({ asset: asset, amount: amount, type: 1 }, params);
-        return await this.privateSpotRequest('v1/margin/transfer', params, 'POST');
+        return await this.privateSapiRequest('v1/margin/transfer', params, 'POST');
     }
 
     /**
@@ -4897,7 +4905,7 @@ export default class Binance {
      */
     async mgTransferMarginToMain(asset: string, amount: number, params: Dict = {}) {
         const parameters = Object.assign({ asset: asset, amount: amount, type: 2 });
-        return await this.privateSpotRequest('v1/margin/transfer', this.extend(parameters, params), 'POST');
+        return await this.privateSapiRequest('v1/margin/transfer', this.extend(parameters, params), 'POST');
     }
     // /**
     // * Universal Transfer requires API permissions enabled
@@ -4918,7 +4926,7 @@ export default class Binance {
     */
     async mgTrades(symbol: string, params: Dict = {}): Promise<MyTrade[]> {
         const parameters = Object.assign({ symbol: symbol }, params);
-        return await this.privateSpotRequest('v1/margin/myTrades', parameters);
+        return await this.privateSapiRequest('v1/margin/myTrades', parameters);
     }
 
     /**
@@ -4989,7 +4997,7 @@ export default class Binance {
             isIsolated,
             symbol
         } : {};
-        return await this.privateSpotRequest('v1/margin/loan', this.extend({ ...parameters, ...isolatedObj }, params), 'POST');
+        return await this.privateSapiRequest('v1/margin/loan', this.extend({ ...parameters, ...isolatedObj }, params), 'POST');
     }
 
     /**
@@ -5000,7 +5008,7 @@ export default class Binance {
      */
     async mgQueryLoan(asset: string, options) {
         const parameters = Object.assign({ asset: asset }, options);
-        return await this.privateSpotRequest('v1/margin/loan', { ...parameters }, 'GET');
+        return await this.privateSapiRequest('v1/margin/loan', { ...parameters }, 'GET');
     }
 
     /**
@@ -5011,7 +5019,7 @@ export default class Binance {
      */
     async mgQueryRepay(asset: string, params: Dict = {}) {
         const parameters = Object.assign({ asset: asset }, params);
-        return await this.privateSpotRequest('v1/margin/repay', { ...parameters }, 'GET');
+        return await this.privateSapiRequest('v1/margin/repay', { ...parameters }, 'GET');
     }
 
     /**
@@ -5029,7 +5037,7 @@ export default class Binance {
             isIsolated,
             symbol
         } : {};
-        return await this.privateSpotRequest('v1/margin/repay', this.extend({ ...parameters, ...isolatedObj }, params), 'POST');
+        return await this.privateSapiRequest('v1/margin/repay', this.extend({ ...parameters, ...isolatedObj }, params), 'POST');
     }
 
     /**
@@ -5040,7 +5048,7 @@ export default class Binance {
     async mgAccount(isIsolated = false, params: Dict = {}) {
         let endpoint = 'v1/margin';
         endpoint += (isIsolated) ? '/isolated' : '' + '/account';
-        return await this.privateSpotRequest(endpoint, params);
+        return await this.privateSapiRequest(endpoint, params);
     }
     /**
      * Get maximum borrow amount of an asset
@@ -5049,7 +5057,7 @@ export default class Binance {
      */
     async maxBorrowable(asset: string, params: Dict = {}) {
         params.asset = asset;
-        return await this.privateSpotRequest('v1/margin/maxBorrowable', params);
+        return await this.privateSapiRequest('v1/margin/maxBorrowable', params);
     }
 
     // // Futures WebSocket Functions:
