@@ -5544,7 +5544,7 @@ export default class Binance {
             this.Options.balance_callback = balance_callback;
             this.Options.execution_callback = execution_callback ? execution_callback : balance_callback;//This change is required to listen for Orders
             this.Options.list_status_callback = list_status_callback;
-            const subscription = this.subscribe(this.Options.listenKey, this.userDataHandler, reconnect);
+            const subscription = this.subscribe(this.Options.listenKey, this.userDataHandler.bind(this), reconnect);
             if (subscribed_callback) subscribed_callback(subscription.endpoint);
         });
     }
@@ -5580,7 +5580,7 @@ export default class Binance {
             this.Options.margin_balance_callback = balance_callback;
             this.Options.margin_execution_callback = execution_callback;
             this.Options.margin_list_status_callback = list_status_callback;
-            const subscription = this.subscribe(this.Options.listenMarginKey, this.userMarginDataHandler, reconnect);
+            const subscription = this.subscribe(this.Options.listenMarginKey, this.userMarginDataHandler.bind(this), reconnect);
             if (subscribed_callback) subscribed_callback(subscription.endpoint);
         });
     }
@@ -5618,7 +5618,7 @@ export default class Binance {
             this.Options.future_account_update_callback = account_update_callback;
             this.Options.future_account_config_update_callback = account_config_update_callback;
             this.Options.future_order_update_callback = order_update_callback;
-            const subscription = this.futuresSubscribe(this.Options.listenFutureKey, this.userFutureDataHandler, { reconnect });
+            const subscription = this.futuresSubscribe(this.Options.listenFutureKey, this.userFutureDataHandler.bind(this), { reconnect });
             if (subscribed_callback) subscribed_callback(subscription.endpoint);
 
         });
@@ -5679,7 +5679,7 @@ export default class Binance {
             this.Options.delivery_order_update_callback = order_update_callback;
             const subscription = this.deliverySubscribe(
                 this.Options.listenDeliveryKey,
-                this.userDeliveryDataHandler,
+                this.userDeliveryDataHandler.bind(this),
                 { reconnect }
             );
             if (subscribed_callback) subscribed_callback(subscription.endpoint);
