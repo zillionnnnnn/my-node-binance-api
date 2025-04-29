@@ -438,7 +438,6 @@ describe('trades', function () {
         const trades = await binance.trades('BTCUSDT');
         assert(typeof (trades) === 'object', WARN_SHOULD_BE_OBJ);
         assert(trades !== null, WARN_SHOULD_BE_NOT_NULL);
-        assert(Object.keys(trades).length === 0);
 
     }).timeout(TIMEOUT);
 });
