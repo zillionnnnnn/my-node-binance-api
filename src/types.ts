@@ -187,7 +187,7 @@ export interface IWebsocketsMethods {
   chart(symbols: string | string[], interval: Interval, callback?: Callback, limit?: number)
   candlesticks(symbols: string | string[], interval: Interval, callback: Callback)
   miniTicker(callback: Callback): string;
-  bookTickers(symbol: string, callback: Callback): string;
+  bookTickers(symbol: string | string[], callback?: Callback): string;
   prevDay(symbols: string | string[] | undefined, callback?: Callback, singleCallback?: Callback)
   futuresCandlesticks(symbols: string[] | string, interval: Interval, callback: Callback)
   futuresTicker(symbol?: string,  callback?: Callback)
