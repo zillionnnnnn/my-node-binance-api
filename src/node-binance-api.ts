@@ -1210,7 +1210,7 @@ export default class Binance {
     subscribe(endpoint: string, callback: Callback, reconnect?: Callback, opened_callback?: Callback) {
         const httpsproxy = this.getHttpsProxy();
         let socksproxy = this.getSocksProxy();
-        let ws: any = undefined;
+        let ws: WebSocket = undefined;
 
         if (socksproxy) {
             socksproxy = this.proxyReplacewithIp(socksproxy);
@@ -1231,9 +1231,9 @@ export default class Binance {
         }
 
         if (this.Options.verbose) this.Options.log('Subscribed to ' + endpoint);
-        ws.reconnect = this.Options.reconnect;
-        ws.endpoint = endpoint;
-        ws.isAlive = false;
+        (ws as any).reconnect = this.Options.reconnect;
+        (ws as any).endpoint = endpoint;
+        (ws as any).isAlive = false;
         ws.on('open', this.handleSocketOpen.bind(this, ws, opened_callback));
         ws.on('pong', this.handleSocketHeartbeat.bind(this, ws));
         ws.on('error', this.handleSocketError.bind(this, ws));
@@ -1241,7 +1241,7 @@ export default class Binance {
         ws.on('message', data => {
             try {
                 if (this.Options.verbose) this.Options.log('WebSocket data:', data);
-                callback(JSONbig.parse(data));
+                callback(JSONbig.parse(data as any));
             } catch (error) {
                 this.Options.log('Parse error: ' + error.message);
             }
@@ -5544,7 +5544,7 @@ export default class Binance {
             this.Options.balance_callback = balance_callback;
             this.Options.execution_callback = execution_callback ? execution_callback : balance_callback;//This change is required to listen for Orders
             this.Options.list_status_callback = list_status_callback;
-            const subscription = this.subscribe(this.Options.listenKey, this.userDataHandler.bind(this), reconnect);
+            const subscription = this.subscribe(this.Options.listenKey, this.userDataHandler.bind(this), reconnect) as any;
             if (subscribed_callback) subscribed_callback(subscription.endpoint);
         });
     }
@@ -5580,7 +5580,7 @@ export default class Binance {
             this.Options.margin_balance_callback = balance_callback;
             this.Options.margin_execution_callback = execution_callback;
             this.Options.margin_list_status_callback = list_status_callback;
-            const subscription = this.subscribe(this.Options.listenMarginKey, this.userMarginDataHandler.bind(this), reconnect);
+            const subscription = this.subscribe(this.Options.listenMarginKey, this.userMarginDataHandler.bind(this), reconnect) as any;
             if (subscribed_callback) subscribed_callback(subscription.endpoint);
         });
     }
@@ -6106,16 +6106,24 @@ export default class Binance {
 
     /**
      * Spot WebSocket bookTicker (bid/ask quotes including price & amount)
-     * @param {symbol} symbol name or false. can also be a callback
+     * @param {string | string[]} symbol symbol or array of symbols
      * @param {function} callback - callback function
      * @return {string} the websocket endpoint
      */
-    bookTickersStream(symbol?: string, callback = console.log) {
+    bookTickersStream(symbol: string | string[], callback = console.log) {
         const reconnect = () => {
             if (this.Options.reconnect) this.bookTickersStream(symbol, callback);
         };
-        const endpoint = symbol ? `${symbol.toLowerCase()}@bookTicker` : '!bookTicker';
-        const subscription = this.subscribe(endpoint, data => callback(this.fBookTickerConvertData(data)), reconnect);
+        let subscription: any;
+        if (Array.isArray(symbol)) {
+            const streams = symbol.map(function (symbol) {
+                return symbol.toLowerCase() + '@bookTicker';
+            });
+            subscription = this.subscribeCombined(streams, data => callback(this.fBookTickerConvertData(data)), reconnect);
+        } else {
+            const endpoint = `${(symbol as string).toLowerCase()}@bookTicker`;
+            subscription = this.subscribe(endpoint, data => callback(this.fBookTickerConvertData(data)), reconnect);
+        }
         return (subscription as any).url;
     }
 
