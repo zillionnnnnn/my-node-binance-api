@@ -5544,7 +5544,7 @@ export default class Binance {
             this.Options.balance_callback = balance_callback;
             this.Options.execution_callback = execution_callback ? execution_callback : balance_callback;//This change is required to listen for Orders
             this.Options.list_status_callback = list_status_callback;
-            const subscription = this.subscribe(this.Options.listenKey, this.userDataHandler.bind(this), reconnect);
+            const subscription = this.subscribe(this.Options.listenKey, this.userDataHandler.bind(this), reconnect) as any;
             if (subscribed_callback) subscribed_callback(subscription.endpoint);
         });
     }
@@ -5580,7 +5580,7 @@ export default class Binance {
             this.Options.margin_balance_callback = balance_callback;
             this.Options.margin_execution_callback = execution_callback;
             this.Options.margin_list_status_callback = list_status_callback;
-            const subscription = this.subscribe(this.Options.listenMarginKey, this.userMarginDataHandler.bind(this), reconnect);
+            const subscription = this.subscribe(this.Options.listenMarginKey, this.userMarginDataHandler.bind(this), reconnect) as any;
             if (subscribed_callback) subscribed_callback(subscription.endpoint);
         });
     }
