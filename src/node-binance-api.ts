@@ -45,7 +45,7 @@ export default class Binance {
     dstreamSingleTest = `wss://dstream.binancefuture.${this.domain}/ws/`;
     dstreamTest = `wss://dstream.binancefuture.${this.domain}/stream?streams=`;
     stream = `wss://stream.binance.${this.domain}:9443/ws/`;
-    streamTest = `wss://testnet.binance.vision/ws/`;
+    streamTest = `wss://stream.testnet.binance.vision/ws/`;
     combineStream = `wss://stream.binance.${this.domain}:9443/stream?streams=`;
     combineStreamTest = `wss://testnet.binance.vision/stream?streams=`;
 
