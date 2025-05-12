@@ -305,6 +305,12 @@ describe( 'Static tests', async function () {
 
     })
 
+
+    it( 'futures ser leverage', async function ( ) {
+        await binance.futuresLeverage( 'BTCUSDT', 5 )
+        assert.isTrue( interceptedUrl.startsWith('https://fapi.binance.com/fapi/v1/leverage?symbol=BTCUSDT&leverage=5' ))
+    })
+
     it( 'delivery MarketBuy', async function ( ) {
         await binance.deliveryOrder( 'MARKET', 'BUY', 'BTCUSD_PERP', 0.1 )
         assert.isTrue( interceptedUrl.startsWith('https://dapi.binance.com/dapi/v1/order' ))
