@@ -44,6 +44,11 @@ export type OrderStatus =
 
 export type TimeInForce = 'GTC' | 'IOC' | 'FOK' | 'GTE_GTC' | 'GTD'
 
+export interface Response {
+    code: number
+    msg: string
+}
+
 export interface Candle {
     openTime: number
     open: string
