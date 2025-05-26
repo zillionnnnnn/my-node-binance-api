@@ -5524,7 +5524,7 @@ export default class Binance {
      * @param {function} list_status_callback - status callback
      * @return {undefined}
      */
-    userData(all_updates_callback?: Function, balance_callback?: Callback, execution_callback?: Callback, subscribed_callback?: Callback, list_status_callback?: Callback) {
+    userData(all_updates_callback?: Callback, balance_callback?: Callback, execution_callback?: Callback, subscribed_callback?: Callback, list_status_callback?: Callback) {
         const reconnect = () => {
             if (this.Options.reconnect) this.userData(all_updates_callback, balance_callback, execution_callback, subscribed_callback);
         };

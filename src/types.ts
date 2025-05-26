@@ -170,7 +170,7 @@ export interface IConstructorArgs {
 export interface IWebsocketsMethods {
   // deprecated, using it for backward compatibility
   /* eslint-disable */
-  userData(call_updates_callback?: Callback, balance_callback?: Callback, subscribedCallback?: Callback, list_statusCallback?: Callback);
+  userData(all_updates_callback?: Callback, balance_callback?: Callback, execution_callback?: Callback, subscribed_callback?: Callback, list_status_callback?: Callback);
   userMarginData(call_updates_callback?: Callback, balance_callback?: Callback, executionCallback?: Callback, subscribedCallback?: Callback, list_statusCallback?: Callback);
   depthCacheStaggered(symbols :string |string[], callback?: Callback, limit?: number, stagger?: number);
   userFutureData(all_updates_callback?: Callback, margin_callCallback?: Callback, account_updateCallback?: Callback, order_updateCallback?: Callback, subscribedCallback?: Callback);
