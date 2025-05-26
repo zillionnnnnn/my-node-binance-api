@@ -4343,7 +4343,7 @@ export default class Binance {
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Cancel-Multiple-Orders
      */
-    async futuresCancelMultipleOrders(symbol: string, params: Dict = {}) {
+    async futuresCancelMultipleOrders(symbol: string, params: Dict = {}): Promise<(FuturesOrder|Response)[]> {
         return await this.privateFuturesRequest('v1/batchOrders', this.extend({ 'symbol': symbol }, params), 'DELETE');
     }
 
@@ -4379,7 +4379,7 @@ export default class Binance {
      * @param params extra parameters to be sent in the request
      * @returns
      */
-    async futuresCancelAll(symbol: string, params: Dict = {}): Promise<FuturesCancelAllOpenOrder[]> {
+    async futuresCancelAll(symbol: string, params: Dict = {}): Promise<Response> {
         params.symbol = symbol;
         return await this.privateFuturesRequest('v1/allOpenOrders', params, 'DELETE');
     }
