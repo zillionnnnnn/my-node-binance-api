@@ -221,12 +221,14 @@ export interface FundingRate {
   }
 
 export interface PositionRisk {
+    breakEvenPrice: string
     entryPrice: string
     marginType: 'isolated' | 'cross'
     isAutoAddMargin: string
     isolatedMargin: string
     leverage: string
     liquidationPrice: string
+    marginAsset: string
     markPrice: string
     maxNotionalValue: string
     positionAmt: string
