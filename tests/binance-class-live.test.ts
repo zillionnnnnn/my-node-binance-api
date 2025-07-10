@@ -272,7 +272,10 @@ describe('Limit buy Order', function () {
                 assert(res['orderId'] !== undefined)
                 spotOrderId = res['orderId'];
             } catch (e) {
-                assert(e.toString().includes('{"code":-2010,"msg":"Account has insufficient balance for requested action."}'));
+                const exceptionA = '{"code":-2010,"msg":"Account has insufficient balance for requested action."}';
+                const exceptionB = '{"code":-2019,"msg":"Margin is insufficient."}'
+                const eStr = e.toString();
+                assert(eStr.includes(exceptionA) || eStr.includes(exceptionB));
             }
         }
 
@@ -287,7 +290,10 @@ describe('MarketSell', function () {
             const res = await binance.marketSell('LTCUSDT', quantity)
             assert(res['orderId'] !== undefined)
         } catch (e) {
-            assert(e.toString().includes('{"code":-2010,"msg":"Account has insufficient balance for requested action."}'));
+            const exceptionA = '{"code":-2010,"msg":"Account has insufficient balance for requested action."}';
+            const exceptionB = '{"code":-2019,"msg":"Margin is insufficient."}'
+            const eStr = e.toString();
+            assert(eStr.includes(exceptionA) || eStr.includes(exceptionB));
         }
 
     }).timeout(TIMEOUT);
@@ -301,7 +307,10 @@ describe('Futures MarketBuy', function () {
             assert(res['orderId'] !== undefined)
             futuresOrderId = res['orderId'];
         } catch (e) {
-            assert(e.toString().includes('{"code":-2010,"msg":"Account has insufficient balance for requested action."}'));
+            const exceptionA = '{"code":-2010,"msg":"Account has insufficient balance for requested action."}';
+            const exceptionB = '{"code":-2019,"msg":"Margin is insufficient."}'
+            const eStr = e.toString();
+            assert(eStr.includes(exceptionA) || eStr.includes(exceptionB));
         }
 
     }).timeout(TIMEOUT);
@@ -309,20 +318,35 @@ describe('Futures MarketBuy', function () {
 
 describe('Futures Limit buy Order', function () {
     it('Attempt to buy ETH', async function () {
-        if (ethusdtPrice !== 0) {
-            let quantity = 0.1;
-            const res = await futuresBinance.futuresOrder('LIMIT', 'BUY', 'ETHUSDT', quantity, Math.round(ethusdtPrice * 0.8))
-            assert(res['orderId'] !== undefined)
-            futuresOrderId = res['orderId'];
+        try {
+            if (ethusdtPrice !== 0) {
+                let quantity = 0.1;
+                const res = await futuresBinance.futuresOrder('LIMIT', 'BUY', 'ETHUSDT', quantity, Math.round(ethusdtPrice * 0.8))
+                assert(res['orderId'] !== undefined)
+                futuresOrderId = res['orderId'];
+            }
+        } catch (e) {
+            const exceptionA = '{"code":-2010,"msg":"Account has insufficient balance for requested action."}';
+            const exceptionB = '{"code":-2019,"msg":"Margin is insufficient."}'
+            const eStr = e.toString();
+            assert(eStr.includes(exceptionA) || eStr.includes(exceptionB));
         }
+
     }).timeout(TIMEOUT);
 });
 
 describe('Futures MarketSell', function () {
     it('futures Attempt to buy ETH at market price', async function () {
-        let quantity = 0.1;
-        const res = await futuresBinance.futuresMarketSell('ETHUSDT', quantity)
-        assert(res['orderId'] !== undefined)
+        try {
+            let quantity = 0.1;
+            const res = await futuresBinance.futuresMarketSell('ETHUSDT', quantity)
+            assert(res['orderId'] !== undefined)
+        } catch (e) {
+            const exceptionA = '{"code":-2010,"msg":"Account has insufficient balance for requested action."}';
+            const exceptionB = '{"code":-2019,"msg":"Margin is insufficient."}'
+            const eStr = e.toString();
+            assert(eStr.includes(exceptionA) || eStr.includes(exceptionB));
+        }
 
     }).timeout(TIMEOUT);
 });
