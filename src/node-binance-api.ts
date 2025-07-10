@@ -47,7 +47,7 @@ export default class Binance {
     stream = `wss://stream.binance.${this.domain}:9443/ws/`;
     streamTest = `wss://stream.testnet.binance.vision/ws/`;
     combineStream = `wss://stream.binance.${this.domain}:9443/stream?streams=`;
-    combineStreamTest = `wss://testnet.binance.vision/stream?streams=`;
+    combineStreamTest = `wss://stream.testnet.binance.vision/stream?streams=`;
 
     verbose = false;
 
