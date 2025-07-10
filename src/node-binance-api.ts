@@ -781,11 +781,13 @@ export default class Binance {
             request.newClientOrderId = this.SPOT_PREFIX + this.uuid22();
         }
 
+        const allowedTypesForStopAndTrailing = ['STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT'];
         if (params.trailingDelta) {
             request.trailingDelta = params.trailingDelta;
 
-            if (request.type === 'LIMIT' || request.type === 'LIMIT_MAKER' || request.type === 'MARKET') {
+            if (!allowedTypesForStopAndTrailing.includes(request.type)) {
                 throw Error('trailingDelta: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
+            }
         }
 
         /*
@@ -798,7 +800,9 @@ export default class Binance {
         // if (typeof params.icebergQty !== 'undefined') request.icebergQty = params.icebergQty;
         if (params.stopPrice) {
             request.stopPrice = params.stopPrice;
-            if (request.type === 'LIMIT') throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
+            if (!allowedTypesForStopAndTrailing.includes(request.type)) {
+                throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
+            }
         }
         const response = await this.privateSpotRequest(endpoint, this.extend(request, params), 'POST');
         // to do error handling
