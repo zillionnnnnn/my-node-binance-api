@@ -735,6 +735,9 @@ export default class Binance {
      * @param {string} quantity - The quantity to buy or sell
      * @param {string} price - The price per unit to transact each unit at
      * @param {object} params - additional order settings
+     * @param {number} [params.quoteOrderQty] - The quote order quantity, used for MARKET orders
+     * @param {number} [params.stopPrice] - The stop price, used for STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT orders
+     * @param {number} [params.trailingDelta] - Delta price
      * @return {undefined}
      */
     async order(type: OrderType, side: OrderSide, symbol: string, quantity: number, price?: number, params: Dict = {}): Promise<Order> {
@@ -778,6 +781,15 @@ export default class Binance {
             request.newClientOrderId = this.SPOT_PREFIX + this.uuid22();
         }
 
+        const allowedTypesForStopAndTrailing = ['STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT'];
+        if (params.trailingDelta) {
+            request.trailingDelta = params.trailingDelta;
+
+            if (!allowedTypesForStopAndTrailing.includes(request.type)) {
+                throw Error('trailingDelta: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
+            }
+        }
+
         /*
          * STOP_LOSS
          * STOP_LOSS_LIMIT
@@ -788,7 +800,9 @@ export default class Binance {
         // if (typeof params.icebergQty !== 'undefined') request.icebergQty = params.icebergQty;
         if (params.stopPrice) {
             request.stopPrice = params.stopPrice;
-            if (request.type === 'LIMIT') throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
+            if (!allowedTypesForStopAndTrailing.includes(request.type)) {
+                throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
+            }
         }
         const response = await this.privateSpotRequest(endpoint, this.extend(request, params), 'POST');
         // to do error handling
