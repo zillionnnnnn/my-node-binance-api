@@ -71,8 +71,8 @@ export default class Binance {
 
     userAgent = 'Mozilla/4.0 (compatible; Node Binance API)';
     contentType = 'application/x-www-form-urlencoded';
-    SPOT_PREFIX = "x-HNA2TXFJ";
-    CONTRACT_PREFIX = "x-Cb7ytekJ";
+    SPOT_PREFIX = "x-B3AUXNYV";
+    CONTRACT_PREFIX = "x-ftGmvgAN";
 
     // Websockets Options
     isAlive = false;
@@ -109,7 +109,7 @@ export default class Binance {
         userDeliveryData: this.userDeliveryData.bind(this),
         subscribeCombined: this.subscribeCombined.bind(this),
         subscribe: this.subscribe.bind(this),
-        subscriptions:  () => this.getSubscriptions.bind(this),
+        subscriptions: () => this.getSubscriptions.bind(this),
         terminate: this.terminate.bind(this),
         depth: this.depthStream.bind(this),
         depthCache: this.depthCacheStream.bind(this),
@@ -237,7 +237,7 @@ export default class Binance {
         return this.base;
     }
 
-    getSapiUrl(){
+    getSapiUrl() {
         return this.sapi;
     }
 
@@ -638,6 +638,9 @@ export default class Binance {
         return await this.signedRequest/**/(this.getSpotUrl() + path, data, method, noDataInSignature);
     }
 
+    /**
+     * Create a signed SAPI request
+     */
     async privateSapiRequest(path: string, data: Dict = {}, method: HttpMethod = 'GET', noDataInSignature = false) {
         return await this.signedRequest/**/(this.getSapiUrl() + path, data, method, noDataInSignature);
     }
@@ -661,7 +664,7 @@ export default class Binance {
         const query = method === 'POST' && noDataInSignature ? '' : this.makeQueryString(data);
 
         const signature = this.generateSignature(query);
-    
+
         if (method === 'POST') {
             const opt = this.reqObjPOST(
                 url,
@@ -687,7 +690,7 @@ export default class Binance {
     generateSignature(query: string, encode = true) {
         const secret = this.APISECRET || this.PRIVATEKEY;
         let signature = '';
-        if (secret.includes ('PRIVATE KEY')) {
+        if (secret.includes('PRIVATE KEY')) {
             // if less than the below length, then it can't be RSA key
             let keyObject: crypto.KeyObject;
             try {
@@ -699,7 +702,7 @@ export default class Binance {
 
                 keyObject = crypto.createPrivateKey(privateKeyObj);
 
-            } catch (e){
+            } catch (e) {
                 throw new Error(
                     'Invalid private key. Please provide a valid RSA or ED25519 private key. ' + e.toString()
                 );
@@ -710,7 +713,7 @@ export default class Binance {
                 signature = crypto
                     .sign('RSA-SHA256', Buffer.from(query), keyObject)
                     .toString('base64');
-                if (encode) signature = encodeURIComponent (signature);
+                if (encode) signature = encodeURIComponent(signature);
                 return signature;
             } else {
                 // Ed25519 key
@@ -1089,6 +1092,16 @@ export default class Binance {
         return await this.privateFuturesRequest('v1/order', params, 'POST');
     }
 
+    /**
+     * @see https://developers.binance.com/docs/derivatives/option/trade/New-Order
+     * @param type type of order to create
+     * @param side side of the order (BUY or SELL)
+     * @param symbol symbol of the market to trade
+     * @param quantity quantity of the order to create
+     * @param price price of the order to create
+     * @param params extra parameters to be sent in the request
+     * @returns
+     */
     async deliveryOrder(type: OrderType, side: string, symbol: string, quantity: number, price?: number, params: Dict = {}): Promise<FuturesOrder> {
         params.symbol = symbol;
         params.side = side;
@@ -2216,7 +2229,7 @@ export default class Binance {
         if (this.Options.verbose) {
             this.Options.log(`deliverySubscribe: Subscribed to [${ws.endpoint}] ${queryParams}`);
         }
-        ws.on('open', this.handleDeliverySocketOpen.bind(this, ws,params.openCallback));
+        ws.on('open', this.handleDeliverySocketOpen.bind(this, ws, params.openCallback));
         ws.on('pong', this.handleDeliverySocketHeartbeat.bind(this, ws));
         ws.on('error', this.handleDeliverySocketError.bind(this, ws));
         ws.on('close', this.handleDeliverySocketClose.bind(this, ws, params.reconnect));
@@ -3851,7 +3864,7 @@ export default class Binance {
     async candlesticks(symbol: string, interval: Interval = '5m', params: Dict = {}): Promise<Candle[]> {
         if (!params.limit) params.limit = 500;
         params = Object.assign({ symbol: symbol, interval: interval }, params);
-        const res =  await this.publicSpotRequest('v3/klines', params);
+        const res = await this.publicSpotRequest('v3/klines', params);
         return this.parseCandles(res);
     }
 
@@ -4037,7 +4050,7 @@ export default class Binance {
     async futuresCandles(symbol: string, interval: Interval = "30m", params: Dict = {}): Promise<Candle[]> {
         params.symbol = symbol;
         params.interval = interval;
-        const res =  await this.publicFuturesRequest('v1/klines', params);
+        const res = await this.publicFuturesRequest('v1/klines', params);
         return this.parseCandles(res);
     }
 
@@ -4357,7 +4370,7 @@ export default class Binance {
     /**
      * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Cancel-Multiple-Orders
      */
-    async futuresCancelMultipleOrders(symbol: string, params: Dict = {}): Promise<(FuturesOrder|Response)[]> {
+    async futuresCancelMultipleOrders(symbol: string, params: Dict = {}): Promise<(FuturesOrder | Response)[]> {
         return await this.privateFuturesRequest('v1/batchOrders', this.extend({ 'symbol': symbol }, params), 'DELETE');
     }
 
@@ -4568,7 +4581,7 @@ export default class Binance {
     async deliveryCandles(symbol: string, interval: Interval = "30m", params: Dict = {}): Promise<Candle[]> {
         params.symbol = symbol;
         params.interval = interval;
-        const res =  await this.publicDeliveryRequest('v1/klines', params);
+        const res = await this.publicDeliveryRequest('v1/klines', params);
         return this.parseCandles(res);
     }
 
