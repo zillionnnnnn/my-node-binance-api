@@ -4139,6 +4139,12 @@ export default class Binance {
         return await this.privateFuturesRequest('v1/listenKey', params, 'DELETE');
     }
 
+    async spotCloseDataStream(listenKey: string | undefined = undefined, params: Dict = {}) {
+        listenKey = listenKey || this.Options.listenKey;
+        if (!listenKey) throw new Error('A listenKey is required, either as an argument or in this.Options.listenKey');
+        return await this.privateSpotRequest('v3/userDataStream', { listenKey, ...params }, 'DELETE');
+    }
+
     /**
     * Get the account position risk (v3)
     * @see https://developers.binance.com/docs/derivatives/usds-margined-futures/trade/rest-api/Position-Information-V3
