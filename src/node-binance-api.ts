@@ -656,14 +656,19 @@ export default class Binance {
      */
     async signedRequest(url: string, data: Dict = {}, method: HttpMethod = 'GET', noDataInSignature = false) {
         this.requireApiSecret('signedRequest');
+        const isListenKeyEndpoint = url.includes('v3/userDataStream');
 
-        data.timestamp = new Date().getTime();
-        if (this.timeOffset) data.timestamp += this.timeOffset;
-
-        if (!data.recvWindow) data.recvWindow = this.Options.recvWindow;
         const query = method === 'POST' && noDataInSignature ? '' : this.makeQueryString(data);
 
-        const signature = this.generateSignature(query);
+        let signature = undefined;
+        if (!noDataInSignature && !isListenKeyEndpoint) {
+            data.timestamp = new Date().getTime();
+
+            if (this.timeOffset) data.timestamp += this.timeOffset;
+
+            if (!data.recvWindow) data.recvWindow = this.Options.recvWindow;
+            signature = this.generateSignature(query);
+        }
 
         if (method === 'POST') {
             const opt = this.reqObjPOST(
@@ -672,12 +677,17 @@ export default class Binance {
                 method,
                 this.APIKEY
             );
-            opt.form.signature = signature;
+            if (signature) {
+                opt.form.signature = signature;
+            }
             const reqPost = await this.proxyRequest(opt);
             return reqPost;
         } else {
+            let encodedUrl = url;
+            if (query) encodedUrl += '?' + query;
+            if (signature) encodedUrl += '&signature=' + signature;
             const opt = this.reqObj(
-                url + '?' + query + '&signature=' + signature,
+                encodedUrl,
                 data,
                 method,
                 this.APIKEY
@@ -3915,6 +3925,22 @@ export default class Binance {
             res.push(candle);
         }
         return res;
+    }
+
+    async spotGetDataStream(params: Dict = {}) {
+        return await this.privateSpotRequest('v3/userDataStream', params, 'POST', true);
+    }
+
+    async spotKeepDataStream(listenKey: string | undefined = undefined, params: Dict = {}) {
+        listenKey = listenKey || this.Options.listenKey;
+        if (!listenKey) throw new Error('A listenKey is required, either as an argument or in this.Options.listenKey');
+        return await this.privateSpotRequest('v3/userDataStream', { listenKey, ...params }, 'PUT');
+    }
+
+    async spotCloseDataStream(listenKey: string | undefined = undefined, params: Dict = {}) {
+        listenKey = listenKey || this.Options.listenKey;
+        if (!listenKey) throw new Error('A listenKey is required, either as an argument or in this.Options.listenKey');
+        return await this.privateSpotRequest('v3/userDataStream', { listenKey, ...params }, 'DELETE');
     }
 
     // /**
