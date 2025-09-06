@@ -2647,7 +2647,7 @@ export default class Binance {
         } else if (type === 'listStatus') {
             if (this.Options.list_status_callback) this.Options.list_status_callback(data);
         } else if (type === 'outboundAccountPosition' || type === 'balanceUpdate') {
-            this.Options.balance_callback(data);
+            if (this.Options.balance_callback) this.Options.balance_callback(data);
         } else {
             this.Options.log('Unexpected userData: ' + type);
         }
