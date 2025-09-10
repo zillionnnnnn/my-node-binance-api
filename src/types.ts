@@ -592,3 +592,12 @@ export interface OpenInterest {
   symbol: string
   time: number
 }
+
+
+export interface SymbolConfig  {
+  symbol: string
+  marginType: string
+  isAutoAddMargin: boolean
+  leverage: number
+  maxNotionalValue: string
+}
