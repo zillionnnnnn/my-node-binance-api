@@ -4051,7 +4051,7 @@ export default class Binance {
      * @param params
      * @returns
      */
-    async futuresSymbolConfig(params: Dict = {}): Promise<SymbolConfig> {
+    async futuresSymbolConfig(params: Dict = {}): Promise<SymbolConfig[]> {
         return await this.privateFuturesRequest('v1/symbolConfig', params);
     }
 
