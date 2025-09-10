@@ -658,7 +658,7 @@ export default class Binance {
         this.requireApiSecret('signedRequest');
         const isListenKeyEndpoint = url.includes('v3/userDataStream');
 
-        const query = method === 'POST' && noDataInSignature ? '' : this.makeQueryString(data);
+        let query = method === 'POST' && noDataInSignature ? '' : this.makeQueryString(data);
 
         let signature = undefined;
         if (!noDataInSignature && !isListenKeyEndpoint) {
@@ -667,6 +667,7 @@ export default class Binance {
             if (this.timeOffset) data.timestamp += this.timeOffset;
 
             if (!data.recvWindow) data.recvWindow = this.Options.recvWindow;
+            query = this.makeQueryString(data);
             signature = this.generateSignature(query);
         }
 
