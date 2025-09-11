@@ -16,7 +16,7 @@ import nodeFetch from 'node-fetch';
 import zip from 'lodash.zipobject';
 import stringHash from 'string-hash';
 // eslint-disable-next-line
-import { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder, HttpMethod, BookTicker, DailyStats, PremiumIndex, OpenInterest, IWebsocketsMethods } from './types.js';
+import { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder, HttpMethod, BookTicker, DailyStats, PremiumIndex, OpenInterest, IWebsocketsMethods, SymbolConfig } from './types.js';
 // export { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, FuturesAccountInfo, FuturesBalance, QueryOrder } from './types';
 
 export interface Dictionary<T> {
@@ -4043,6 +4043,16 @@ export default class Binance {
      */
     async futuresExchangeInfo(params: Dict = {}) {
         return await this.publicFuturesRequest('v1/exchangeInfo', params);
+    }
+
+    /**
+     * Get the symbol configuration
+     * @See https://developers.binance.com/docs/derivatives/usds-margined-futures/account/rest-api/Symbol-Config
+     * @param params
+     * @returns
+     */
+    async futuresSymbolConfig(params: Dict = {}): Promise<SymbolConfig[]> {
+        return await this.privateFuturesRequest('v1/symbolConfig', params);
     }
 
     /**
