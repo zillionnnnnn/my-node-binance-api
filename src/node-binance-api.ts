@@ -261,6 +261,11 @@ export default class Binance {
         return this.stream;
     }
 
+    getFStreamUrl() {
+        if (this.Options.test) return this.fstreamSingleTest;
+        return this.fstreamSingle;
+    }
+
     uuid22(a?: any) {
         return a ? (a ^ Math.random() * 16 >> a / 4).toString(16) : (([1e7] as any) + 1e3 + 4e3 + 8e5).replace(/[018]/g, this.uuid22);
     }
@@ -1457,14 +1462,14 @@ export default class Binance {
                 host: this.parseProxy(socksproxy)[1],
                 port: this.parseProxy(socksproxy)[2]
             });
-            ws = new WebSocket((this.Options.test ? this.fstreamSingleTest : this.fstreamSingle) + endpoint, { agent });
+            ws = new WebSocket((this.getFStreamUrl()) + endpoint, { agent });
         } else if (httpsproxy) {
             const config = url.parse(httpsproxy);
             const agent = new HttpsProxyAgent(config);
             if (this.Options.verbose) this.Options.log(`futuresSubscribeSingle: using proxy server: ${agent}`);
-            ws = new WebSocket((this.Options.test ? this.fstreamSingleTest : this.fstreamSingle) + endpoint, { agent });
+            ws = new WebSocket((this.getFStreamUrl()) + endpoint, { agent });
         } else {
-            ws = new WebSocket((this.Options.test ? this.fstreamSingleTest : this.fstreamSingle) + endpoint);
+            ws = new WebSocket((this.getFStreamUrl()) + endpoint);
         }
 
         if (this.Options.verbose) this.Options.log('futuresSubscribeSingle: Subscribed to ' + endpoint);
