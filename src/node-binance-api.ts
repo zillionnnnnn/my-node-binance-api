@@ -3601,22 +3601,22 @@ export default class Binance {
     /**
     * Withdraws asset to given wallet id
     * @see https://developers.binance.com/docs/wallet/capital/withdraw
-    * @param {string} asset - the asset symbol
+    * @param {string} coin - the coin symbol
     * @param {string} address - the wallet to transfer it to
     * @param {number} amount - the amount to transfer
     * @param {string} addressTag - and addtional address tag
     * @param {string} name - the name to save the address as. Set falsy to prevent Binance saving to address book
     * @return {promise or undefined} - omitting the callback returns a promise
     */
-    async withdraw(asset: string, address: string, amount: number, addressTag?: string, name?: string, params: Dict = {}): Promise<WithdrawResponse> {
+    async withdraw(coin: string, address: string, amount: number, addressTag?: string, name?: string, params: Dict = {}): Promise<WithdrawResponse> {
         // const params = { asset, address, amount };
-        params.asset = asset;
+        params.coin = coin;
         params.address = address;
         params.amount = amount;
         if (name) params.name = name;
         if (addressTag) params.addressTag = addressTag;
 
-        return await this.privateSpotRequest('v1/capital/withdraw/apply', params, 'POST');
+        return await this.privateSapiRequest('v1/capital/withdraw/apply', params, 'POST');
     }
 
     /**
