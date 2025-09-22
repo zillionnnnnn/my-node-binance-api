@@ -3685,7 +3685,7 @@ export default class Binance {
     */
     async tradeFee(symbol?: string) {
         const params = symbol ? { symbol: symbol } : {};
-        return await this.privateSpotRequest('v1/asset/tradeFee', params);
+        return await this.privateSapiRequest('v1/asset/tradeFee', params);
     }
 
     /**
