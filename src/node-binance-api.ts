@@ -30,24 +30,33 @@ export default class Binance {
     domain = 'com';
     base = `https://api.binance.${this.domain}/api/`;
     baseTest = `https://testnet.binance.vision/api/`;
+    baseDemo = `https://demo-api.binance.com/api/`;
     wapi = `https://api.binance.${this.domain}/wapi/`;
     sapi = `https://api.binance.${this.domain}/sapi/`;
     fapi = `https://fapi.binance.${this.domain}/fapi/`;
     dapi = `https://dapi.binance.${this.domain}/dapi/`;
     fapiTest = `https://testnet.binancefuture.com/fapi/`;
+    fapiDemo = `https://demo-fapi.binance.com/fapi/`;
     dapiTest = `https://testnet.binancefuture.com/dapi/`;
+    dapiDemo = `https://demo-dapi.binance.com/dapi/`;
     fstream = `wss://fstream.binance.${this.domain}/stream?streams=`;
     fstreamSingle = `wss://fstream.binance.${this.domain}/ws/`;
     fstreamSingleTest = `wss://stream.binancefuture.${this.domain}/ws/`;
+    fstreamSingleDemo = `wss://fstream.binancefuture.com/ws/`;
     fstreamTest = `wss://stream.binancefuture.${this.domain}/stream?streams=`;
+    fstreamDemo = `wss://fstream.binancefuture.com/stream?streams=`;
     dstream = `wss://dstream.binance.${this.domain}/stream?streams=`;
     dstreamSingle = `wss://dstream.binance.${this.domain}/ws/`;
     dstreamSingleTest = `wss://dstream.binancefuture.${this.domain}/ws/`;
+    dstreamSingleDemo = `wss://dstream.binancefuture.com/ws/`;
     dstreamTest = `wss://dstream.binancefuture.${this.domain}/stream?streams=`;
+    dstreamDemo = `wss://dstream.binancefuture.com/stream?streams=`;
     stream = `wss://stream.binance.${this.domain}:9443/ws/`;
     streamTest = `wss://stream.testnet.binance.vision/ws/`;
+    streamDemo = `wss://demo-stream.binance.com/ws/`;
     combineStream = `wss://stream.binance.${this.domain}:9443/stream?streams=`;
     combineStreamTest = `wss://stream.testnet.binance.vision/stream?streams=`;
+    combineStreamDemo = `wss://demo-stream.binance.com/stream?streams=`;
 
     verbose = false;
 
@@ -65,7 +74,8 @@ export default class Binance {
     APISECRET: string = undefined;
     PRIVATEKEY: string = undefined;
     PRIVATEKEYPASSWORD: string = undefined;
-    test = false;
+    test = false; // sandbox mode
+    demo = false; // demo mode
 
     timeOffset: number = 0;
 
@@ -150,6 +160,7 @@ export default class Binance {
         keepAlive: true,
         verbose: false,
         test: false,
+        demo: false,
         hedgeMode: false,
         localAddress: false,
         family: 4,
@@ -214,6 +225,7 @@ export default class Binance {
         if (this.Options.PRIVATEKEY) this.PRIVATEKEY = this.Options.PRIVATEKEY;
         if (this.Options.PRIVATEKEYPASSWORD) this.PRIVATEKEYPASSWORD = this.Options.PRIVATEKEYPASSWORD;
         if (this.Options.test) this.test = true;
+        if (this.Options.demo) this.demo = true;
         if (this.Options.headers) this.headers = this.Options.Headers;
         if (this.Options.domain) this.domain = this.Options.domain;
     }
@@ -233,6 +245,7 @@ export default class Binance {
     extend = (...args: any[]) => Object.assign({}, ...args);
 
     getSpotUrl() {
+        if (this.Options.demo) return this.baseDemo;
         if (this.Options.test) return this.baseTest;
         return this.base;
     }
@@ -242,28 +255,51 @@ export default class Binance {
     }
 
     getFapiUrl() {
+        if (this.Options.demo) return this.fapiDemo;
         if (this.Options.test) return this.fapiTest;
         return this.fapi;
     }
 
     getDapiUrl() {
+        if (this.Options.demo) return this.dapiDemo;
         if (this.Options.test) return this.dapiTest;
         return this.dapi;
     }
 
     getCombineStreamUrl() {
+        if (this.Options.demo) return this.combineStreamDemo;
         if (this.Options.test) return this.combineStreamTest;
         return this.combineStream;
     }
 
     getStreamUrl() {
+        if (this.Options.demo) return this.streamDemo;
         if (this.Options.test) return this.streamTest;
         return this.stream;
     }
 
-    getFStreamUrl() {
+    getDStreamSingleUrl() {
+        if (this.Options.demo) return this.dstreamSingleDemo;
+        if (this.Options.test) return this.dstreamSingleTest;
+        return this.dstreamSingle;
+    }
+
+    getFStreamSingleUrl() {
+        if (this.Options.demo) return this.fstreamSingleDemo;
         if (this.Options.test) return this.fstreamSingleTest;
         return this.fstreamSingle;
+    }
+
+    getFStreamUrl() {
+        if (this.Options.demo) return this.fstreamDemo;
+        if (this.Options.test) return this.fstreamTest;
+        return this.fstream;
+    }
+
+    getDStreamUrl() {
+        if (this.Options.demo) return this.dstreamDemo;
+        if (this.Options.test) return this.dstreamTest;
+        return this.dstream;
     }
 
     uuid22(a?: any) {
@@ -1462,14 +1498,14 @@ export default class Binance {
                 host: this.parseProxy(socksproxy)[1],
                 port: this.parseProxy(socksproxy)[2]
             });
-            ws = new WebSocket((this.getFStreamUrl()) + endpoint, { agent });
+            ws = new WebSocket((this.getFStreamSingleUrl()) + endpoint, { agent });
         } else if (httpsproxy) {
             const config = url.parse(httpsproxy);
             const agent = new HttpsProxyAgent(config);
             if (this.Options.verbose) this.Options.log(`futuresSubscribeSingle: using proxy server: ${agent}`);
-            ws = new WebSocket((this.getFStreamUrl()) + endpoint, { agent });
+            ws = new WebSocket((this.getFStreamSingleUrl()) + endpoint, { agent });
         } else {
-            ws = new WebSocket((this.getFStreamUrl()) + endpoint);
+            ws = new WebSocket((this.getFStreamSingleUrl()) + endpoint);
         }
 
         if (this.Options.verbose) this.Options.log('futuresSubscribeSingle: Subscribed to ' + endpoint);
@@ -1517,14 +1553,14 @@ export default class Binance {
                 host: this.parseProxy(socksproxy)[1],
                 port: this.parseProxy(socksproxy)[2]
             });
-            ws = new WebSocket((this.Options.test ? this.fstreamTest : this.fstream) + queryParams, { agent });
+            ws = new WebSocket(this.getFStreamUrl() + queryParams, { agent });
         } else if (httpsproxy) {
             if (this.Options.verbose) this.Options.log(`futuresSubscribe: using proxy server ${httpsproxy}`);
             const config = url.parse(httpsproxy);
             const agent = new HttpsProxyAgent(config);
-            ws = new WebSocket((this.Options.test ? this.fstreamTest : this.fstream) + queryParams, { agent });
+            ws = new WebSocket(this.getFStreamUrl() + queryParams, { agent });
         } else {
-            ws = new WebSocket((this.Options.test ? this.fstreamTest : this.fstream) + queryParams);
+            ws = new WebSocket(this.getFStreamUrl() + queryParams);
         }
 
         ws.reconnect = this.Options.reconnect;
@@ -2175,14 +2211,14 @@ export default class Binance {
                 host: this.parseProxy(socksproxy)[1],
                 port: this.parseProxy(socksproxy)[2]
             });
-            ws = new WebSocket((this.Options.test ? this.dstreamSingleTest : this.dstreamSingle) + endpoint, { agent });
+            ws = new WebSocket((this.getDStreamSingleUrl()) + endpoint, { agent });
         } else if (httpsproxy) {
             const config = url.parse(httpsproxy);
             const agent = new HttpsProxyAgent(config);
             if (this.Options.verbose) this.Options.log(`deliverySubscribeSingle: using proxy server: ${agent}`);
-            ws = new WebSocket((this.Options.test ? this.dstreamSingleTest : this.dstreamSingle) + endpoint, { agent });
+            ws = new WebSocket((this.getDStreamSingleUrl()) + endpoint, { agent });
         } else {
-            ws = new WebSocket((this.Options.test ? this.dstreamSingleTest : this.dstreamSingle) + endpoint);
+            ws = new WebSocket((this.getDStreamSingleUrl()) + endpoint);
         }
 
         if (this.Options.verbose) this.Options.log('deliverySubscribeSingle: Subscribed to ' + endpoint);
@@ -2229,14 +2265,14 @@ export default class Binance {
                 host: this.parseProxy(socksproxy)[1],
                 port: this.parseProxy(socksproxy)[2]
             });
-            ws = new WebSocket((this.Options.test ? this.dstreamTest : this.dstream) + queryParams, { agent });
+            ws = new WebSocket((this.getDStreamUrl()) + queryParams, { agent });
         } else if (httpsproxy) {
             if (this.Options.verbose) this.Options.log(`deliverySubscribe: using proxy server ${httpsproxy}`);
             const config = url.parse(httpsproxy);
             const agent = new HttpsProxyAgent(config);
-            ws = new WebSocket((this.Options.test ? this.dstreamTest : this.dstream) + queryParams, { agent });
+            ws = new WebSocket((this.getDStreamUrl()) + queryParams, { agent });
         } else {
-            ws = new WebSocket((this.Options.test ? this.dstreamTest : this.dstream) + queryParams);
+            ws = new WebSocket((this.getDStreamUrl()) + queryParams);
         }
 
         ws.reconnect = this.Options.reconnect;
@@ -5663,7 +5699,8 @@ export default class Binance {
      * @param {Function} subscribed_callback - subscription callback
      */
     userFutureData(all_updates_callback?: Callback, margin_call_callback?: Callback, account_update_callback?: Callback, order_update_callback?: Callback, subscribed_callback?: Callback, account_config_update_callback?: Callback) {
-        const url = (this.Options.test) ? this.fapiTest : this.fapi;
+        // const url = (this.Options.test) ? this.fapiTest : this.fapi;
+        const url = this.getFapiUrl();
 
         const reconnect = () => {
             if (this.Options.reconnect) this.userFutureData(all_updates_callback, margin_call_callback, account_update_callback, order_update_callback, subscribed_callback);
@@ -5708,7 +5745,7 @@ export default class Binance {
         order_update_callback?: Callback,
         subscribed_callback?: Callback
     ) {
-        const url = this.Options.test ? this.dapiTest : this.dapi;
+        const url = this.getDapiUrl();
 
         const reconnect = async () => {
             if (this.Options.reconnect)
