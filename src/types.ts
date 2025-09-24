@@ -136,6 +136,7 @@ export interface IConstructorArgs {
     useServerTime: boolean;
     reconnect: boolean;
     test: boolean;
+    demo: boolean;
     hedgeMode: boolean;
     httpsProxy: string;
     socksProxy: string;

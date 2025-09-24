@@ -37,14 +37,15 @@ let debug = function (x) {
 const binance = new Binance().options({
     APIKEY: 'X4BHNSimXOK6RKs2FcKqExquJtHjMxz5hWqF0BBeVnfa5bKFMk7X0wtkfEz0cPrJ',
     APISECRET: 'x8gLihunpNq0d46F2q0TWJmeCDahX5LMXSlv3lSFNbMI3rujSOpTDKdhbcmPSf2i',
-    test: true
+    test: true,
+    httpsProxy: 'http://188.245.226.105:8911'
 });
 
 const futuresBinance = new Binance().options({
-    APIKEY: '227719da8d8499e8d3461587d19f259c0b39c2b462a77c9b748a6119abd74401',
-    APISECRET: 'b14b935f9cfacc5dec829008733c40da0588051f29a44625c34967b45c11d73c',
-    hedgeMode: true,
-    test: true
+    APIKEY: 'HjhMFvuF1veWQVdUbLIy7TiCYe9fj4W6sEukmddD8TM9kPVRHMK6nS2SdV5mwE5u',
+    APISECRET: 'Suu9pWcO9zbvVuc6cSQsVuiiw2DmmA8DgHrUfePF9s2RtaHa0zxK3eAF4MfIk7Pd',
+    demo: true,
+    httpsProxy: 'http://188.245.226.105:8911'
 });
 
 /*global describe*/
@@ -307,6 +308,7 @@ describe('Futures MarketBuy', function () {
             assert(res['orderId'] !== undefined)
             futuresOrderId = res['orderId'];
         } catch (e) {
+            console.error(e);
             const exceptionA = '{"code":-2010,"msg":"Account has insufficient balance for requested action."}';
             const exceptionB = '{"code":-2019,"msg":"Margin is insufficient."}'
             const eStr = e.toString();
