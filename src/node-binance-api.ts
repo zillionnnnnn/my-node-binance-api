@@ -785,7 +785,7 @@ export default class Binance {
      * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-trade
      * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#test-new-order-trade
      * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-list---oco-trade
-     * @param {OrderType} type - LIMIT, MARKET, STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, LIMIT_MAKER
+     * @param {OrderType} type - LIMIT, MARKET, STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, LIMIT_MAKER, OCO
      * @param {OrderSide} side - BUY or SELL
      * @param {string} symbol - The symbol to buy or sell
      * @param {string} quantity - The quantity to buy or sell
@@ -797,7 +797,8 @@ export default class Binance {
      * @return {undefined}
      */
     async order(type: OrderType, side: OrderSide, symbol: string, quantity: number, price?: number, params: Dict = {}): Promise<Order> {
-        let endpoint = params.type === 'OCO' ? 'v3/orderList/oco' : 'v3/order';
+        const isOCO = type === 'OCO' || params.type === 'OCO';
+        let endpoint = isOCO ? 'v3/orderList/oco' : 'v3/order';
         if (params.test) {
             delete params.test;
             endpoint += '/test';
@@ -805,44 +806,41 @@ export default class Binance {
         const request = {
             symbol: symbol,
             side: side,
-            type: type
+            // type: type
         } as Dict;
+        if (!isOCO) request.type = type;
         if (params.quoteOrderQty && params.quoteOrderQty > 0)
             request.quoteOrderQty = params.quoteOrderQty;
         else
             request.quantity = quantity;
 
-        if (request.type.includes('LIMIT')) {
+        if (!isOCO && request.type.includes('LIMIT')) {
             request.price = price;
             if (request.type !== 'LIMIT_MAKER') {
                 request.timeInForce = 'GTC';
             }
         }
-        if (request.type == 'MARKET' && typeof params.quoteOrderQty !== 'undefined') {
+        if (!isOCO && request.type == 'MARKET' && typeof params.quoteOrderQty !== 'undefined') {
             request.quoteOrderQty = params.quoteOrderQty;
             delete request.quantity;
         }
-        if (request.type === 'OCO') {
-            request.price = price;
-            request.stopLimitPrice = params.stopLimitPrice;
-            request.stopLimitTimeInForce = 'GTC';
-            delete request.type;
-            // if (typeof params.listClientOrderId !== 'undefined') opt.listClientOrderId = params.listClientOrderId;
-            // if (typeof params.limitClientOrderId !== 'undefined') opt.limitClientOrderId = params.limitClientOrderId;
-            // if (typeof params.stopClientOrderId !== 'undefined') opt.stopClientOrderId = params.stopClientOrderId;
-        }
         // if (typeof params.timeInForce !== 'undefined') opt.timeInForce = params.timeInForce;
         // if (typeof params.newOrderRespType !== 'undefined') opt.newOrderRespType = params.newOrderRespType;
-        if (!params.newClientOrderId) {
-            request.newClientOrderId = this.SPOT_PREFIX + this.uuid22();
+        if (!params.newClientOrderId && !params.listClientOrderId) {
+            const id = this.SPOT_PREFIX + this.uuid22();
+            if (!isOCO) {
+                request.newClientOrderId = id;
+            } else {
+                request.listClientOrderId = id;
+            }
         }
 
-        const allowedTypesForStopAndTrailing = ['STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT'];
+        const allowedTypesForStopAndTrailing = ['STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT', 'OCO'];
         if (params.trailingDelta) {
             request.trailingDelta = params.trailingDelta;
 
-            if (!allowedTypesForStopAndTrailing.includes(request.type)) {
-                throw Error('trailingDelta: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
+            if (!isOCO && !allowedTypesForStopAndTrailing.includes(request.type)) {
+                throw Error('trailingDelta: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, OCO');
             }
         }
 
@@ -856,8 +854,8 @@ export default class Binance {
         // if (typeof params.icebergQty !== 'undefined') request.icebergQty = params.icebergQty;
         if (params.stopPrice) {
             request.stopPrice = params.stopPrice;
-            if (!allowedTypesForStopAndTrailing.includes(request.type)) {
-                throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT');
+            if (!isOCO && !allowedTypesForStopAndTrailing.includes(request.type)) {
+                throw Error('stopPrice: Must set "type" to one of the following: STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, OCO');
             }
         }
         const response = await this.privateSpotRequest(endpoint, this.extend(request, params), 'POST');
@@ -872,6 +870,43 @@ export default class Binance {
         // }
         // if ( callback ) callback( error, response );
         // else this.options.log( side + '(' + symbol + ',' + quantity + ',' + price + ') ', response );
+        return response;
+    }
+
+    /**
+     * Create a OCO spot order
+     * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-list---oco-trade
+     * @param {OrderSide} side - BUY or SELL
+     * @param {string} symbol - The symbol to buy or sell
+     * @param {string} quantity - The quantity to buy or sell
+     * @param {string} price - The price per unit to transact each unit at
+     * @param {object} params - additional order settings
+     * @param {string} params.aboveType - The type of the above order
+     * @param {string} params.belowType - The type of the below order
+     * @param {string} params.abovePrice - The price of the above order
+     * @param {string} params.aboveStopPrice - The stop price of the above order
+     * @param {string} params.aboveTrailingDelta - The trailing delta of the above order
+     * @param {string} params.aboveTimeInForce - The time in force of the above order
+     * @param {string} params.belowPrice - The price of the below order
+     * @param {string} params.belowStopPrice - The stop price of the below order
+     * @param {string} params.belowTrailingDelta - The trailing delta of the below order
+     * @param {string} params.belowTimeInForce - The time in force of the below order
+     * @return {undefined}
+     */
+    async ocoOrder(side: OrderSide, symbol: string, quantity: number, params: Dict = {}): Promise<any> {
+        const request = {
+            symbol: symbol,
+            side: side,
+            quantity: quantity,
+        } as Dict;
+
+        if (!params.listClientOrderId) {
+            const id = this.SPOT_PREFIX + this.uuid22();
+            request.listClientOrderId = id;
+        }
+
+        const endpoint = 'v3/orderList/oco';
+        const response = await this.privateSpotRequest(endpoint, this.extend(request, params), 'POST');
         return response;
     }
 

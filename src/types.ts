@@ -30,6 +30,7 @@ export type OrderType =
     | 'TAKE_PROFIT_MARKET'
     | 'LIMIT_MAKER'
     | 'TRAILING_STOP_MARKET'
+    | 'OCO'
 
 export type OrderSide = 'BUY' | 'SELL'
 
