@@ -38,15 +38,14 @@ const binance = new Binance().options({
     APIKEY: 'X4BHNSimXOK6RKs2FcKqExquJtHjMxz5hWqF0BBeVnfa5bKFMk7X0wtkfEz0cPrJ',
     APISECRET: 'x8gLihunpNq0d46F2q0TWJmeCDahX5LMXSlv3lSFNbMI3rujSOpTDKdhbcmPSf2i',
     test: true,
-    httpsProxy: 'http://188.245.226.105:3128'
+    // httpsProxy: 'http://188.245.226.105:3128'
 });
 
 const futuresBinance = new Binance().options({
     APIKEY: 'HjhMFvuF1veWQVdUbLIy7TiCYe9fj4W6sEukmddD8TM9kPVRHMK6nS2SdV5mwE5u',
     APISECRET: 'Suu9pWcO9zbvVuc6cSQsVuiiw2DmmA8DgHrUfePF9s2RtaHa0zxK3eAF4MfIk7Pd',
-    hedgeMode: true,
     demo: true,
-    httpsProxy: 'http://188.245.226.105:3128'
+    // httpsProxy: 'http://188.245.226.105:3128'
 });
 
 /*global describe*/
@@ -309,6 +308,7 @@ describe('Futures MarketBuy', function () {
             assert(res['orderId'] !== undefined)
             futuresOrderId = res['orderId'];
         } catch (e) {
+            console.error(e);
             const exceptionA = '{"code":-2010,"msg":"Account has insufficient balance for requested action."}';
             const exceptionB = '{"code":-2019,"msg":"Margin is insufficient."}'
             const eStr = e.toString();
