@@ -228,6 +228,7 @@ export default class Binance {
         if (this.Options.demo) this.demo = true;
         if (this.Options.headers) this.headers = this.Options.Headers;
         if (this.Options.domain) this.domain = this.Options.domain;
+        if (this.Options.httpsProxy) this.httpsProxy = this.Options.httpsProxy;
     }
 
     async setOptions(opt = {}): Promise<Binance> {
