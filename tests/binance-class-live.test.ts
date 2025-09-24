@@ -37,14 +37,16 @@ let debug = function (x) {
 const binance = new Binance().options({
     APIKEY: 'X4BHNSimXOK6RKs2FcKqExquJtHjMxz5hWqF0BBeVnfa5bKFMk7X0wtkfEz0cPrJ',
     APISECRET: 'x8gLihunpNq0d46F2q0TWJmeCDahX5LMXSlv3lSFNbMI3rujSOpTDKdhbcmPSf2i',
-    test: true
+    test: true,
+    httpsProxy: 'http://188.245.226.105:3128'
 });
 
 const futuresBinance = new Binance().options({
-    APIKEY: '227719da8d8499e8d3461587d19f259c0b39c2b462a77c9b748a6119abd74401',
-    APISECRET: 'b14b935f9cfacc5dec829008733c40da0588051f29a44625c34967b45c11d73c',
+    APIKEY: 'HjhMFvuF1veWQVdUbLIy7TiCYe9fj4W6sEukmddD8TM9kPVRHMK6nS2SdV5mwE5u',
+    APISECRET: 'Suu9pWcO9zbvVuc6cSQsVuiiw2DmmA8DgHrUfePF9s2RtaHa0zxK3eAF4MfIk7Pd',
     hedgeMode: true,
-    test: true
+    demo: true,
+    httpsProxy: 'http://188.245.226.105:3128'
 });
 
 /*global describe*/
