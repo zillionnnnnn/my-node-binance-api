@@ -17,7 +17,7 @@ const futuresBinance = new Binance().options({
     APISECRET: 'Suu9pWcO9zbvVuc6cSQsVuiiw2DmmA8DgHrUfePF9s2RtaHa0zxK3eAF4MfIk7Pd',
     hedgeMode: true,
     demo: true,
-    httpsProxy: 'http://188.245.226.105:3128'
+    httpsProxy: 'http://188.245.226.105:8911'
 });
 
 
