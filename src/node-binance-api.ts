@@ -16,7 +16,7 @@ import nodeFetch from 'node-fetch';
 import zip from 'lodash.zipobject';
 import stringHash from 'string-hash';
 // eslint-disable-next-line
-import { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder, HttpMethod, BookTicker, DailyStats, PremiumIndex, OpenInterest, IWebsocketsMethods, SymbolConfig } from './types.js';
+import { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, Account, FuturesAccountInfo, FuturesBalance, QueryOrder, HttpMethod, BookTicker, DailyStats, PremiumIndex, OpenInterest, IWebsocketsMethods, SymbolConfig, OCOOrder } from './types.js';
 // export { Interval, PositionRisk, Order, FuturesOrder, PositionSide, WorkingType, OrderType, OrderStatus, TimeInForce, Callback, IConstructorArgs, OrderSide, FundingRate, CancelOrder, AggregatedTrade, Trade, MyTrade, WithdrawHistoryResponse, DepositHistoryResponse, DepositAddress, WithdrawResponse, Candle, FuturesCancelAllOpenOrder, OrderBook, Ticker, FuturesUserTrade, FuturesAccountInfo, FuturesBalance, QueryOrder } from './types';
 
 export interface Dictionary<T> {
@@ -874,7 +874,7 @@ export default class Binance {
     }
 
     /**
-     * Create a OCO spot order
+     * Create an OCO spot order
      * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#new-order-list---oco-trade
      * @param {OrderSide} side - BUY or SELL
      * @param {string} symbol - The symbol to buy or sell
@@ -893,7 +893,7 @@ export default class Binance {
      * @param {string} params.belowTimeInForce - The time in force of the below order
      * @return {undefined}
      */
-    async ocoOrder(side: OrderSide, symbol: string, quantity: number, params: Dict = {}): Promise<any> {
+    async ocoOrder(side: OrderSide, symbol: string, quantity: number, params: Dict = {}): Promise<OCOOrder> {
         const request = {
             symbol: symbol,
             side: side,

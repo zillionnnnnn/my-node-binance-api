@@ -29,7 +29,9 @@ async function main() {
     }
 
     const oco1 = await binance.ocoOrder(side, symbol, quantity, params);
-    console.log('oco1', oco1);
+    console.log('oco1', oco1.orderListId);
+    console.log(oco1.orderReports[0].orderId)
+    console.log(oco1.orderReports[1].orderId)
 
 }
 
