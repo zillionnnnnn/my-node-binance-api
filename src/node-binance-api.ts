@@ -1027,7 +1027,7 @@ export default class Binance {
     * @return {promise or undefined} - omitting the callback returns a promise
     */
     async cancelAll(symbol: string, params: Dict = {}): Promise<CancelOrder> {
-        return await this.privateSpotRequest('v3/openOrders', this.extend({ symbol: symbol}, params), 'DELETE');
+        return await this.privateSpotRequest('v3/openOrders', this.extend({ symbol: symbol }, params), 'DELETE');
     }
 
     /**
