@@ -1021,6 +1021,16 @@ export default class Binance {
     }
 
     /**
+    * Cancels all orders
+    * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#cancel-all-open-orders-on-a-symbol-trade
+    * @param {string} symbol - the symbol to cancel
+    * @return {promise or undefined} - omitting the callback returns a promise
+    */
+    async cancelAll(symbol: string, params: Dict = {}): Promise<CancelOrder> {
+        return await this.privateSpotRequest('v3/openOrders', this.extend({ symbol: symbol }, params), 'DELETE');
+    }
+
+    /**
 * Gets the status of an order
 * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#query-order-user_data
 * @param {string} symbol - the symbol to check
