@@ -19,7 +19,7 @@ color=blueviolet 🔵q
 
 # Node Binance API
 
-[![telegram](https://patrolavia.github.io/telegram-badge/chat.png)](https://t.me/nodebinanceapi) [![Yearly Downloads](https://img.shields.io/npm/dy/node-binance-api.svg)](https://www.npmjs.com/package/node-binance-api)  [![jaggedsoft on X](https://img.shields.io/twitter/follow/jaggedsoft.svg?style=social)](https://x.com/jaggedsoft)
+[![telegram](https://patrolavia.github.io/telegram-badge/chat.png)](https://t.me/nodebinanceapi) [![Yearly Downloads](https://img.shields.io/npm/dy/node-binance-api.svg)](https://www.npmjs.com/package/node-binance-api)  [![CCXT on X](https://img.shields.io/twitter/follow/jaggedsoft.svg?style=social)](https://x.com/ccxt_official)
 
 This project is designed to help you make your own projects that interact with the [Binance API](https://github.com/binance-exchange/binance-official-api-docs). You can stream candlestick chart data, market depth, or use other advanced features such as setting stop losses and iceberg orders. This project seeks to have complete API coverage including WebSockets.
 
@@ -2181,4 +2181,4 @@ binance.setOption( 'verbose', true );
 - Select existing [issues](https://github.com/jaggedsoft/node-binance-api/issues) or create a [new issue](https://github.com/jaggedsoft/node-binance-api/issues/new) and give us a PR with your bugfix or improvement after. We love it ❤️
 
 ![Downloads](https://img.shields.io/npm/dt/node-binance-api.svg?style=for-the-badge&maxAge=86400) ![Stars](https://img.shields.io/github/stars/jaggedsoft/node-binance-api.svg?style=for-the-badge&label=Stars) ![Contributors](https://img.shields.io/github/contributors/jaggedsoft/node-binance-api.svg?style=for-the-badge&maxAge=86400)
-[![jaggedsoft on X](https://img.shields.io/twitter/follow/jaggedsoft.svg?style=social)](https://x.com/jaggedsoft)
+[![CCXT on X](https://img.shields.io/twitter/follow/ccxt_official.svg?style=social)](https://x.com/ccxt_official)
