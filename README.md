@@ -19,7 +19,7 @@ color=blueviolet 🔵q
 
 # Node Binance API
 
-[![telegram](https://patrolavia.github.io/telegram-badge/chat.png)](https://t.me/nodebinanceapi) [![Yearly Downloads](https://img.shields.io/npm/dy/node-binance-api.svg)](https://www.npmjs.com/package/node-binance-api)  [![CCXT on X](https://img.shields.io/twitter/follow/jaggedsoft.svg?style=social)](https://x.com/ccxt_official)
+[![telegram](https://patrolavia.github.io/telegram-badge/chat.png)](https://t.me/nodebinanceapi) [![Yearly Downloads](https://img.shields.io/npm/dy/node-binance-api.svg)](https://www.npmjs.com/package/node-binance-api)  [![CCXT on X](https://img.shields.io/twitter/follow/ccxt_official.svg?style=social)](https://x.com/ccxt_official)
 
 This project is designed to help you make your own projects that interact with the [Binance API](https://github.com/binance-exchange/binance-official-api-docs). You can stream candlestick chart data, market depth, or use other advanced features such as setting stop losses and iceberg orders. This project seeks to have complete API coverage including WebSockets.
 
@@ -43,7 +43,7 @@ This project is designed to help you make your own projects that interact with t
 ```
 npm install node-binance-api
 ```
-[![NPM](https://nodei.co/npm/node-binance-api.png?compact=true)](https://npmjs.org/package/node-binance-api)
+[![NPM](https://nodei.co/npm/node-binance-api.png?compact=false)](https://npmjs.org/package/node-binance-api)
 <!-- [![npm install node-binance-api](https://nodei.co/npm/node-binance-api.png?mini=true)](https://npmjs.org/package/node-binance-api) -->
 
 #### Community Telegram Chat
