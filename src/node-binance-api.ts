@@ -396,10 +396,10 @@ export default class Binance {
             // } catch (e) {
             //     parsedResponse = await response.text();
             // }
-            const error = new Error(await response.text());
+            throw new Error(await response.text());
             // error.code = response.status;
             // error.url = response.url;
-            throw error;
+            // throw error;
         }
     }
 
